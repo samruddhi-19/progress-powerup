@@ -12,7 +12,7 @@
     "card-badges",
     "card-detail-badges",
     "card-buttons",
-    "card-back-section",
+    "card-back-section"
   ],
   "connectorName": "Progress",
   "tags": ["productivity", "time-tracking"]
