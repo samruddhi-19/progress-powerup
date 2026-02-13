@@ -1,7 +1,8 @@
-var t = TrelloPowerUp.iframe();
+// auth.js
+/* global TrelloPowerUp */
+const t = TrelloPowerUp.iframe();
 
-document.getElementById("authBtn").onclick = async () => {
+document.getElementById("authBtn").addEventListener("click", async () => {
   await t.set("board", "shared", "disabled", false);
-  t.closePopup();
-  t.refresh();
-};
+  return t.closePopup();
+});
