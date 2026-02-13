@@ -14,15 +14,20 @@ function makeBar(pct) {
 }
 
 function formatHM(sec) {
+  if (sec === undefined || sec === null || isNaN(sec)) {
+    return "00:00";
+  }
   const h = String(Math.floor(sec / 3600)).padStart(2, "0");
   const m = String(Math.floor((sec % 3600) / 60)).padStart(2, "0");
   return `${h}:${m}`;
 }
 
 function computeElapsed(data) {
-  if (!data || !data.running || !data.startTime) return data?.elapsed || 0;
+  if (!data) return 0;
+  if (!data.running || !data.startTime) return data?.elapsed || 0;
   const now = Date.now();
-  return data.elapsed + Math.floor((now - data.startTime) / 1000);
+  const elapsed = data.elapsed || 0;
+  return elapsed + Math.floor((now - data.startTime) / 1000);
 }
 
 function computeTimerProgress(data) {
@@ -65,7 +70,7 @@ function injectBadgeStyles() {
     }
     style.innerHTML = css;
   } catch (e) {
-    console.log("CSS injection note:", e);
+    // Silently fail - don't log to console
   }
 }
 
@@ -192,11 +197,12 @@ TrelloPowerUp.initialize({
 
     if (!hideTimer) {
       badges.push({
+        title: "Timer",
         text: "",
         dynamic: function (t) {
           return t.get("card", "shared").then((d) => {
             if (!d) return { text: "" };
-            const el = computeElapsed(d);
+            const el = computeElapsed(d) || 0;
             const est = d.estimated || 8 * 3600;
             return {
               text: `⏱ ${formatHM(el)} | Est ${formatHM(est)}`,
@@ -256,7 +262,7 @@ TrelloPowerUp.initialize({
           dynamic: function (t) {
             return t.get("card", "shared").then((d) => {
               if (!d) return { text: "" };
-              const el = computeElapsed(d);
+              const el = computeElapsed(d) || 0;
               const est = d.estimated || 8 * 3600;
               return {
                 text: `⏱ ${formatHM(el)} | Est ${formatHM(est)}`,

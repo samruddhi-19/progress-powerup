@@ -26,7 +26,8 @@ async function loadUI() {
 
   qs("hideBadges").checked = board.hideBadges ?? DEFAULTS.hideBadges;
   qs("hideTimer").checked = board.hideTimerBadges ?? DEFAULTS.hideTimerBadges;
-  qs("hideDetail").checked = board.hideDetailBadges ?? DEFAULTS.hideDetailBadges;
+  qs("hideDetail").checked =
+    board.hideDetailBadges ?? DEFAULTS.hideDetailBadges;
   qs("hideBars").checked = board.hideProgressBars ?? DEFAULTS.hideProgressBars;
   qs("focusMode").checked = board.autoFocus ?? DEFAULTS.autoFocus;
   qs("autoTrackMode").value = board.autoTrackMode ?? DEFAULTS.autoTrackMode;
@@ -66,40 +67,38 @@ function renderAuthorize() {
       msg.textContent = "Enabled. Closing…";
       t.closePopup();
     } catch (e) {
-      console.error(e);
-      msg.textContent = "Failed to enable (check console).";
+      msg.textContent = "Failed to enable. Please try again.";
     }
   });
 }
 
 async function setBoard(key, value) {
-  await t.set("board", "shared", key, value); // t.set mirrors t.get [web:45]
-  t.refresh();
+  await t.set("board", "shared", key, value);
 }
 
 function bind() {
   qs("hideBadges").addEventListener("change", (e) =>
-    setBoard("hideBadges", e.target.checked)
+    setBoard("hideBadges", e.target.checked),
   );
 
   qs("hideTimer").addEventListener("change", (e) =>
-    setBoard("hideTimerBadges", e.target.checked)
+    setBoard("hideTimerBadges", e.target.checked),
   );
 
   qs("hideDetail").addEventListener("change", (e) =>
-    setBoard("hideDetailBadges", e.target.checked)
+    setBoard("hideDetailBadges", e.target.checked),
   );
 
   qs("hideBars").addEventListener("change", (e) =>
-    setBoard("hideProgressBars", e.target.checked)
+    setBoard("hideProgressBars", e.target.checked),
   );
 
   qs("focusMode").addEventListener("change", (e) =>
-    setBoard("autoFocus", e.target.checked)
+    setBoard("autoFocus", e.target.checked),
   );
 
   qs("autoTrackMode").addEventListener("change", (e) =>
-    setBoard("autoTrackMode", e.target.value)
+    setBoard("autoTrackMode", e.target.value),
   );
 
   qs("unauthBtn").addEventListener("click", async () => {
@@ -109,13 +108,16 @@ function bind() {
     const all = await t.getAll(); // [web:45]
 
     const boardShared = all?.board?.shared || {};
-    for (const key of Object.keys(boardShared)) await t.remove("board", "shared", key);
+    for (const key of Object.keys(boardShared))
+      await t.remove("board", "shared", key);
 
     const cardShared = all?.card?.shared || {};
-    for (const key of Object.keys(cardShared)) await t.remove("card", "shared", key);
+    for (const key of Object.keys(cardShared))
+      await t.remove("card", "shared", key);
 
     const memPrivate = all?.member?.private || {};
-    for (const key of Object.keys(memPrivate)) await t.remove("member", "private", key);
+    for (const key of Object.keys(memPrivate))
+      await t.remove("member", "private", key);
 
     await t.set("board", "shared", "disabled", true);
     alert("Power-Up data cleared.");
