@@ -56,7 +56,7 @@ function injectBadgeStyles() {
         border: 1px solid rgba(239, 68, 68, 0.4) !important;
       }
     `;
-    
+
     let style = document.getElementById("trello-progress-badge-styles");
     if (!style) {
       style = document.createElement("style");
@@ -81,10 +81,18 @@ if (document.head) {
 ---------------------------------------- */
 
 TrelloPowerUp.initialize({
+  "authorization-status": async function (t) {
+    const authorized = await t.get("member", "private", "authorized");
+    const disabled = await t.get("board", "shared", "disabled");
 
-   "authorization-status": function (t) {
-    return t.get("member", "private", "authorized")
-      .then((v) => ({ authorized: v === true }));
+    // If nothing is set, default to unauthorized/disabled
+    if (authorized === undefined) {
+      await t.set("member", "private", "authorized", false);
+      await t.set("board", "shared", "disabled", true);
+      return { authorized: false };
+    }
+
+    return { authorized: authorized === true };
   },
 
   "show-authorization": function (t) {
@@ -94,25 +102,12 @@ TrelloPowerUp.initialize({
       height: 200,
     });
   },
-  
+
   "board-buttons": async function (t) {
     const disabled = await t.get("board", "shared", "disabled");
 
-    if (disabled)
-      return [
-        {
-          icon: ICON,
-          text: "Progress",
-          callback: function (t, opts) {
-            return t.popup({
-              title: "Authorize power up",
-              url: "./auth.html",
-              height: 200,
-              mouseEvent: opts.mouseEvent,
-            });
-          },
-        },
-      ];
+    // Don't show board button when disabled - force user to use proper auth flow
+    if (disabled) return [];
 
     return [
       {
@@ -346,6 +341,4 @@ TrelloPowerUp.initialize({
         });
     });
   },
-
- 
 });
