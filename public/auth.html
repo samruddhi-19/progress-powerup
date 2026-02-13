@@ -21,17 +21,7 @@
   <body>
     <h3>Authorize Progress Power-Up</h3>
     <p>Click to enable Progress features on this board.</p>
-
     <button id="authBtn">Authorize</button>
-
-    <script>
-      var t = TrelloPowerUp.iframe();
-
-      document.getElementById("authBtn").onclick = async () => {
-        await t.set("board", "shared", "disabled", false);
-        t.closePopup();
-        t.refresh();
-      };
-    </script>
+    <script src="./auth.js"></script>
   </body>
 </html>
