@@ -1,23 +1,20 @@
 {
   "name": "Progress",
-  "description": "Progress tracking and timers for Trello.",
-  "author": "You",
-  "icon": "https://cdn-icons-png.flaticon.com/512/992/992651.png",
-
-   "capabilities": [
+  "details": "Track time and progress on your Trello cards",
+  "icon": {
+    "url": "https://cdn-icons-png.flaticon.com/512/992/992651.png"
+  },
+  "author": "Your Name",
+  "capabilities": [
     "authorization-status",
     "show-authorization",
     "board-buttons",
-    "card-back-section",
     "card-badges",
     "card-detail-badges",
-    "card-buttons"
+    "card-buttons",
+    "card-back-section",
+    "card-moved"
   ],
-
-  "connectors": {
-    "iframe": {
-      "url": "https://progress-bar-trello-powerup.vercel.app",
-      "valid-domains": ["progress-bar-trello-powerup.vercel.app"]
-    }
-  }
+  "connectorName": "Progress",
+  "tags": ["productivity", "time-tracking"]
 }
