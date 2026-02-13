@@ -81,6 +81,20 @@ if (document.head) {
 ---------------------------------------- */
 
 TrelloPowerUp.initialize({
+
+   "authorization-status": function (t) {
+    return t.get("member", "private", "authorized")
+      .then((v) => ({ authorized: v === true }));
+  },
+
+  "show-authorization": function (t) {
+    return t.popup({
+      title: "Authorize Progress Power-Up",
+      url: "./auth.html",
+      height: 200,
+    });
+  },
+  
   "board-buttons": async function (t) {
     const disabled = await t.get("board", "shared", "disabled");
 
@@ -333,17 +347,5 @@ TrelloPowerUp.initialize({
     });
   },
 
-  "authorization-status": function (t) {
-    return t
-      .get("member", "private", "authorized")
-      .then((a) => ({ authorized: a === true }));
-  },
-
-  "show-authorization": function (t) {
-    return t.popup({
-      title: "Authorize Progress Power-Up",
-      url: "./auth.html",
-      height: 200,
-    });
-  },
+ 
 });
