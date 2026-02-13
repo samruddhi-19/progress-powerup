@@ -8,10 +8,14 @@ var Promise = TrelloPowerUp.Promise;
 ---------------------------------------- */
 
 function makeBar(pct) {
+  if (pct === undefined || pct === null || isNaN(pct)) {
+    pct = 0;
+  }
   const total = 10;
   const filled = Math.round((pct / 100) * total);
   return "█".repeat(filled) + "▒".repeat(total - filled);
 }
+
 
 function formatHM(sec) {
   if (sec === undefined || sec === null || isNaN(sec)) {
@@ -32,11 +36,12 @@ function computeElapsed(data) {
 
 function computeTimerProgress(data) {
   if (!data) return 0;
-  const elapsed = computeElapsed(data);
+  const elapsed = computeElapsed(data) || 0;
   const estimated = data.estimated || 8 * 3600;
   const progress = Math.min(100, Math.round((elapsed / estimated) * 100));
-  return progress;
+  return isNaN(progress) ? 0 : progress;
 }
+
 
 // Inject CSS into main Trello document
 function injectBadgeStyles() {
@@ -108,27 +113,25 @@ TrelloPowerUp.initialize({
     });
   },
 
-  "board-buttons": async function (t) {
-    const disabled = await t.get("board", "shared", "disabled");
+ "board-buttons": async function (t, opts) {
+  const disabled = await t.get("board", "shared", "disabled");
 
-    // Don't show board button when disabled - force user to use proper auth flow
-    if (disabled) return [];
-
-    return [
-      {
-        icon: ICON,
-        text: "Progress",
-        callback: function (t, opts) {
-          return t.popup({
-            title: "Progress Settings",
-            url: "./settings.html",
-            height: 620,
-            mouseEvent: opts.mouseEvent,
-          });
-        },
+  return [
+    {
+      icon: ICON,
+      text: disabled ? "Authorize" : "Progress",
+      callback: function (t) {
+        return t.popup({
+          title: disabled ? "Authorize Progress" : "Progress Settings",
+          url: "./settings.html",
+          height: disabled ? 260 : 620,
+          mouseEvent: opts.mouseEvent,
+        });
       },
-    ];
-  },
+    },
+  ];
+},
+
 
   "card-back-section": async function (t) {
     injectBadgeStyles();
@@ -151,6 +154,7 @@ TrelloPowerUp.initialize({
   },
 
   "card-badges": async function (t) {
+  try {
     injectBadgeStyles();
 
     const disabled = await t.get("board", "shared", "disabled");
@@ -175,30 +179,33 @@ TrelloPowerUp.initialize({
       });
     }
 
+    const pct = computeTimerProgress(data) || 0;
     badges.push({
       title: "Progress",
-      text: (() => {
-        const pct = computeTimerProgress(data);
-        return hideBars ? pct + "%" : `${makeBar(pct)} ${pct}%`;
-      })(),
+      text: hideBars ? `${pct}%` : `${makeBar(pct)} ${pct}%`,
       color: "green",
       dynamic: function (t) {
         return t.get("card", "shared").then((cardData) => {
           if (!cardData) return { text: "0%", color: "green" };
-          const pct = computeTimerProgress(cardData);
+          const pct = computeTimerProgress(cardData) || 0;
           return {
-            text: hideBars ? pct + "%" : `${makeBar(pct)} ${pct}%`,
+            text: hideBars ? `${pct}%` : `${makeBar(pct)} ${pct}%`,
             color: "green",
           };
+        }).catch(() => {
+          return { text: "0%", color: "green" };
         });
       },
       refresh: 250,
     });
 
     if (!hideTimer) {
+      const el = computeElapsed(data) || 0;
+      const est = data.estimated || 8 * 3600;
       badges.push({
         title: "Timer",
-        text: "",
+        text: `⏱ ${formatHM(el)} | Est ${formatHM(est)}`,
+        color: "blue",
         dynamic: function (t) {
           return t.get("card", "shared").then((d) => {
             if (!d) return { text: "" };
@@ -208,6 +215,8 @@ TrelloPowerUp.initialize({
               text: `⏱ ${formatHM(el)} | Est ${formatHM(est)}`,
               color: "blue",
             };
+          }).catch(() => {
+            return { text: "" };
           });
         },
         refresh: 100,
@@ -215,9 +224,15 @@ TrelloPowerUp.initialize({
     }
 
     return badges;
-  },
+  } catch (error) {
+    // Return empty array on any error to prevent breaking Trello
+    return [];
+  }
+},
+
 
   "card-detail-badges": async function (t) {
+  try {
     injectBadgeStyles();
 
     const disabled = await t.get("board", "shared", "disabled");
@@ -246,11 +261,13 @@ TrelloPowerUp.initialize({
         dynamic: function (t) {
           return t.get("card", "shared").then((cardData) => {
             if (!cardData) return { text: "0%", color: "green" };
-            const pct = computeTimerProgress(cardData);
+            const pct = computeTimerProgress(cardData) || 0;
             return {
-              text: hideBars ? pct + "%" : `${makeBar(pct)} ${pct}%`,
+              text: hideBars ? `${pct}%` : `${makeBar(pct)} ${pct}%`,
               color: "green",
             };
+          }).catch(() => {
+            return { text: "0%", color: "green" };
           });
         },
         refresh: 100,
@@ -268,6 +285,8 @@ TrelloPowerUp.initialize({
                 text: `⏱ ${formatHM(el)} | Est ${formatHM(est)}`,
                 color: "blue",
               };
+            }).catch(() => {
+              return { text: "" };
             });
           },
           refresh: 100,
@@ -275,8 +294,14 @@ TrelloPowerUp.initialize({
       }
 
       return badges;
+    }).catch(() => {
+      return [];
     });
-  },
+  } catch (error) {
+    return [];
+  }
+},
+
 
   "card-buttons": async function (t) {
     const data = await t.get("card", "shared");

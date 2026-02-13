@@ -35,43 +35,6 @@ async function loadUI() {
   setTimeout(() => t.sizeTo(document.body).done(), 40);
 }
 
-// ⬇️ NEW: Function to render the Authorize UI (styled)
-function renderAuthorize() {
-  document.body.innerHTML = `
-    <div class="settings-header">
-      <div class="icon">⚙️</div>
-      <h1>Authorize Progress Power-Up</h1>
-    </div>
-    <div style="padding: 20px 0; text-align: center;">
-      <p style="margin-bottom: 20px; opacity: 0.75; font-size: 14px;">
-        Click below to enable Progress features on this board.
-      </p>
-      <button id="authBtn" class="remove-btn" style="
-        border: none;
-        background: #0079bf;
-        color: white;
-        margin-top: 0;
-      ">Authorize</button>
-      <div id="authMsg" style="margin-top: 12px; font-size: 12px; opacity: .75;"></div>
-    </div>
-  `;
-
-  setTimeout(() => t.sizeTo(document.body).done(), 40);
-
-  document.getElementById("authBtn").addEventListener("click", async () => {
-    const msg = document.getElementById("authMsg");
-    msg.textContent = "Enabling…";
-
-    try {
-      await t.set("board", "shared", "disabled", false);
-      msg.textContent = "Enabled. Closing…";
-      t.closePopup();
-    } catch (e) {
-      msg.textContent = "Failed to enable. Please try again.";
-    }
-  });
-}
-
 async function setBoard(key, value) {
   await t.set("board", "shared", key, value);
 }
@@ -100,39 +63,90 @@ function bind() {
   qs("autoTrackMode").addEventListener("change", (e) =>
     setBoard("autoTrackMode", e.target.value),
   );
+}
 
+function showPanel(which) {
+  const settingsPanel = document.getElementById("settingsPanel");
+  const authPanel = document.getElementById("authPanel");
+
+  if (which === "auth") {
+    if (settingsPanel) settingsPanel.style.display = "none";
+    if (authPanel) authPanel.style.display = "block";
+  } else {
+    if (authPanel) authPanel.style.display = "none";
+    if (settingsPanel) settingsPanel.style.display = "block";
+  }
+
+  setTimeout(() => t.sizeTo(document.body).done(), 40);
+}
+
+async function bindAuthButton() {
+  const btn = document.getElementById("authBtn");
+  const msg = document.getElementById("authMsg");
+  if (!btn) return;
+
+  btn.addEventListener("click", async () => {
+    btn.disabled = true;
+    if (msg) msg.textContent = "Authorizing…";
+
+    try {
+      await t.set("member", "private", "authorized", true);
+      await t.set("board", "shared", "disabled", false);
+
+      if (msg) msg.textContent = "Authorized. Reloading…";
+      window.location.reload();
+    } catch (e) {
+      btn.disabled = false;
+      if (msg) msg.textContent = "Failed. Please try again.";
+    }
+  });
+}
+
+async function bindDisableButton() {
   qs("unauthBtn").addEventListener("click", async () => {
-    const ok = confirm("Remove and clear all saved data?");
+    const ok = confirm(
+      "Disable Progress on this board and clear board settings?",
+    );
     if (!ok) return;
 
-    const all = await t.getAll(); // [web:45]
+    // Only clear board-scoped settings (don’t touch member/private here)
+    const keys = [
+      "hideBadges",
+      "hideTimerBadges",
+      "hideDetailBadges",
+      "hideProgressBars",
+      "autoFocus",
+      "autoTrackMode",
+      "autoTrackLists",
+    ];
 
-    const boardShared = all?.board?.shared || {};
-    for (const key of Object.keys(boardShared))
-      await t.remove("board", "shared", key);
-
-    const cardShared = all?.card?.shared || {};
-    for (const key of Object.keys(cardShared))
-      await t.remove("card", "shared", key);
-
-    const memPrivate = all?.member?.private || {};
-    for (const key of Object.keys(memPrivate))
-      await t.remove("member", "private", key);
+    for (const k of keys) {
+      await t.remove("board", "shared", k);
+    }
 
     await t.set("board", "shared", "disabled", true);
-    alert("Power-Up data cleared.");
-    t.closePopup();
+
+    // Do NOT call t.closePopup() here (avoids “No popover in context”)
+    window.location.reload();
   });
 }
 
 (async function init() {
-  // ⬇️ NEW: Check if disabled before binding
-  const board = await getBoardShared();
-  if (board.disabled === true) {
-    renderAuthorize();
+  const all = await t.getAll();
+  const board = all?.board?.shared || {};
+  const authorized = all?.member?.private?.authorized === true;
+  const disabled = board.disabled === true;
+
+  // If not authorized OR disabled => show auth panel
+  if (!authorized || disabled) {
+    showPanel("auth");
+    await bindAuthButton();
     return;
   }
 
+  // Normal settings
+  showPanel("settings");
   bind();
   await loadUI();
+  await bindDisableButton();
 })();

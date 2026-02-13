@@ -184,76 +184,105 @@
       <h1>Customize your task card display</h1>
     </div>
 
-    <div class="section">
-      <div class="item">
-        <div>
-          <div class="label">Hide card badges</div>
-          <div class="desc">Remove from card front</div>
-        </div>
-        <label class="toggle">
-          <input type="checkbox" id="hideBadges" />
-          <span class="toggle-slider"></span>
-        </label>
-      </div>
-
-      <div class="item">
-        <div>
-          <div class="label">Hide timer badges</div>
-          <div class="desc">Hide ⏱ timer from card</div>
-        </div>
-        <label class="toggle">
-          <input type="checkbox" id="hideTimer" />
-          <span class="toggle-slider"></span>
-        </label>
-      </div>
-
-      <div class="item">
-        <div>
-          <div class="label">Hide card detail badges</div>
-          <div class="desc">In detailed card view</div>
-        </div>
-        <label class="toggle">
-          <input type="checkbox" id="hideDetail" />
-          <span class="toggle-slider"></span>
-        </label>
-      </div>
-
-      <div class="item">
-        <div>
-          <div class="label">Hide progress bars</div>
-          <div class="desc">Show % only</div>
-        </div>
-        <label class="toggle">
-          <input type="checkbox" id="hideBars" />
-          <span class="toggle-slider"></span>
-        </label>
-      </div>
-
-      <div class="item">
-        <div>
-          <div class="label">Auto-enable Focus Mode</div>
-          <div class="desc">Start focus when tracking begins</div>
-        </div>
-        <label class="toggle">
-          <input type="checkbox" id="focusMode" />
-          <span class="toggle-slider"></span>
-        </label>
-      </div>
-
-      <div class="item">
-        <div>
-          <div class="label">Auto Tracking Mode</div>
-          <div class="desc">Choose when timer auto-starts</div>
+    <div id="settingsPanel">
+      <div class="section">
+        <div class="item">
+          <div>
+            <div class="label">Hide card badges</div>
+            <div class="desc">Remove from card front</div>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="hideBadges" />
+            <span class="toggle-slider"></span>
+          </label>
         </div>
 
-        <select id="autoTrackMode">
-          <option value="off">Off</option>
-          <option value="open">On card open</option>
-        </select>
+        <div class="item">
+          <div>
+            <div class="label">Hide timer badges</div>
+            <div class="desc">Hide ⏱ timer from card</div>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="hideTimer" />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div class="item">
+          <div>
+            <div class="label">Hide card detail badges</div>
+            <div class="desc">In detailed card view</div>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="hideDetail" />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div class="item">
+          <div>
+            <div class="label">Hide progress bars</div>
+            <div class="desc">Show % only</div>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="hideBars" />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div class="item">
+          <div>
+            <div class="label">Auto-enable Focus Mode</div>
+            <div class="desc">Start focus when tracking begins</div>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="focusMode" />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div class="item">
+          <div>
+            <div class="label">Auto Tracking Mode</div>
+            <div class="desc">Choose when timer auto-starts</div>
+          </div>
+
+          <select id="autoTrackMode">
+            <option value="off">Off</option>
+            <option value="open">On card open</option>
+          </select>
+        </div>
       </div>
+      <button class="remove-btn" id="unauthBtn">
+        ⚠️ Disable on this board
+      </button>
     </div>
 
-    <button class="remove-btn" id="unauthBtn">⚠️ Remove Power-Up</button>
+    <div id="authPanel" style="display: none">
+      <div class="section">
+        <div class="settings-header">
+          <div class="icon">🔒</div>
+          <h1>Authorization Required</h1>
+        </div>
+
+        <p style="margin-top: 8px; color: var(--muted); font-size: 13px">
+          Click Authorize to enable Progress features on this board.
+        </p>
+
+        <button
+          class="remove-btn"
+          id="authBtn"
+          style="border: none; background: #0c66e4; color: #fff"
+        >
+          Authorize
+        </button>
+
+        <div
+          id="authMsg"
+          style="margin-top: 12px; font-size: 12px; color: var(--muted)"
+        ></div>
+      </div>
+    </div>
 
     <script src="./settings.js?v=20260205-1"></script>
   </body>
