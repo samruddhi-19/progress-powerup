@@ -1,5 +1,5 @@
 // PUT YOUR REAL API KEY HERE:
-const TRELLO_API_KEY = "dcceaba48624d2ea6e98802ef733a27c"; 
+const TRELLO_API_KEY = "58a903ef47a68cf462fd91ad5101444e"; 
 
 const t = TrelloPowerUp.iframe({
   appKey: TRELLO_API_KEY,
