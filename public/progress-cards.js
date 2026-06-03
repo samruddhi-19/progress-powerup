@@ -301,8 +301,34 @@ async function startMapping() {
   try {
     await t.set("board", "shared", "mappedCards", Array.from(selectedIds));
 
-    await t.closePopup();
+    // ✅ Initialize card data for each selected card
+    const defaultCardData = {
+      progress: 0,
+      elapsed: 0,
+      estimated: 8 * 3600,
+      running: false,
+      startTime: null,
+      focusMode: false,
+      disabledProgress: false,
+      trackingUnit: "hours",
+      data: {
+        hours:  { elapsed: 0, estimated: 8 * 3600 },
+        days:   { elapsed: 0, estimated: 1 * 86400 },
+        weeks:  { elapsed: 0, estimated: 1 * 604800 },
+        months: { elapsed: 0, estimated: 1 * 2592000 },
+      },
+    };
 
+    await Promise.all(
+      Array.from(selectedIds).map(async (cardId) => {
+        const existing = await t.getCard(cardId, "shared");
+        if (!existing) {
+          await t.setCard(cardId, "shared", defaultCardData);
+        }
+      })
+    );
+
+    await t.closePopup();
   } catch (err) {
     console.error("[ProgressCards] startMapping error:", err);
     btn.disabled = false;
