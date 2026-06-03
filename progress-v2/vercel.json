@@ -1,0 +1,13 @@
+{
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'self'; script-src 'self' https://p.trellocdn.com; connect-src 'self' https://trello.com https://api.trello.com https://p.trellocdn.com; style-src 'self' 'unsafe-inline';"
+        }
+      ]
+    }
+  ]
+}
