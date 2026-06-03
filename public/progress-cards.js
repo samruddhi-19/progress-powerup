@@ -299,23 +299,7 @@ async function startMapping() {
   btn.textContent = "Mapping…";
 
   try {
-    const promises = Array.from(selectedIds).map(async (cardId) => {
-      return t.set(cardId, "shared", {
-        disabledProgress: false,
-        trackingUnit: "hours",
-        running: false,
-        startTime: null,
-        focusMode: false,
-        data: {
-          hours:  { elapsed: 0, estimated: 8 * 3600 },
-          days:   { elapsed: 0, estimated: 8 * 3600 },
-          weeks:  { elapsed: 0, estimated: 8 * 3600 },
-          months: { elapsed: 0, estimated: 8 * 3600 },
-        },
-      });
-    });
-
-    await Promise.all(promises);
+    await t.set("board", "shared", "mappedCards", Array.from(selectedIds));
 
     await t.closePopup();
 
@@ -325,6 +309,7 @@ async function startMapping() {
     btn.textContent = "Start Mapping";
   }
 }
+
 /* ── Gear / Settings button ── */
 function bindGear() {
   qs("gearBtn").addEventListener("click", () => {

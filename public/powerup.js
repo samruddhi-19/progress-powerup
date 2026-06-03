@@ -21,34 +21,33 @@ function makeBar(pct) {
 // NEW: Dynamically converts seconds to pure durations (e.g., 1mo, 2.5w, 4d)
 function formatUnit(sec, unit) {
   if (sec === undefined || sec === null || isNaN(sec) || sec === 0) {
-    return unit === 'hours' ? "00:00" : "0";
+    return unit === "hours" ? "00:00" : "0";
   }
-  
-  if (!unit || unit === 'hours') {
+
+  if (!unit || unit === "hours") {
     const h = String(Math.floor(sec / 3600)).padStart(2, "0");
     const m = String(Math.floor((sec % 3600) / 60)).padStart(2, "0");
     return `${h}:${m}`;
   }
 
   const rates = { days: 86400, weeks: 604800, months: 2592000 };
-  const symbols = { days: 'd', weeks: 'w', months: 'mo' };
-  
-  // Calculate the value, round to 1 decimal (e.g., 1.5w), 
+  const symbols = { days: "d", weeks: "w", months: "mo" };
+
+  // Calculate the value, round to 1 decimal (e.g., 1.5w),
   // and use parseFloat to drop the decimal if it's a whole number (e.g., 4mo)
   const value = parseFloat((sec / rates[unit]).toFixed(1));
-  
+
   return value + symbols[unit];
 }
-
 
 // Updated to read from the new nested data structure
 function computeElapsed(cardData) {
   if (!cardData || !cardData.data) return cardData?.elapsed || 0; // fallback to v1
-  
-  const unit = cardData.trackingUnit || 'hours';
+
+  const unit = cardData.trackingUnit || "hours";
   const unitData = cardData.data[unit] || { elapsed: 0 };
-  
-  if (unit === 'hours' && cardData.running && cardData.startTime) {
+
+  if (unit === "hours" && cardData.running && cardData.startTime) {
     const now = Date.now();
     return unitData.elapsed + Math.floor((now - cardData.startTime) / 1000);
   }
@@ -57,7 +56,7 @@ function computeElapsed(cardData) {
 
 function computeEstimated(cardData) {
   if (!cardData || !cardData.data) return cardData?.estimated || 8 * 3600; // fallback
-  const unit = cardData.trackingUnit || 'hours';
+  const unit = cardData.trackingUnit || "hours";
   const unitData = cardData.data[unit] || { estimated: 8 * 3600 };
   return unitData.estimated || 8 * 3600;
 }
@@ -121,23 +120,29 @@ TrelloPowerUp.initialize({
   },
 
   "show-authorization": function (t) {
-    return t.popup({ title: "Authorize Progress Power-Up", url: "./auth.html", height: 200 });
+    return t.popup({
+      title: "Authorize Progress Power-Up",
+      url: "./auth.html",
+      height: 200,
+    });
   },
 
   "board-buttons": async function (t, opts) {
     const disabled = await t.get("board", "shared", "disabled");
-    return [{
-      icon: ICON,
-      text: disabled ? "Authorize" : "Progress",
-      callback: function (t) {
-        return t.popup({
-          title: disabled ? "Authorize Progress" : "Progress Cards",
-          url: disabled ? "./settings.html" : "./progress-cards.html",
-          height: disabled ? 260 : 560,
-          mouseEvent: opts.mouseEvent,
-        });
+    return [
+      {
+        icon: ICON,
+        text: disabled ? "Authorize" : "Progress",
+        callback: function (t) {
+          return t.popup({
+            title: disabled ? "Authorize Progress" : "Progress Cards",
+            url: disabled ? "./settings.html" : "./progress-cards.html",
+            height: disabled ? 260 : 560,
+            mouseEvent: opts.mouseEvent,
+          });
+        },
       },
-    }];
+    ];
   },
 
   "card-back-section": async function (t) {
@@ -161,6 +166,12 @@ TrelloPowerUp.initialize({
   "card-badges": async function (t) {
     try {
       injectBadgeStyles();
+
+      const mapped = (await t.get("board", "shared", "mappedCards")) || [];
+      const card = await t.card();
+
+      if (!mapped.includes(card.id)) return [];
+
       const disabled = await t.get("board", "shared", "disabled");
       if (disabled) return [];
 
@@ -186,14 +197,19 @@ TrelloPowerUp.initialize({
         text: hideBars ? `${pct}%` : `${makeBar(pct)} ${pct}%`,
         color: "green",
         dynamic: function (t) {
-          return t.get("card", "shared").then((cardData) => {
-            if (!cardData) return { text: "0%", color: "green" };
-            const pct = computeTimerProgress(cardData) || 0;
-            return {
-              text: hideBars ? `${pct}%` : `${makeBar(pct)} ${pct}%`,
-              color: "green",
-            };
-          }).catch(() => { return { text: "0%", color: "green" }; });
+          return t
+            .get("card", "shared")
+            .then((cardData) => {
+              if (!cardData) return { text: "0%", color: "green" };
+              const pct = computeTimerProgress(cardData) || 0;
+              return {
+                text: hideBars ? `${pct}%` : `${makeBar(pct)} ${pct}%`,
+                color: "green",
+              };
+            })
+            .catch(() => {
+              return { text: "0%", color: "green" };
+            });
         },
         refresh: 250,
       });
@@ -201,29 +217,36 @@ TrelloPowerUp.initialize({
       if (!hideTimer) {
         const el = computeElapsed(data) || 0;
         const est = data.estimated || 8 * 3600;
-        const unit = data.trackingUnit || 'hours';
+        const unit = data.trackingUnit || "hours";
 
         badges.push({
           title: "Timer",
           text: `⏱ ${formatUnit(el, unit)} | Est ${formatUnit(est, unit)}`,
           color: "blue",
           dynamic: function (t) {
-            return t.get("card", "shared").then((d) => {
-              if (!d) return { text: "" };
-              const el = computeElapsed(d) || 0;
-              const est = computeEstimated(d) || computeEstimated(data);
-              const u = d.trackingUnit || 'hours';
-              return {
-                text: `⏱ ${formatUnit(el, u)} | Est ${formatUnit(est, u)}`,
-                color: "blue",
-              };
-            }).catch(() => { return { text: "" }; });
+            return t
+              .get("card", "shared")
+              .then((d) => {
+                if (!d) return { text: "" };
+                const el = computeElapsed(d) || 0;
+                const est = computeEstimated(d) || computeEstimated(data);
+                const u = d.trackingUnit || "hours";
+                return {
+                  text: `⏱ ${formatUnit(el, u)} | Est ${formatUnit(est, u)}`,
+                  color: "blue",
+                };
+              })
+              .catch(() => {
+                return { text: "" };
+              });
           },
           refresh: 100,
         });
       }
       return badges;
-    } catch (error) { return []; }
+    } catch (error) {
+      return [];
+    }
   },
 
   "card-detail-badges": async function (t) {
@@ -237,67 +260,91 @@ TrelloPowerUp.initialize({
         t.get("board", "shared", "hideDetailBadges"),
         t.get("board", "shared", "hideProgressBars"),
         t.get("board", "shared", "hideTimerBadges"),
-      ]).then(([data, hideDetail, hideBars, hideTimer]) => {
-        if (hideDetail || !data) return [];
+      ])
+        .then(([data, hideDetail, hideBars, hideTimer]) => {
+          if (hideDetail || !data) return [];
 
-        const badges = [];
-        if (data.focusMode) badges.push({ title: "Focus", text: "🎯 Focus ON", color: "red" });
+          const badges = [];
+          if (data.focusMode)
+            badges.push({ title: "Focus", text: "🎯 Focus ON", color: "red" });
 
-        badges.push({
-          title: "Progress",
-          dynamic: function (t) {
-            return t.get("card", "shared").then((cardData) => {
-              if (!cardData) return { text: "0%", color: "green" };
-              const pct = computeTimerProgress(cardData) || 0;
-              return {
-                text: hideBars ? `${pct}%` : `${makeBar(pct)} ${pct}%`,
-                color: "green",
-              };
-            }).catch(() => { return { text: "0%", color: "green" }; });
-          },
-          refresh: 100,
-        });
-
-        if (!hideTimer) {
           badges.push({
-            title: "Timer",
+            title: "Progress",
             dynamic: function (t) {
-              return t.get("card", "shared").then((d) => {
-                if (!d) return { text: "" };
-                const el = computeElapsed(d) || 0;
-                const est = computeEstimated(d) || computeEstimated(data);
-                const u = d.trackingUnit || 'hours';
-                return {
-                  text: `⏱ ${formatUnit(el, u)} | Est ${formatUnit(est, u)}`,
-                  color: "blue",
-                };
-              }).catch(() => { return { text: "" }; });
+              return t
+                .get("card", "shared")
+                .then((cardData) => {
+                  if (!cardData) return { text: "0%", color: "green" };
+                  const pct = computeTimerProgress(cardData) || 0;
+                  return {
+                    text: hideBars ? `${pct}%` : `${makeBar(pct)} ${pct}%`,
+                    color: "green",
+                  };
+                })
+                .catch(() => {
+                  return { text: "0%", color: "green" };
+                });
             },
             refresh: 100,
           });
-        }
-        return badges;
-      }).catch(() => { return []; });
-    } catch (error) { return []; }
+
+          if (!hideTimer) {
+            badges.push({
+              title: "Timer",
+              dynamic: function (t) {
+                return t
+                  .get("card", "shared")
+                  .then((d) => {
+                    if (!d) return { text: "" };
+                    const el = computeElapsed(d) || 0;
+                    const est = computeEstimated(d) || computeEstimated(data);
+                    const u = d.trackingUnit || "hours";
+                    return {
+                      text: `⏱ ${formatUnit(el, u)} | Est ${formatUnit(est, u)}`,
+                      color: "blue",
+                    };
+                  })
+                  .catch(() => {
+                    return { text: "" };
+                  });
+              },
+              refresh: 100,
+            });
+          }
+          return badges;
+        })
+        .catch(() => {
+          return [];
+        });
+    } catch (error) {
+      return [];
+    }
   },
 
   "card-buttons": async function (t) {
     const data = await t.get("card", "shared");
     const isHidden = data?.disabledProgress === true;
-    return [{
-      icon: ICON,
-      text: isHidden ? "Add Progress" : "Hide Progress",
-      callback: function (t) {
-        if (!data) {
-          return t.set("card", "shared", {
-            progress: 0, elapsed: 0, estimated: 8 * 3600,
-            running: false, startTime: null, focusMode: false,
-            disabledProgress: false, trackingUnit: 'hours'
-          });
-        }
-        return t.set("card", "shared", "disabledProgress", !isHidden);
+    return [
+      {
+        icon: ICON,
+        text: isHidden ? "Add Progress" : "Hide Progress",
+        callback: function (t) {
+          if (!data) {
+            return t.set("card", "shared", {
+              progress: 0,
+              elapsed: 0,
+              estimated: 8 * 3600,
+              running: false,
+              startTime: null,
+              focusMode: false,
+              disabledProgress: false,
+              trackingUnit: "hours",
+            });
+          }
+          return t.set("card", "shared", "disabledProgress", !isHidden);
+        },
       },
-    }];
+    ];
   },
 
   "card-moved": function (t, opts) {
@@ -314,18 +361,31 @@ TrelloPowerUp.initialize({
       if (!lists.includes(destListId)) return;
 
       if (!data.running) {
-        return t.set("card", "shared", { ...data, running: true, startTime: Date.now(), focusMode: true });
+        return t.set("card", "shared", {
+          ...data,
+          running: true,
+          startTime: Date.now(),
+          focusMode: true,
+        });
       }
 
-      return t.popup({
-        title: "Restart Timer?",
-        url: "./confirm-restart.html",
-        height: 150,
-        args: { cardData: data },
-      }).then((result) => {
-        if (!result || result.restart !== true) return;
-        return t.set("card", "shared", { ...data, elapsed: 0, running: true, startTime: Date.now(), focusMode: true });
-      });
+      return t
+        .popup({
+          title: "Restart Timer?",
+          url: "./confirm-restart.html",
+          height: 150,
+          args: { cardData: data },
+        })
+        .then((result) => {
+          if (!result || result.restart !== true) return;
+          return t.set("card", "shared", {
+            ...data,
+            elapsed: 0,
+            running: true,
+            startTime: Date.now(),
+            focusMode: true,
+          });
+        });
     });
   },
 });
