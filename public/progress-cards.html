@@ -11,40 +11,48 @@
         --surface-raised: #2a2d31;
         --surface-overlay: #2c333a;
         --text: rgba(255, 255, 255, 0.92);
-        --muted: rgba(255, 255, 255, 0.50);
-        --divider: rgba(255, 255, 255, 0.10);
+        --muted: rgba(255, 255, 255, 0.5);
+        --divider: rgba(255, 255, 255, 0.1);
         --accent: #00bcd4;
         --accent-hover: #26c6da;
-        --accent-bg: rgba(0, 188, 212, 0.10);
+        --accent-bg: rgba(0, 188, 212, 0.1);
         --green: #00bcd4;
         --green-bg: rgba(0, 188, 212, 0.12);
-        --tag-design-bg: rgba(0, 188, 212, 0.20);
+        --tag-design-bg: rgba(0, 188, 212, 0.2);
         --tag-design-text: #00bcd4;
-        --tag-story-bg: rgba(0, 188, 212, 0.20);
+        --tag-story-bg: rgba(0, 188, 212, 0.2);
         --tag-story-text: #00bcd4;
-        --tag-dev-bg: rgba(0, 188, 212, 0.20);
+        --tag-dev-bg: rgba(0, 188, 212, 0.2);
         --tag-dev-text: #00bcd4;
-        --tag-orange-bg: rgba(0, 188, 212, 0.20);
+        --tag-orange-bg: rgba(0, 188, 212, 0.2);
         --tag-orange-text: #00bcd4;
-        --tag-red-bg: rgba(0, 188, 212, 0.20);
+        --tag-red-bg: rgba(0, 188, 212, 0.2);
         --tag-red-text: #00bcd4;
-        --tag-yellow-bg: rgba(0, 188, 212, 0.20);
+        --tag-yellow-bg: rgba(0, 188, 212, 0.2);
         --tag-yellow-text: #00bcd4;
         --checkbox-border: rgba(255, 255, 255, 0.28);
-        --start-btn: #00bcd4;
+        --start-btn: #00a8bd;
+        --start-btn-hover: #0097a7;
         --start-btn-hover: #26c6da;
         --start-btn-disabled: rgba(0, 188, 212, 0.25);
         --search-bg: rgba(255, 255, 255, 0.05);
         --search-focus: rgba(0, 188, 212, 0.08);
-        --close-btn-hover: rgba(255, 255, 255, 0.10);
+        --close-btn-hover: rgba(255, 255, 255, 0.1);
       }
 
-      * { margin: 0; padding: 0; box-sizing: border-box; }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
 
-      html, body {
+      html,
+      body {
         background: var(--surface);
         color: var(--text);
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          "Helvetica Neue", sans-serif;
         font-size: 14px;
         overflow: hidden;
       }
@@ -105,7 +113,9 @@
         width: 30px;
         height: 30px;
         border-radius: 6px;
-        transition: color 0.12s, background 0.12s;
+        transition:
+          color 0.12s,
+          background 0.12s;
         flex-shrink: 0;
       }
 
@@ -114,7 +124,11 @@
         background: var(--close-btn-hover);
       }
 
-      .icon-btn svg { width: 16px; height: 16px; fill: currentColor; }
+      .icon-btn svg {
+        width: 16px;
+        height: 16px;
+        fill: currentColor;
+      }
 
       /* Back button */
       .back-btn {
@@ -133,8 +147,14 @@
         flex-shrink: 0;
       }
 
-      .back-btn:hover { opacity: 0.75; }
-      .back-btn svg { width: 16px; height: 16px; fill: currentColor; }
+      .back-btn:hover {
+        opacity: 0.75;
+      }
+      .back-btn svg {
+        width: 16px;
+        height: 16px;
+        fill: currentColor;
+      }
 
       /* ── Sub-label ── */
       .sub-label {
@@ -162,7 +182,11 @@
         align-items: center;
       }
 
-      .search-icon svg { width: 14px; height: 14px; fill: currentColor; }
+      .search-icon svg {
+        width: 14px;
+        height: 14px;
+        fill: currentColor;
+      }
 
       #searchInput {
         width: 100%;
@@ -173,10 +197,14 @@
         color: var(--text);
         font-size: 13px;
         outline: none;
-        transition: border-color 0.15s, background 0.15s;
+        transition:
+          border-color 0.15s,
+          background 0.15s;
       }
 
-      #searchInput::placeholder { color: var(--muted); }
+      #searchInput::placeholder {
+        color: var(--muted);
+      }
 
       #searchInput:focus {
         border-color: var(--accent-hover);
@@ -203,8 +231,12 @@
         scrollbar-color: var(--divider) transparent;
       }
 
-      .scroll-area::-webkit-scrollbar { width: 4px; }
-      .scroll-area::-webkit-scrollbar-track { background: transparent; }
+      .scroll-area::-webkit-scrollbar {
+        width: 4px;
+      }
+      .scroll-area::-webkit-scrollbar-track {
+        background: transparent;
+      }
       .scroll-area::-webkit-scrollbar-thumb {
         background: var(--divider);
         border-radius: 99px;
@@ -220,7 +252,9 @@
         background: var(--surface-raised);
         margin-bottom: 7px;
         cursor: pointer;
-        transition: background 0.12s, border-color 0.12s;
+        transition:
+          background 0.12s,
+          border-color 0.12s;
         border-left: 3px solid transparent;
         user-select: none;
       }
@@ -258,7 +292,9 @@
         color: var(--muted);
         display: flex;
         align-items: center;
-        transition: color 0.12s, transform 0.12s;
+        transition:
+          color 0.12s,
+          transform 0.12s;
       }
 
       .list-item:hover .list-item-arrow {
@@ -266,7 +302,11 @@
         transform: translateX(2px);
       }
 
-      .list-item-arrow svg { width: 16px; height: 16px; fill: currentColor; }
+      .list-item-arrow svg {
+        width: 16px;
+        height: 16px;
+        fill: currentColor;
+      }
 
       /* ── CARD VIEW ── */
       .card-item {
@@ -278,15 +318,19 @@
         background: var(--surface-raised);
         border-left: 3px solid transparent;
         cursor: pointer;
-        transition: background 0.10s, border-color 0.10s;
+        transition:
+          background 0.1s,
+          border-color 0.1s;
         user-select: none;
         margin-bottom: 7px;
       }
 
-      .card-item:hover { background: var(--accent-bg); }
+      .card-item:hover {
+        background: var(--accent-bg);
+      }
 
       .card-item.selected {
-        background: rgba(0, 188, 212, 0.10);
+        background: rgba(0, 188, 212, 0.1);
         border-left-color: var(--accent);
       }
 
@@ -300,7 +344,9 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        transition: border-color 0.12s, background 0.12s;
+        transition:
+          border-color 0.12s,
+          background 0.12s;
       }
 
       .card-item.selected .cb-wrap {
@@ -316,7 +362,9 @@
         line-height: 1;
       }
 
-      .card-item.selected .cb-check { display: block; }
+      .card-item.selected .cb-check {
+        display: block;
+      }
 
       .card-name {
         flex: 1;
@@ -338,13 +386,19 @@
         letter-spacing: 0.01em;
       }
 
-      .tag-design, .tag-story, .tag-dev,
-      .tag-orange, .tag-red, .tag-yellow {
+      .tag-design,
+      .tag-story,
+      .tag-dev,
+      .tag-orange,
+      .tag-red,
+      .tag-yellow {
         background: var(--tag-design-bg);
         color: var(--tag-design-text);
       }
 
-      .section-group { margin-bottom: 2px; }
+      .section-group {
+        margin-bottom: 2px;
+      }
 
       .section-group + .section-group {
         border-top: 1px solid var(--divider);
@@ -369,20 +423,34 @@
       }
 
       @keyframes fadeSlideIn {
-        from { opacity: 0; transform: translateX(10px); }
-        to   { opacity: 1; transform: translateX(0); }
+        from {
+          opacity: 0;
+          transform: translateX(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateX(0);
+        }
       }
 
       @keyframes fadeSlideBack {
-        from { opacity: 0; transform: translateX(-10px); }
-        to   { opacity: 1; transform: translateX(0); }
+        from {
+          opacity: 0;
+          transform: translateX(-10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateX(0);
+        }
       }
 
-      .view.slide-back { animation: fadeSlideBack 0.18s ease; }
+      .view.slide-back {
+        animation: fadeSlideBack 0.18s ease;
+      }
 
       /* ── Footer ── */
       .popup-footer {
-        padding: 11px 16px;
+        padding: 10px 14px;
         display: flex;
         align-items: center;
         justify-content: space-between;
@@ -391,32 +459,40 @@
       }
 
       .selected-count {
-        font-size: 13px;
+        font-size: 12.5px;
         color: var(--muted);
         font-weight: 500;
         transition: color 0.15s;
       }
 
-      .selected-count.has-selection { color: var(--text); }
+      .selected-count.has-selection {
+        color: var(--text);
+        font-weight: 600;
+      }
 
       #startMappingBtn {
-        padding: 10px 22px;
+        padding: 7px 16px;
         border: none;
-        border-radius: 999px;
+        border-radius: 8px;
         background: var(--start-btn);
         color: #000;
-        font-size: 14px;
-        font-weight: 800;
+        font-size: 13px;
+        font-weight: 600;
         cursor: pointer;
-        transition: background 0.15s, opacity 0.15s;
+        transition:
+          background 0.15s,
+          opacity 0.15s;
         letter-spacing: 0.01em;
       }
 
-      #startMappingBtn:hover:not(:disabled) { background: var(--start-btn-hover); }
+      #startMappingBtn:hover:not(:disabled) {
+        background: var(--start-btn-hover);
+        transform: translateY(-1px);
+      }
 
       #startMappingBtn:disabled {
         background: var(--start-btn-disabled);
-        color: rgba(0,0,0,0.4);
+        color: rgba(0, 0, 0, 0.4);
         cursor: not-allowed;
       }
 
@@ -440,20 +516,29 @@
         animation: spin 0.7s linear infinite;
       }
 
-      @keyframes spin { to { transform: rotate(360deg); } }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
     </style>
   </head>
 
   <body>
     <div class="popup">
-
       <!-- Header -->
       <div class="popup-header">
         <div class="header-left" id="headerLeft">
           <h2>
             <span class="bolt-icon">
-              <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" style="color:var(--accent)">
-                <path d="M13 2L4.5 13.5H11L10 22L19.5 10.5H13L13 2Z"/>
+              <svg
+                viewBox="0 0 24 24"
+                width="18"
+                height="18"
+                fill="currentColor"
+                style="color: var(--accent)"
+              >
+                <path d="M13 2L4.5 13.5H11L10 22L19.5 10.5H13L13 2Z" />
               </svg>
             </span>
             Progress Cards
@@ -462,20 +547,30 @@
         <div class="header-actions">
           <button class="icon-btn" id="gearBtn" title="Settings">
             <svg viewBox="0 0 24 24">
-              <path d="M12 15.5A3.5 3.5 0 018.5 12 3.5 3.5 0 0112 8.5a3.5 3.5 0 013.5 3.5 3.5 3.5 0 01-3.5 3.5m7.43-2.92c.04-.34.07-.69.07-1.08s-.03-.74-.07-1.08l2.32-1.82c.21-.16.27-.46.13-.7l-2.2-3.81c-.14-.24-.42-.32-.66-.24l-2.74 1.1c-.57-.44-1.18-.79-1.85-1.06L14.07 2.1C14 1.84 13.77 1.66 13.5 1.66h-3c-.27 0-.5.18-.57.44l-.42 2.9c-.67.27-1.28.62-1.85 1.06L4.92 5c-.24-.08-.52 0-.66.24L2.06 9.05c-.14.23-.08.54.13.7l2.32 1.82C4.47 11.86 4.44 12.21 4.44 12.5s.03.74.07 1.08l-2.32 1.82c-.21.16-.27.46-.13.7l2.2 3.81c.14.24.42.32.66.24l2.74-1.1c.57.44 1.18.79 1.85 1.06l.42 2.9c.07.26.3.44.57.44h3c.27 0 .5-.18.57-.44l.42-2.9c.67-.27 1.28-.62 1.85-1.06l2.74 1.1c.24.08.52 0 .66-.24l2.2-3.81c.14-.24.08-.54-.13-.7l-2.32-1.82z"/>
+              <path
+                d="M12 15.5A3.5 3.5 0 018.5 12 3.5 3.5 0 0112 8.5a3.5 3.5 0 013.5 3.5 3.5 3.5 0 01-3.5 3.5m7.43-2.92c.04-.34.07-.69.07-1.08s-.03-.74-.07-1.08l2.32-1.82c.21-.16.27-.46.13-.7l-2.2-3.81c-.14-.24-.42-.32-.66-.24l-2.74 1.1c-.57-.44-1.18-.79-1.85-1.06L14.07 2.1C14 1.84 13.77 1.66 13.5 1.66h-3c-.27 0-.5.18-.57.44l-.42 2.9c-.67.27-1.28.62-1.85 1.06L4.92 5c-.24-.08-.52 0-.66.24L2.06 9.05c-.14.23-.08.54.13.7l2.32 1.82C4.47 11.86 4.44 12.21 4.44 12.5s.03.74.07 1.08l-2.32 1.82c-.21.16-.27.46-.13.7l2.2 3.81c.14.24.42.32.66.24l2.74-1.1c.57.44 1.18.79 1.85 1.06l.42 2.9c.07.26.3.44.57.44h3c.27 0 .5-.18.57-.44l.42-2.9c.67-.27 1.28-.62 1.85-1.06l2.74 1.1c.24.08.52 0 .66-.24l2.2-3.81c.14-.24.08-.54-.13-.7l-2.32-1.82z"
+              />
             </svg>
           </button>
           <button class="icon-btn" id="closeBtn" title="Close">
             <svg viewBox="0 0 24 24">
-              <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"/>
+              <path
+                d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"
+              />
             </svg>
           </button>
         </div>
       </div>
 
       <!-- Dynamic view container -->
-      <div id="viewContainer" style="flex:1;overflow:hidden;display:flex;flex-direction:column;">
-        <div class="loading"><div class="spinner"></div> Loading…</div>
+      <div
+        id="viewContainer"
+        style="flex: 1; overflow: hidden; display: flex; flex-direction: column"
+      >
+        <div class="loading">
+          <div class="spinner"></div>
+          Loading…
+        </div>
       </div>
 
       <!-- Footer -->
@@ -487,12 +582,14 @@
 
     <script src="./progress-cards.js?v=20260602-2"></script>
     <script>
-      document.getElementById('closeBtn').addEventListener('click', function() {
-        if (typeof TrelloPowerUp !== 'undefined') {
-          const t = TrelloPowerUp.iframe();
-          t.closePopup();
-        }
-      });
+      document
+        .getElementById("closeBtn")
+        .addEventListener("click", function () {
+          if (typeof TrelloPowerUp !== "undefined") {
+            const t = TrelloPowerUp.iframe();
+            t.closePopup();
+          }
+        });
     </script>
   </body>
 </html>
