@@ -293,15 +293,11 @@ async function loadCards() {
 /* ── Start Mapping ── */
 async function startMapping() {
   if (selectedIds.size === 0) return;
-
   const btn = qs("startMappingBtn");
   btn.disabled = true;
   btn.textContent = "Mapping…";
 
   try {
-    await t.set("board", "shared", "mappedCards", Array.from(selectedIds));
-
-    // ✅ Initialize card data for each selected card
     const defaultCardData = {
       progress: 0,
       elapsed: 0,
@@ -319,14 +315,15 @@ async function startMapping() {
       },
     };
 
-    await Promise.all(
-      Array.from(selectedIds).map(async (cardId) => {
-        const existing = await t.getCard(cardId, "shared");
-        if (!existing) {
-          await t.setCard(cardId, "shared", defaultCardData);
-        }
-      })
-    );
+    // Save mapped card IDs
+    await t.set("board", "shared", "mappedCards", Array.from(selectedIds));
+
+    // Save default data per card ID in board storage
+    const cardDefaults = {};
+    Array.from(selectedIds).forEach(id => {
+      cardDefaults[id] = defaultCardData;
+    });
+    await t.set("board", "shared", "cardDefaults", cardDefaults);
 
     await t.closePopup();
   } catch (err) {

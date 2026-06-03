@@ -7,10 +7,6 @@ var Promise = TrelloPowerUp.Promise;
    HELPERS
 ---------------------------------------- */
 
-/* ----------------------------------------
-   HELPERS
----------------------------------------- */
-
 function makeBar(pct) {
   if (pct === undefined || pct === null || isNaN(pct)) pct = 0;
   const total = 10;
@@ -18,7 +14,6 @@ function makeBar(pct) {
   return "█".repeat(filled) + "▒".repeat(total - filled);
 }
 
-// NEW: Dynamically converts seconds to pure durations (e.g., 1mo, 2.5w, 4d)
 function formatUnit(sec, unit) {
   if (sec === undefined || sec === null || isNaN(sec) || sec === 0) {
     return unit === "hours" ? "00:00" : "0";
@@ -32,17 +27,12 @@ function formatUnit(sec, unit) {
 
   const rates = { days: 86400, weeks: 604800, months: 2592000 };
   const symbols = { days: "d", weeks: "w", months: "mo" };
-
-  // Calculate the value, round to 1 decimal (e.g., 1.5w),
-  // and use parseFloat to drop the decimal if it's a whole number (e.g., 4mo)
   const value = parseFloat((sec / rates[unit]).toFixed(1));
-
   return value + symbols[unit];
 }
 
-// Updated to read from the new nested data structure
 function computeElapsed(cardData) {
-  if (!cardData || !cardData.data) return cardData?.elapsed || 0; // fallback to v1
+  if (!cardData || !cardData.data) return cardData?.elapsed || 0;
 
   const unit = cardData.trackingUnit || "hours";
   const unitData = cardData.data[unit] || { elapsed: 0 };
@@ -55,7 +45,7 @@ function computeElapsed(cardData) {
 }
 
 function computeEstimated(cardData) {
-  if (!cardData || !cardData.data) return cardData?.estimated || 8 * 3600; // fallback
+  if (!cardData || !cardData.data) return cardData?.estimated || 8 * 3600;
   const unit = cardData.trackingUnit || "hours";
   const unitData = cardData.data[unit] || { estimated: 8 * 3600 };
   return unitData.estimated || 8 * 3600;
@@ -67,6 +57,31 @@ function computeTimerProgress(cardData) {
   if (estimated === 0) return 0;
   const progress = Math.min(100, Math.round((elapsed / estimated) * 100));
   return isNaN(progress) ? 0 : progress;
+}
+
+/* ----------------------------------------
+   KEY FIX: getCardData
+   Falls back to board-level defaults written
+   by startMapping() in progress-cards.js.
+   On first hit it writes the defaults onto
+   the card so every subsequent read is fast.
+---------------------------------------- */
+async function getCardData(t) {
+  const cardData = await t.get("card", "shared");
+  if (cardData) return cardData;
+
+  // No card data yet — check board defaults set during mapping
+  const card = await t.card("id");
+  const cardDefaults = await t.get("board", "shared", "cardDefaults");
+
+  if (cardDefaults && cardDefaults[card.id]) {
+    const defaults = cardDefaults[card.id];
+    // Write defaults to card storage so future reads skip this fallback
+    await t.set("card", "shared", defaults);
+    return defaults;
+  }
+
+  return null;
 }
 
 function injectBadgeStyles() {
@@ -145,11 +160,13 @@ TrelloPowerUp.initialize({
     ];
   },
 
+  // ── Uses getCardData so newly mapped cards show the section ──
   "card-back-section": async function (t) {
     injectBadgeStyles();
     const disabled = await t.get("board", "shared", "disabled");
     if (disabled) return null;
-    const cardData = await t.get("card", "shared");
+
+    const cardData = await getCardData(t); // ← was t.get("card", "shared")
     if (!cardData || cardData.disabledProgress === true) return null;
 
     return {
@@ -158,17 +175,18 @@ TrelloPowerUp.initialize({
       content: {
         type: "iframe",
         url: t.signUrl("./card-progress.html"),
-        height: 500, // Bumped from 200 to 250 to fit the graph
+        height: 500,
       },
     };
   },
 
+  // ── Uses getCardData so badges appear on newly mapped cards ──
   "card-badges": async function (t) {
     try {
       injectBadgeStyles();
 
       const mapped = (await t.get("board", "shared", "mappedCards")) || [];
-      const card = await t.card();
+      const card = await t.card("id");
 
       if (!mapped.includes(card.id)) return [];
 
@@ -176,7 +194,7 @@ TrelloPowerUp.initialize({
       if (disabled) return [];
 
       const [data, hideBadges, hideBars, hideTimer] = await Promise.all([
-        t.get("card", "shared"),
+        getCardData(t), // ← was t.get("card", "shared")
         t.get("board", "shared", "hideBadges"),
         t.get("board", "shared", "hideProgressBars"),
         t.get("board", "shared", "hideTimerBadges"),
@@ -207,16 +225,14 @@ TrelloPowerUp.initialize({
                 color: "green",
               };
             })
-            .catch(() => {
-              return { text: "0%", color: "green" };
-            });
+            .catch(() => ({ text: "0%", color: "green" }));
         },
         refresh: 250,
       });
 
       if (!hideTimer) {
         const el = computeElapsed(data) || 0;
-        const est = data.estimated || 8 * 3600;
+        const est = computeEstimated(data) || 8 * 3600;
         const unit = data.trackingUnit || "hours";
 
         badges.push({
@@ -236,86 +252,81 @@ TrelloPowerUp.initialize({
                   color: "blue",
                 };
               })
-              .catch(() => {
-                return { text: "" };
-              });
+              .catch(() => ({ text: "" }));
           },
           refresh: 100,
         });
       }
+
       return badges;
     } catch (error) {
       return [];
     }
   },
 
+  // ── Uses getCardData so detail badges appear on newly mapped cards ──
   "card-detail-badges": async function (t) {
     try {
       injectBadgeStyles();
       const disabled = await t.get("board", "shared", "disabled");
       if (disabled) return [];
 
-      return Promise.all([
-        t.get("card", "shared"),
+      const [data, hideDetail, hideBars, hideTimer] = await Promise.all([
+        getCardData(t), // ← was t.get("card", "shared")
         t.get("board", "shared", "hideDetailBadges"),
         t.get("board", "shared", "hideProgressBars"),
         t.get("board", "shared", "hideTimerBadges"),
-      ])
-        .then(([data, hideDetail, hideBars, hideTimer]) => {
-          if (hideDetail || !data) return [];
+      ]);
 
-          const badges = [];
-          if (data.focusMode)
-            badges.push({ title: "Focus", text: "🎯 Focus ON", color: "red" });
+      if (hideDetail || !data) return [];
 
-          badges.push({
-            title: "Progress",
-            dynamic: function (t) {
-              return t
-                .get("card", "shared")
-                .then((cardData) => {
-                  if (!cardData) return { text: "0%", color: "green" };
-                  const pct = computeTimerProgress(cardData) || 0;
-                  return {
-                    text: hideBars ? `${pct}%` : `${makeBar(pct)} ${pct}%`,
-                    color: "green",
-                  };
-                })
-                .catch(() => {
-                  return { text: "0%", color: "green" };
-                });
-            },
-            refresh: 100,
-          });
+      const badges = [];
 
-          if (!hideTimer) {
-            badges.push({
-              title: "Timer",
-              dynamic: function (t) {
-                return t
-                  .get("card", "shared")
-                  .then((d) => {
-                    if (!d) return { text: "" };
-                    const el = computeElapsed(d) || 0;
-                    const est = computeEstimated(d) || computeEstimated(data);
-                    const u = d.trackingUnit || "hours";
-                    return {
-                      text: `⏱ ${formatUnit(el, u)} | Est ${formatUnit(est, u)}`,
-                      color: "blue",
-                    };
-                  })
-                  .catch(() => {
-                    return { text: "" };
-                  });
-              },
-              refresh: 100,
-            });
-          }
-          return badges;
-        })
-        .catch(() => {
-          return [];
+      if (data.focusMode) {
+        badges.push({ title: "Focus", text: "🎯 Focus ON", color: "red" });
+      }
+
+      badges.push({
+        title: "Progress",
+        dynamic: function (t) {
+          return t
+            .get("card", "shared")
+            .then((cardData) => {
+              if (!cardData) return { text: "0%", color: "green" };
+              const pct = computeTimerProgress(cardData) || 0;
+              return {
+                text: hideBars ? `${pct}%` : `${makeBar(pct)} ${pct}%`,
+                color: "green",
+              };
+            })
+            .catch(() => ({ text: "0%", color: "green" }));
+        },
+        refresh: 100,
+      });
+
+      if (!hideTimer) {
+        badges.push({
+          title: "Timer",
+          dynamic: function (t) {
+            return t
+              .get("card", "shared")
+              .then((d) => {
+                if (!d) return { text: "" };
+                const el = computeElapsed(d) || 0;
+                const est = computeEstimated(d) || computeEstimated(data);
+                const u = d.trackingUnit || "hours";
+                return {
+                  text: `⏱ ${formatUnit(el, u)} | Est ${formatUnit(est, u)}`,
+                  color: "blue",
+                };
+              })
+              .catch(() => ({ text: "" }));
+          },
+          refresh: 100,
         });
+      }
+
+      return badges;
     } catch (error) {
       return [];
     }
@@ -339,6 +350,12 @@ TrelloPowerUp.initialize({
               focusMode: false,
               disabledProgress: false,
               trackingUnit: "hours",
+              data: {
+                hours:  { elapsed: 0, estimated: 8 * 3600 },
+                days:   { elapsed: 0, estimated: 1 * 86400 },
+                weeks:  { elapsed: 0, estimated: 1 * 604800 },
+                months: { elapsed: 0, estimated: 1 * 2592000 },
+              },
             });
           }
           return t.set("card", "shared", "disabledProgress", !isHidden);
