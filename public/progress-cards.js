@@ -300,37 +300,31 @@ async function startMapping() {
 
   try {
     const promises = Array.from(selectedIds).map(async (cardId) => {
-      const existing = await t.get("card", "shared", undefined, { card: cardId }).catch(() => null);
-
-      if (!existing || existing.disabledProgress === true) {
-        return t.set("card", "shared", {
-          progress:         0,
-          elapsed:          0,
-          estimated:        8 * 3600,
-          running:          false,
-          startTime:        null,
-          focusMode:        false,
-          disabledProgress: false,
-          trackingUnit:     "hours",
-          data: {
-            hours:  { elapsed: 0, estimated: 8 * 3600 },
-            days:   { elapsed: 0, estimated: 8 * 3600 },
-            weeks:  { elapsed: 0, estimated: 8 * 3600 },
-            months: { elapsed: 0, estimated: 8 * 3600 },
-          },
-        }, { card: cardId });
-      }
+      return t.set(cardId, "shared", {
+        disabledProgress: false,
+        trackingUnit: "hours",
+        running: false,
+        startTime: null,
+        focusMode: false,
+        data: {
+          hours:  { elapsed: 0, estimated: 8 * 3600 },
+          days:   { elapsed: 0, estimated: 8 * 3600 },
+          weeks:  { elapsed: 0, estimated: 8 * 3600 },
+          months: { elapsed: 0, estimated: 8 * 3600 },
+        },
+      });
     });
 
-    await Promise.allSettled(promises);
-    t.closePopup();
+    await Promise.all(promises);
+
+    await t.closePopup();
+
   } catch (err) {
     console.error("[ProgressCards] startMapping error:", err);
     btn.disabled = false;
     btn.textContent = "Start Mapping";
   }
 }
-
 /* ── Gear / Settings button ── */
 function bindGear() {
   qs("gearBtn").addEventListener("click", () => {
