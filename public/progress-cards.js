@@ -10,15 +10,31 @@ let searchQuery = "";
 /* ── Helpers ── */
 function qs(id) { return document.getElementById(id); }
 
-/** Map a label color/name to a display tag */
+/** Map a Trello label color/name to a display tag */
 function labelToTag(labels) {
   if (!labels || labels.length === 0) return null;
   const label = labels[0];
-  const name = (label.name || label.color || "").toLowerCase();
-  if (name.includes("design") || name.includes("blue"))  return { text: "Design", cls: "tag-design" };
-  if (name.includes("story") || name.includes("purple")) return { text: "Story",  cls: "tag-story"  };
-  if (name.includes("dev")   || name.includes("green"))  return { text: "Dev",    cls: "tag-dev"    };
-  // Fallback: first word of label name
+  const name  = (label.name  || "").toLowerCase();
+  const color = (label.color || "").toLowerCase();
+
+  // Explicit name keywords first
+  if (name.includes("design"))  return { text: label.name || "Design", cls: "tag-design" };
+  if (name.includes("story"))   return { text: label.name || "Story",  cls: "tag-story"  };
+  if (name.includes("dev")   || name.includes("engineer")) return { text: label.name || "Dev", cls: "tag-dev" };
+  if (name.includes("bug")   || name.includes("fix"))      return { text: label.name || "Bug", cls: "tag-red" };
+  if (name.includes("review"))  return { text: label.name || "Review", cls: "tag-orange" };
+
+  // Trello standard colors
+  switch (color) {
+    case "blue":   case "sky":    return { text: label.name || "Design",  cls: "tag-design" };
+    case "purple": case "pink":   return { text: label.name || "Story",   cls: "tag-story"  };
+    case "green":  case "lime":   return { text: label.name || "Dev",     cls: "tag-dev"    };
+    case "orange": case "peach":  return { text: label.name || "Review",  cls: "tag-orange" };
+    case "red":    case "pink":   return { text: label.name || "Bug",     cls: "tag-red"    };
+    case "yellow": case "cream":  return { text: label.name || "Task",    cls: "tag-yellow" };
+  }
+
+  // Fallback: use label name (first word) or color
   const word = (label.name || label.color || "").split(" ")[0];
   return word ? { text: word, cls: "tag-design" } : null;
 }
@@ -39,15 +55,19 @@ function renderCards() {
 
   // Group by list
   const grouped = {};
+  const listOrder = [];
   filtered.forEach(c => {
-    if (!grouped[c.listName]) grouped[c.listName] = [];
+    if (!grouped[c.listName]) {
+      grouped[c.listName] = [];
+      listOrder.push(c.listName);
+    }
     grouped[c.listName].push(c);
   });
 
-  // Separate lists into two buckets: TO DO / in-progress vs Done
-  const doneKeywords = ["done", "complete", "finished", "closed", "shipped"];
-  const inProgressKeys = Object.keys(grouped).filter(k => !doneKeywords.some(d => k.toLowerCase().includes(d)));
-  const doneKeys       = Object.keys(grouped).filter(k =>  doneKeywords.some(d => k.toLowerCase().includes(d)));
+  // Separate: done lists vs active lists
+  const doneKeywords = ["done", "complete", "finished", "closed", "shipped", "archived"];
+  const activeKeys = listOrder.filter(k => !doneKeywords.some(d => k.toLowerCase().includes(d)));
+  const doneKeys   = listOrder.filter(k =>  doneKeywords.some(d => k.toLowerCase().includes(d)));
 
   let html = "";
 
@@ -67,8 +87,8 @@ function renderCards() {
     html += `</div>`;
   };
 
-  inProgressKeys.forEach(k => renderGroup(k, grouped[k]));
-  doneKeys.forEach(k => renderGroup(k, grouped[k]));
+  activeKeys.forEach(k => renderGroup(k, grouped[k]));
+  doneKeys.forEach(k  => renderGroup(k, grouped[k]));
 
   list.innerHTML = html;
 
@@ -112,7 +132,6 @@ function escapeHtml(str) {
 /* ── Load cards from Trello ── */
 async function loadCards() {
   try {
-    // Get all cards on the board with their list info and existing data
     const [boardCards, lists] = await Promise.all([
       t.cards("all"),
       t.lists("all"),
@@ -122,11 +141,11 @@ async function loadCards() {
     lists.forEach(l => { listMap[l.id] = l.name; });
 
     allCards = boardCards.map(card => ({
-      id: card.id,
-      name: card.name,
-      listId: card.idList,
+      id:       card.id,
+      name:     card.name,
+      listId:   card.idList,
       listName: listMap[card.idList] || "Unknown List",
-      labels: card.labels || [],
+      labels:   card.labels || [],
     }));
 
     renderCards();
@@ -146,21 +165,19 @@ async function startMapping() {
   btn.textContent = "Mapping…";
 
   try {
-    // For each selected card, ensure it has progress data initialized
     const promises = Array.from(selectedIds).map(async (cardId) => {
       const existing = await t.get("card", "shared", undefined, { card: cardId }).catch(() => null);
 
-      // Only initialize if no progress data yet
       if (!existing || existing.disabledProgress === true) {
         return t.set("card", "shared", {
-          progress: 0,
-          elapsed: 0,
-          estimated: 8 * 3600,
-          running: false,
-          startTime: null,
-          focusMode: false,
+          progress:         0,
+          elapsed:          0,
+          estimated:        8 * 3600,
+          running:          false,
+          startTime:        null,
+          focusMode:        false,
           disabledProgress: false,
-          trackingUnit: "hours",
+          trackingUnit:     "hours",
           data: {
             hours:  { elapsed: 0, estimated: 8 * 3600 },
             days:   { elapsed: 0, estimated: 8 * 3600 },
@@ -192,8 +209,8 @@ function bindSearch() {
 function bindGear() {
   qs("gearBtn").addEventListener("click", () => {
     t.popup({
-      title: "Progress Settings",
-      url: "./settings.html",
+      title:  "Progress Settings",
+      url:    "./settings.html",
       height: 620,
     });
   });
