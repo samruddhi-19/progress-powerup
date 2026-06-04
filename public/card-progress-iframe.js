@@ -275,7 +275,7 @@ function render() {
         <span class="header-title">Progress Card</span>
         <span class="label-tag ${labelCls}" style="${labelStyle}">${labelTxt}</span>
       </div>
-      <div class="card-name">${cardMeta.name || 'Progress Tracker'}</div>
+      
 
       <!-- Completion -->
       <div class="section">
