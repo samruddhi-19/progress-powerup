@@ -49,10 +49,12 @@ function labelToTag(labels) {
 function updateFooter() {
   const count   = selectedIds.size;
   const countEl = qs("selectedCount");
+  const btn     = qs("startMappingBtn");
   countEl.textContent = count === 0
     ? "0 cards selected"
     : `${count} card${count === 1 ? "" : "s"} selected`;
   countEl.classList.toggle("has-selection", count > 0);
+  if (btn) btn.disabled = false;
 }
 
 /* ── Toggle selection ── */
