@@ -49,10 +49,10 @@ function labelToTag(labels) {
 function updateFooter() {
   const count   = selectedIds.size;
   const countEl = qs("selectedCount");
-  const btn     = qs("startMappingBtn");
-  countEl.textContent = count === 0 ? "0 cards selected" : `${count} card${count === 1 ? "" : "s"} selected`;
+  countEl.textContent = count === 0
+    ? "0 cards selected"
+    : `${count} card${count === 1 ? "" : "s"} selected`;
   countEl.classList.toggle("has-selection", count > 0);
-  btn.disabled = count === 0;
 }
 
 /* ── Toggle selection ── */
@@ -228,59 +228,48 @@ async function loadCards() {
 }
 
 /* ══════════════════════════════════════════
-   START MAPPING  — MERGES, never overwrites
-   ══════════════════════════════════════════
-   - Reads existing mappedCards from board
-   - Merges with current selection (union)
-   - Writes default card data only for NEW cards
-     (existing cards keep their progress/timer)
+   SAVE MAPPING
+   selectedIds is the single source of truth.
+   Checked   → mapped   (cover + badges appear)
+   Unchecked → removed  (cover + badges gone;
+               progress data kept in cardDefaults)
 ══════════════════════════════════════════ */
 async function startMapping() {
-  if (selectedIds.size === 0) return;
   const btn = qs("startMappingBtn");
   btn.disabled    = true;
-  btn.textContent = "Mapping…";
+  btn.textContent = "Saving…";
 
   try {
-    /* 1. Read what was already mapped */
-    const existingMapped   = (await t.get("board", "shared", "mappedCards"))   || [];
-    const existingDefaults = (await t.get("board", "shared", "cardDefaults"))  || {};
+    const newMappedIds = Array.from(selectedIds);
 
-    /* 2. Merge: union of old + new */
-    const mergedSet = new Set([...existingMapped, ...selectedIds]);
-    const mergedIds = Array.from(mergedSet);
-
-    /* 3. Default data template for brand-new cards */
+    const existingDefaults = (await t.get("board", "shared", "cardDefaults")) || {};
     const defaultCardData = {
       progress: 0, elapsed: 0, estimated: 8 * 3600,
       running: false, startTime: null, focusMode: false,
       disabledProgress: false, trackingUnit: "hours",
       progressSource: "tasks", manualProgress: 0, tasks: [],
       data: {
-        hours:  { elapsed: 0, estimated: 8 * 3600  },
-        days:   { elapsed: 0, estimated: 86400      },
-        weeks:  { elapsed: 0, estimated: 604800     },
-        months: { elapsed: 0, estimated: 2592000    },
+        hours:  { elapsed: 0, estimated: 8 * 3600 },
+        days:   { elapsed: 0, estimated: 86400     },
+        weeks:  { elapsed: 0, estimated: 604800    },
+        months: { elapsed: 0, estimated: 2592000   },
       },
     };
 
-    /* 4. Write defaults only for cards that don't already have one */
     const cardDefaults = { ...existingDefaults };
     selectedIds.forEach(id => {
-      if (!cardDefaults[id]) {
-        cardDefaults[id] = defaultCardData;
-      }
+      if (!cardDefaults[id]) cardDefaults[id] = defaultCardData;
     });
 
-    /* 5. Persist both */
-    await t.set("board", "shared", "mappedCards",  mergedIds);
+    /* Write exact selection — unchecked cards are no longer in mappedCards */
+    await t.set("board", "shared", "mappedCards",  newMappedIds);
     await t.set("board", "shared", "cardDefaults", cardDefaults);
 
     await t.closePopup();
   } catch (err) {
     console.error("[ProgressCards] startMapping error:", err);
     btn.disabled    = false;
-    btn.textContent = "Start Mapping";
+    btn.textContent = "Save Mapping";
   }
 }
 
