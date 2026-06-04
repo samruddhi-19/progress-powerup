@@ -5,24 +5,20 @@ const t = TrelloPowerUp.iframe({
   appName: 'Progress Tracker'
 });
 
-const UNIT_RATES = {
-  hours: 3600, days: 86400, weeks: 604800, months: 2592000
-};
-
-const CALENDAR_UNITS = {
-  days:   ['1 Day','2 Days','3 Days','4 Days','5 Days','6 Days','7 Days'],
-  weeks:  ['1 Week','2 Weeks','3 Weeks','4 Weeks'],
-  months: ['1 Month','2 Months','3 Months','4 Months','5 Months','6 Months',
-           '7 Months','8 Months','9 Months','10 Months','11 Months','12 Months']
-};
-
+/* ── Constants ── */
 const UNIT_LABELS = { hours: 'Session', days: 'Daily', weeks: 'Weekly', months: 'Monthly' };
 
+/* ── State ── */
 let state = {
+  trackingUnit: 'hours',
   running: false,
   startTime: null,
   focusMode: false,
-  trackingUnit: 'hours',
+  manualProgress: 0,       // 0-100, set by slider
+  progressSource: 'tasks', // 'manual' | 'tasks' | 'timer'
+  etaDate: '',             // "YYYY-MM-DD"
+  etaTime: '',             // "HH:MM"
+  tasks: [],               // [{ id, name, done }]
   logView: 'list',
   showAllLogs: false,
   data: {
@@ -34,433 +30,456 @@ let state = {
   history: []
 };
 
-// Card meta fetched from Trello
-let cardMeta = { name: '', labelName: '', labelColor: '', dueDate: null, checklists: [] };
+let cardMeta = { name: '', labelName: '', labelColor: '' };
+let timerInterval = null;
 
-let timer = null;
-
-/* ── Formatters ── */
-function formatHMS(seconds) {
-  const h = String(Math.floor(seconds / 3600)).padStart(2, "0");
-  const m = String(Math.floor((seconds % 3600) / 60)).padStart(2, "0");
-  const s = String(seconds % 60).padStart(2, "0");
-  return `${h}:${m}:${s}`;
-}
-
-function formatHM(seconds) {
-  const h = String(Math.floor(seconds / 3600)).padStart(2, "0");
-  const m = String(Math.floor((seconds % 3600) / 60)).padStart(2, "0");
+/* ── Helpers ── */
+function formatHM(sec) {
+  const h = String(Math.floor(sec / 3600)).padStart(2, '0');
+  const m = String(Math.floor((sec % 3600) / 60)).padStart(2, '0');
   return `${h}:${m}`;
 }
 
-function formatETA(dueDate) {
-  if (!dueDate) return null;
-  const d = new Date(dueDate);
-  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  const day = d.getDate();
-  const month = months[d.getMonth()];
-  let hours = d.getHours();
-  const mins = String(d.getMinutes()).padStart(2, '0');
-  const ampm = hours >= 12 ? 'PM' : 'AM';
-  hours = hours % 12 || 12;
-  return `ETA: ${day} ${month}, ${hours}:${mins} ${ampm}`;
+function formatHMS(sec) {
+  const h = String(Math.floor(sec / 3600)).padStart(2, '0');
+  const m = String(Math.floor((sec % 3600) / 60)).padStart(2, '0');
+  const s = String(sec % 60).padStart(2, '0');
+  return `${h}:${m}:${s}`;
 }
 
-function getLabelBg(color) {
+function parseHM(str) {
+  const parts = str.split(':').map(Number);
+  if (parts.length === 2) return parts[0] * 3600 + parts[1] * 60;
+  if (parts.length === 1) return parts[0] * 3600;
+  return 8 * 3600;
+}
+
+function getLabelStyle(color) {
   const map = {
     blue: '#0079bf', sky: '#00c2e0', lime: '#51e898', green: '#61bd4f',
     yellow: '#f2d600', orange: '#ff9f1a', red: '#eb5a46', pink: '#ff78cb',
-    purple: '#c377e0', null: '#00bcd4', '': '#00bcd4'
+    purple: '#c377e0'
   };
-  return map[color] || '#00bcd4';
+  const bg  = map[color] || '#00bcd4';
+  const txt = ['yellow','lime','sky'].includes(color) ? '#002830' : '#ffffff';
+  return `background:${bg};color:${txt};`;
 }
 
-function getLabelTextColor(color) {
-  const light = ['yellow', 'lime', 'sky'];
-  return light.includes(color) ? '#002830' : '#ffffff';
+function computeProgress() {
+  if (state.progressSource === 'manual') return state.manualProgress;
+
+  if (state.progressSource === 'tasks') {
+    if (!state.tasks || state.tasks.length === 0) return 0;
+    const done = state.tasks.filter(t => t.done).length;
+    return Math.round((done / state.tasks.length) * 100);
+  }
+
+  // timer
+  const active = state.data[state.trackingUnit];
+  let elapsed  = active.elapsed;
+  if (state.running && state.startTime) {
+    elapsed += Math.floor((Date.now() - state.startTime) / 1000);
+  }
+  const est = active.estimated || 1;
+  return Math.min(100, Math.round((elapsed / est) * 100));
 }
 
-/* ── Fetch card meta (name, label, due date, checklists) ── */
+function getLiveElapsed() {
+  const active = state.data[state.trackingUnit];
+  let el = active.elapsed;
+  if (state.running && state.startTime) {
+    el += Math.floor((Date.now() - state.startTime) / 1000);
+  }
+  return el;
+}
+
+/* ── Fetch card meta ── */
 async function fetchCardMeta() {
   try {
-    const card = await t.card('name', 'labels', 'due', 'checklists');
+    const card = await t.card('name', 'labels');
     cardMeta.name = card.name || '';
-    
     if (card.labels && card.labels.length > 0) {
-      const lbl = card.labels[0];
-      cardMeta.labelName  = lbl.name  || lbl.color || 'Label';
-      cardMeta.labelColor = lbl.color || '';
-    } else {
-      cardMeta.labelName  = '';
-      cardMeta.labelColor = '';
+      cardMeta.labelName  = card.labels[0].name  || card.labels[0].color || 'Label';
+      cardMeta.labelColor = card.labels[0].color || '';
     }
-
-    cardMeta.dueDate = card.due || null;
-
-    // Get first incomplete checklist item as subtask hint
-    cardMeta.subTask = '';
-    if (card.checklists && card.checklists.length > 0) {
-      for (const cl of card.checklists) {
-        const incomplete = (cl.checkItems || []).find(i => i.state === 'incomplete');
-        if (incomplete) {
-          cardMeta.subTask = 'Sub Task: ' + incomplete.name;
-          break;
-        }
-      }
-    }
-  } catch (e) {
-    // Graceful fallback
-  }
+  } catch (e) {}
 }
 
-/* ── Render input for elapsed/estimated ── */
-function renderInput(id, isElapsed, val) {
-  if (state.trackingUnit === 'hours') {
-    if (isElapsed) {
-      return `<span id="${id}">${formatHM(val)}</span>`;
-    }
-    return `<input id="${id}" class="est-input" value="${formatHM(val)}" title="HH:MM" />`;
-  }
+/* ── Save / Load ── */
+function save() { t.set('card', 'shared', state); }
 
-  const options = CALENDAR_UNITS[state.trackingUnit];
-  const rate    = UNIT_RATES[state.trackingUnit];
-  let currentIndex = Math.max(0, Math.floor(val / rate) - 1);
-  if (currentIndex >= options.length) currentIndex = options.length - 1;
-
-  const disabled = state.running ? 'disabled' : '';
-  let html = `<select id="${id}" class="time-select" ${disabled}>`;
-  if (isElapsed && val === 0) html += `<option value="0" selected>--</option>`;
-  options.forEach((opt, idx) => {
-    const optVal = (idx + 1) * rate;
-    const selected = (val > 0 && currentIndex === idx) ? 'selected' : '';
-    html += `<option value="${optVal}" ${selected}>${opt}</option>`;
-  });
-  html += `</select>`;
-  return html;
-}
-
-/* ── Chart ── */
-function generateChartSVG(type) {
-  if (state.history.length === 0) {
-    return '<div style="text-align:center;padding:20px;color:#475569;font-size:12px;">No activity yet</div>';
-  }
-
-  const width = 320, height = 130, pX = 36, pY = 22, topP = 12, rightP = 10;
-  const plotW = width - pX - rightP, plotH = height - pY - topP, bottomY = height - pY;
-
-  let dataPoints = [...state.history].slice(-7);
-  const maxSecs  = Math.max(...dataPoints.map(d => d.seconds), 60);
-
-  let elementsHTML = '', labelsHTML = '', linePoints = [];
-  const barWidth = Math.min(28, (plotW / dataPoints.length) - 4);
-
-  dataPoints.forEach((d, i) => {
-    const x = dataPoints.length === 1
-      ? pX + plotW / 2
-      : pX + (i / (dataPoints.length - 1)) * plotW;
-    const y = bottomY - ((d.seconds / maxSecs) * plotH);
-
-    const shortDate = d.date.split(',')[0];
-    labelsHTML += `<text x="${x}" y="${height - 4}" font-size="9" fill="#475569" text-anchor="middle">${shortDate}</text>`;
-
-    if (type === 'line') {
-      linePoints.push(`${x},${y}`);
-      elementsHTML += `<circle cx="${x}" cy="${y}" r="3.5" fill="#22272b" stroke="#00bcd4" stroke-width="2"><title>${d.date} ${d.time}: ${formatHMS(d.seconds)}</title></circle>`;
-    } else {
-      elementsHTML += `<rect x="${x - barWidth/2}" y="${y}" width="${barWidth}" height="${bottomY - y}" fill="#00bcd4" rx="3" class="chart-bar"><title>${d.date} ${d.time}: ${formatHMS(d.seconds)}</title></rect>`;
-    }
-  });
-
-  function fmtY(s) {
-    if (s >= 3600) return parseFloat((s/3600).toFixed(1)) + 'h';
-    if (s >= 60)   return Math.round(s/60) + 'm';
-    return s + 's';
-  }
-
-  const gridColor = 'rgba(255,255,255,0.06)';
-  labelsHTML += `
-    <text x="${pX-6}" y="${topP+4}" font-size="9" fill="#475569" text-anchor="end">${fmtY(maxSecs)}</text>
-    <line x1="${pX}" y1="${topP}" x2="${width-rightP}" y2="${topP}" stroke="${gridColor}" stroke-width="1" stroke-dasharray="3"/>
-    <text x="${pX-6}" y="${topP+plotH/2+4}" font-size="9" fill="#475569" text-anchor="end">${fmtY(maxSecs/2)}</text>
-    <line x1="${pX}" y1="${topP+plotH/2}" x2="${width-rightP}" y2="${topP+plotH/2}" stroke="${gridColor}" stroke-width="1" stroke-dasharray="3"/>
-    <line x1="${pX}" y1="${bottomY}" x2="${width-rightP}" y2="${bottomY}" stroke="${gridColor}" stroke-width="1"/>`;
-
-  const polyline = type === 'line'
-    ? `<polyline points="${linePoints.join(' ')}" fill="none" stroke="#00bcd4" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`
-    : '';
-
-  return `<svg class="chart-svg" viewBox="0 0 ${width} ${height}">${labelsHTML}${polyline}${elementsHTML}</svg>`;
-}
-
-/* ── Load ── */
 async function load() {
   await fetchCardMeta();
+  const saved = (await t.get('card', 'shared')) || {};
 
-  const card = (await t.get("card", "shared")) || {};
+  if (saved.data)            state.data            = saved.data;
+  if (saved.history)         state.history         = saved.history;
+  if (saved.tasks)           state.tasks           = saved.tasks;
+  state.running        = saved.running        || false;
+  state.startTime      = saved.startTime      || null;
+  state.focusMode      = saved.focusMode      || false;
+  state.trackingUnit   = saved.trackingUnit   || 'hours';
+  state.logView        = saved.logView        || 'list';
+  state.showAllLogs    = saved.showAllLogs    || false;
+  state.manualProgress = saved.manualProgress ?? 0;
+  state.progressSource = saved.progressSource || 'tasks';
+  state.etaDate        = saved.etaDate        || '';
+  state.etaTime        = saved.etaTime        || '';
 
-  state.running      = card.running      || false;
-  state.startTime    = card.startTime    || null;
-  state.focusMode    = card.focusMode    || false;
-  state.trackingUnit = card.trackingUnit || 'hours';
-  state.logView      = card.logView      || 'list';
-  state.showAllLogs  = card.showAllLogs  || false;
-  state.history      = card.history      || [];
-
-  if (card.data) {
-    state.data = card.data;
-  } else if (card.estimated !== undefined) {
-    state.data.hours.elapsed   = card.elapsed   || 0;
-    state.data.hours.estimated = card.estimated || 8 * 3600;
+  // Migrate old elapsed/estimated format
+  if (saved.estimated !== undefined && !saved.data) {
+    state.data.hours.elapsed   = saved.elapsed   || 0;
+    state.data.hours.estimated = saved.estimated || 8 * 3600;
   }
 
   render();
-
-  if (state.running) {
-    startTick();
-  } else {
-    const mode = await t.get("board", "shared", "autoTrackMode");
-    if (mode === "open" || mode === "both") {
-      state.running   = true;
-      state.startTime = Date.now();
-      startTick();
-      const autoFocus = await t.get("board", "shared", "autoFocus");
-      if (autoFocus) {
-        state.focusMode = true;
-        t.set("card", "shared", "focusMode", true);
-      }
-      save();
-      render();
-    }
-  }
+  if (state.running) startTick();
 
   setTimeout(() => t.sizeTo(document.body).done(), 40);
 }
 
 load();
 
-function save() { t.set("card", "shared", state); }
-
-/* ── Tick ── */
+/* ── Timer ── */
 function startTick() {
-  if (timer) return;
-  timer = setInterval(() => {
+  if (timerInterval) return;
+  timerInterval = setInterval(() => {
     if (!state.running) return;
+    const elapsed = getLiveElapsed();
 
-    const sessionSecs = Math.floor((Date.now() - state.startTime) / 1000);
-
-    if (state.trackingUnit === 'hours') {
-      const live = state.data.hours.elapsed + sessionSecs;
-      const el   = document.getElementById("elapsedDisplay");
-      if (el) el.textContent = formatHM(live);
-
-      // Update big timer in top-right
-      const timerEl = document.getElementById("liveTimerDisplay");
-      if (timerEl) timerEl.textContent = formatHM(live);
-    } else {
-      const ticker = document.getElementById("liveSessionTicker");
-      if (ticker) ticker.textContent = "Session: " + formatHMS(sessionSecs);
+    // Update timer display
+    const disp = document.getElementById('timerDisplay');
+    if (disp) {
+      disp.textContent = formatHM(elapsed);
     }
 
-    const est     = state.data[state.trackingUnit].estimated || 1;
-    const total   = state.data[state.trackingUnit].elapsed + sessionSecs;
-    const pct     = Math.min(100, Math.round((total / est) * 100));
-    const fill    = document.getElementById("progressBarFill");
-    const pctVal  = document.getElementById("pctValue");
-
-    if (fill) {
-      fill.style.width = pct + "%";
-      if (total > est) fill.classList.add('overtime'); else fill.classList.remove('overtime');
+    // Update session ticker for non-hour units
+    if (state.trackingUnit !== 'hours') {
+      const sessionSec = Math.floor((Date.now() - state.startTime) / 1000);
+      const ticker = document.getElementById('sessionTicker');
+      if (ticker) ticker.textContent = 'Session: ' + formatHMS(sessionSec);
     }
-    if (pctVal) pctVal.textContent = pct + "%";
+
+    // Update progress bar if source is timer
+    if (state.progressSource === 'timer') {
+      const pct = computeProgress();
+      updateProgressUI(pct);
+    }
   }, 1000);
+}
+
+function updateProgressUI(pct) {
+  const fill    = document.getElementById('progressFill');
+  const botFill = document.getElementById('bottomBarFill');
+  const pctEl   = document.getElementById('pctDisplay');
+  const isOver  = pct > 100;
+  const disp    = Math.min(100, pct);
+
+  if (fill)    { fill.style.width    = disp + '%'; fill.className    = 'slider-fill'    + (isOver ? ' overtime' : ''); }
+  if (botFill) { botFill.style.width = disp + '%'; botFill.className = 'bottom-bar-fill' + (isOver ? ' overtime' : ''); }
+  if (pctEl)   { pctEl.textContent   = pct + '%';  pctEl.className   = 'completion-pct' + (isOver ? ' overtime' : ''); }
 }
 
 function stopSession() {
   if (!state.running) return;
-  const sessionSeconds = Math.floor((Date.now() - state.startTime) / 1000);
-  state.data[state.trackingUnit].elapsed += sessionSeconds;
+  const sessionSec = Math.floor((Date.now() - state.startTime) / 1000);
+  state.data[state.trackingUnit].elapsed += sessionSec;
   state.running   = false;
   state.focusMode = false;
-  t.set("card", "shared", "focusMode", false);
+  t.set('card', 'shared', 'focusMode', false);
 
-  if (sessionSeconds > 5) {
-    const startDate = new Date(state.startTime);
+  if (sessionSec > 5) {
+    const d = new Date(state.startTime);
     state.history.push({
-      date:    startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-      time:    startDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
-      seconds: sessionSeconds,
+      date:    d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      time:    d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+      seconds: sessionSec,
       unit:    state.trackingUnit
     });
     if (state.history.length > 20) state.history.shift();
   }
 
   state.startTime = null;
-  clearInterval(timer);
-  timer = null;
+  clearInterval(timerInterval);
+  timerInterval = null;
 }
 
 /* ── Calendar sync ── */
-async function syncTrelloDueDate(estimatedSeconds) {
+async function syncDueDate(isoDate) {
   try {
-    const targetDate = new Date(Date.now() + estimatedSeconds * 1000);
-    const card       = await t.card('id');
-    const isAuth     = await t.getRestApi().isAuthorized();
-    if (!isAuth) {
-      await t.getRestApi().authorize({ scope: 'read,write', expiration: 'never' });
-    }
+    const card   = await t.card('id');
+    const isAuth = await t.getRestApi().isAuthorized();
+    if (!isAuth) await t.getRestApi().authorize({ scope: 'read,write', expiration: 'never' });
     const token = await t.getRestApi().getToken();
     if (!token) return;
-    await fetch(`https://api.trello.com/1/cards/${card.id}?key=${TRELLO_API_KEY}&token=${token}&due=${targetDate.toISOString()}`, { method: 'PUT' });
-  } catch (err) {
-    console.error("Failed to sync due date:", err);
-  }
+    await fetch(`https://api.trello.com/1/cards/${card.id}?key=${TRELLO_API_KEY}&token=${token}&due=${isoDate}`, { method: 'PUT' });
+  } catch (e) { console.error('Due date sync error:', e); }
 }
 
-/* ── Toggle ── */
-function toggleTimer() {
+/* ── Global handlers (called from HTML) ── */
+window.onSliderInput = function(val) {
+  state.manualProgress = parseInt(val);
+  state.progressSource = 'manual';
+  updateProgressUI(state.manualProgress);
+  save();
+};
+
+window.onSliderChange = function(val) {
+  state.manualProgress = parseInt(val);
+  state.progressSource = 'manual';
+  save();
+  render();
+};
+
+window.toggleTask = function(id) {
+  const task = state.tasks.find(t => t.id === id);
+  if (!task) return;
+  task.done = !task.done;
+  // Auto switch to tasks source
+  state.progressSource = 'tasks';
+  save();
+  render();
+};
+
+window.deleteTask = function(id) {
+  state.tasks = state.tasks.filter(t => t.id !== id);
+  save();
+  render();
+};
+
+window.addTask = function() {
+  const input = document.getElementById('newTaskInput');
+  if (!input) return;
+  const name = input.value.trim();
+  if (!name) return;
+  state.tasks.push({ id: Date.now().toString(), name, done: false });
+  state.progressSource = 'tasks';
+  input.value = '';
+  save();
+  render();
+};
+
+window.onNewTaskKey = function(e) {
+  if (e.key === 'Enter') window.addTask();
+};
+
+window.onEtaDateChange = function(val) {
+  state.etaDate = val;
+  save();
+  // Sync to Trello if both date and time set
+  if (state.etaDate && state.etaTime) {
+    const iso = new Date(`${state.etaDate}T${state.etaTime}`).toISOString();
+    syncDueDate(iso);
+  }
+};
+
+window.onEtaTimeChange = function(val) {
+  state.etaTime = val;
+  save();
+  if (state.etaDate && state.etaTime) {
+    const iso = new Date(`${state.etaDate}T${state.etaTime}`).toISOString();
+    syncDueDate(iso);
+  }
+};
+
+window.toggleTimer = function() {
   if (state.running) {
     stopSession();
   } else {
     state.running   = true;
     state.startTime = Date.now();
     startTick();
-    if (state.trackingUnit !== 'hours') {
-      syncTrelloDueDate(state.data[state.trackingUnit].estimated);
-    }
   }
   save();
   render();
-}
+};
 
-function handleReset() {
+window.resetTimer = function() {
+  stopSession();
   state.data[state.trackingUnit].elapsed = 0;
   state.running   = false;
   state.startTime = null;
-  state.focusMode = false;
-  t.set("card", "shared", "focusMode", false);
-  if (timer) { clearInterval(timer); timer = null; }
+  if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
   save();
   render();
-}
+};
 
-window.setView      = v  => { state.logView = v; save(); render(); };
+window.onEstChange = function(val) {
+  const sec = parseHM(val);
+  if (sec > 0) {
+    state.data[state.trackingUnit].estimated = sec;
+    save();
+  }
+};
+
+window.setView       = v  => { state.logView = v;                    save(); render(); };
 window.toggleShowAll = () => { state.showAllLogs = !state.showAllLogs; save(); render(); };
+
+/* ── Chart ── */
+function generateChartSVG(type) {
+  if (!state.history || state.history.length === 0)
+    return '<div style="text-align:center;padding:16px;color:#475569;font-size:12px;">No activity yet</div>';
+
+  const W=320, H=120, pX=34, pY=20, tP=10, rP=8;
+  const plotW = W-pX-rP, plotH = H-pY-tP, bY = H-pY;
+
+  const pts     = [...state.history].slice(-7);
+  const maxSecs = Math.max(...pts.map(d => d.seconds), 60);
+  const bw      = Math.min(26, (plotW / pts.length) - 4);
+
+  let els='', lbs='', lp=[];
+
+  pts.forEach((d,i) => {
+    const x = pts.length===1 ? pX+plotW/2 : pX + (i/(pts.length-1))*plotW;
+    const y = bY - ((d.seconds/maxSecs)*plotH);
+    lbs += `<text x="${x}" y="${H-3}" font-size="9" fill="#475569" text-anchor="middle">${d.date.split(',')[0]}</text>`;
+    if (type==='line') {
+      lp.push(`${x},${y}`);
+      els += `<circle cx="${x}" cy="${y}" r="3.5" fill="#22272b" stroke="#00bcd4" stroke-width="2"><title>${d.date} ${d.time}: ${formatHMS(d.seconds)}</title></circle>`;
+    } else {
+      els += `<rect x="${x-bw/2}" y="${y}" width="${bw}" height="${bY-y}" fill="#00bcd4" rx="3" class="chart-bar"><title>${d.date} ${d.time}: ${formatHMS(d.seconds)}</title></rect>`;
+    }
+  });
+
+  const gc='rgba(255,255,255,0.06)';
+  const fmtY = s => s>=3600 ? parseFloat((s/3600).toFixed(1))+'h' : s>=60 ? Math.round(s/60)+'m' : s+'s';
+  lbs += `<text x="${pX-5}" y="${tP+4}" font-size="9" fill="#475569" text-anchor="end">${fmtY(maxSecs)}</text>
+          <line x1="${pX}" y1="${tP}" x2="${W-rP}" y2="${tP}" stroke="${gc}" stroke-dasharray="3"/>
+          <text x="${pX-5}" y="${tP+plotH/2+4}" font-size="9" fill="#475569" text-anchor="end">${fmtY(maxSecs/2)}</text>
+          <line x1="${pX}" y1="${tP+plotH/2}" x2="${W-rP}" y2="${tP+plotH/2}" stroke="${gc}" stroke-dasharray="3"/>
+          <line x1="${pX}" y1="${bY}" x2="${W-rP}" y2="${bY}" stroke="${gc}"/>`;
+
+  const poly = type==='line' ? `<polyline points="${lp.join(' ')}" fill="none" stroke="#00bcd4" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>` : '';
+  return `<svg class="chart-svg" viewBox="0 0 ${W} ${H}">${lbs}${poly}${els}</svg>`;
+}
 
 /* ── Render ── */
 function render() {
-  const activeData = state.data[state.trackingUnit];
+  const pct      = computeProgress();
+  const dispPct  = Math.min(100, pct);
+  const isOver   = pct > 100;
+  const elapsed  = getLiveElapsed();
+  const active   = state.data[state.trackingUnit];
 
-  let liveElapsed = activeData.elapsed;
-  if (state.running && state.trackingUnit === 'hours') {
-    liveElapsed += Math.floor((Date.now() - state.startTime) / 1000);
-  }
+  const hasLabel   = cardMeta.labelName.length > 0;
+  const labelStyle = hasLabel ? getLabelStyle(cardMeta.labelColor) : '';
+  const labelTxt   = hasLabel ? (cardMeta.labelName.length > 14 ? cardMeta.labelName.slice(0,14)+'…' : cardMeta.labelName) : 'No Label';
+  const labelCls   = hasLabel ? '' : 'no-label';
 
-  const est        = activeData.estimated || 1;
-  const rawPct     = Math.round((liveElapsed / est) * 100);
-  const displayPct = Math.min(100, rawPct);
-  const isOvertime = liveElapsed > est;
+  const doneTasks  = (state.tasks || []).filter(t => t.done).length;
+  const totalTasks = (state.tasks || []).length;
 
-  // Display timer: elapsed if hours, else "00:00"
-  const timerText = state.trackingUnit === 'hours'
-    ? formatHM(liveElapsed)
-    : formatHM(activeData.elapsed);
+  const revHistory  = [...(state.history||[])].reverse();
+  const logsToShow  = state.showAllLogs ? revHistory : revHistory.slice(0,3);
 
-  // Label tag
-  const hasLabel = cardMeta.labelName && cardMeta.labelName.length > 0;
-  const labelBg  = hasLabel ? getLabelBg(cardMeta.labelColor) : '';
-  const labelTxt = hasLabel ? (cardMeta.labelName.length > 12 ? cardMeta.labelName.slice(0,12)+'…' : cardMeta.labelName) : 'No Label';
-  const labelCls = hasLabel ? '' : 'no-label';
-  const labelStyle = hasLabel ? `style="background:${labelBg};color:${getLabelTextColor(cardMeta.labelColor)};"` : '';
+  const playIcon  = `<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>`;
+  const stopIcon  = `<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h12v12H6z"/></svg>`;
+  const resetIcon = `<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg>`;
 
-  // Pills
-  const etaText  = formatETA(cardMeta.dueDate);
-  const subText  = cardMeta.subTask || '';
+  document.getElementById('root').innerHTML = `
+    <div class="card">
 
-  // Btn
-  const isRunning  = state.running;
-  const btnText    = isRunning ? 'Stop Timer' : (liveElapsed > 0 ? 'Resume Timer' : 'Start Timer');
-  const playIcon   = `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>`;
-  const stopIcon   = `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h12v12H6z"/></svg>`;
-  const resetIcon  = `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg>`;
-
-  const reversedHistory = [...state.history].reverse();
-  const logsToDisplay   = state.showAllLogs ? reversedHistory : reversedHistory.slice(0, 3);
-
-  document.getElementById("root").innerHTML = `
-    <div class="progress-card">
-
-      <!-- Top row: Label + Timer -->
-      <div class="top-row">
-        <span class="label-tag ${labelCls}" ${labelStyle}>${labelTxt}</span>
-        <span class="live-timer ${isRunning ? 'running' : ''}" id="liveTimerDisplay">${timerText}</span>
+      <!-- Header: label + card name -->
+      <div class="card-header">
+        <span class="header-title">Progress Card</span>
+        <span class="label-tag ${labelCls}" style="${labelStyle}">${labelTxt}</span>
       </div>
+      <div class="card-name">${cardMeta.name || 'Progress Tracker'}</div>
 
-      <!-- Card title -->
-      <div class="card-title">${cardMeta.name || 'Progress Tracker'}</div>
-
-      <!-- ETA + SubTask pills -->
-      ${(etaText || subText) ? `
-      <div class="pills-row">
-        ${etaText  ? `<span class="pill eta">📅 ${etaText}</span>` : ''}
-        ${subText  ? `<span class="pill subtask">☑ ${subText}</span>` : ''}
-      </div>` : ''}
-
-      <!-- Progress % label -->
-      <div class="pct-row">
-        <span class="pct-status ${isOvertime ? 'overtime' : ''}">${isOvertime ? 'Overtime' : 'Progress'}</span>
-        <span class="pct-value ${isOvertime ? 'overtime' : ''}" id="pctValue">${rawPct}%</span>
-      </div>
-
-      <!-- Cyan progress bar flush to bottom -->
-      <div class="progress-track">
-        <div id="progressBarFill" class="progress-fill ${isOvertime ? 'overtime' : ''}" style="width:${displayPct}%"></div>
-      </div>
-
-      <!-- Divider -->
-      <div class="divider"></div>
-
-      <!-- Controls -->
-      <div class="controls-section">
-        <div class="controls-row">
-          <button id="btnToggle" class="btn ${isRunning ? 'btn-stop' : 'btn-start'}">
-            ${isRunning ? stopIcon : playIcon} ${btnText}
-          </button>
-          <button id="btnReset" class="btn btn-icon" title="Reset">${resetIcon}</button>
+      <!-- ── Completion ── -->
+      <div class="section">
+        <div class="completion-row">
+          <span class="completion-label">Completion :</span>
+          <span class="completion-pct ${isOver ? 'overtime' : ''}" id="pctDisplay">${pct}%</span>
         </div>
 
-        <!-- Metrics -->
-        <div class="metrics-row">
-          <div class="metric">
-            <span class="metric-label">Elapsed</span>
-            <span class="metric-value cyan" id="elapsedDisplay">${
-              state.trackingUnit === 'hours' ? formatHM(liveElapsed) : renderInput('_el', true, liveElapsed)
-            }</span>
+        <div class="slider-wrap">
+          <div class="slider-track">
+            <div class="slider-fill ${isOver ? 'overtime' : ''}" id="progressFill" style="width:${dispPct}%"></div>
           </div>
-          <div class="metric">
-            <span class="metric-label">Estimate</span>
-            <span class="metric-value">${renderInput('estimatedInput', false, activeData.estimated)}</span>
+          <input type="range" min="0" max="100" value="${state.progressSource === 'manual' ? state.manualProgress : dispPct}"
+            ${state.progressSource !== 'manual' ? 'readonly style="pointer-events:none;opacity:0.5;"' : ''}
+            oninput="onSliderInput(this.value)"
+            onchange="onSliderChange(this.value)" />
+        </div>
+
+        <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;">
+          <button onclick="setProgressSource('manual')" style="font-size:10px;font-weight:700;padding:3px 9px;border-radius:6px;border:none;cursor:pointer;${state.progressSource==='manual'?'background:#00bcd4;color:#002830;':'background:rgba(255,255,255,0.06);color:#64748b;'}">Manual</button>
+          <button onclick="setProgressSource('tasks')"  style="font-size:10px;font-weight:700;padding:3px 9px;border-radius:6px;border:none;cursor:pointer;${state.progressSource==='tasks' ?'background:#00bcd4;color:#002830;':'background:rgba(255,255,255,0.06);color:#64748b;'}">From Tasks</button>
+          <button onclick="setProgressSource('timer')"  style="font-size:10px;font-weight:700;padding:3px 9px;border-radius:6px;border:none;cursor:pointer;${state.progressSource==='timer' ?'background:#00bcd4;color:#002830;':'background:rgba(255,255,255,0.06);color:#64748b;'}">From Timer</button>
+        </div>
+      </div>
+
+      <!-- ── ETA ── -->
+      <div class="section">
+        <div class="section-label">ETA</div>
+        <div class="eta-row">
+          <span class="eta-pre">ETA :</span>
+          <input type="date" class="eta-input" value="${state.etaDate}" onchange="onEtaDateChange(this.value)" />
+          <span class="eta-amp">&amp;</span>
+          <input type="time" class="eta-input" value="${state.etaTime}" onchange="onEtaTimeChange(this.value)" />
+        </div>
+      </div>
+
+      <!-- ── Tasks ── -->
+      <div class="section">
+        <div class="section-label">Tasks ${totalTasks > 0 ? `<span style="color:#00bcd4;margin-left:4px;">${doneTasks}/${totalTasks}</span>` : ''}</div>
+        <div class="tasks-list">
+          ${totalTasks === 0
+            ? `<div class="empty-tasks">No tasks yet. Add one below.</div>`
+            : state.tasks.map(task => `
+              <div class="task-item">
+                <div class="task-cb ${task.done ? 'checked' : ''}" onclick="toggleTask('${task.id}')"></div>
+                <span class="task-name ${task.done ? 'done' : ''}">${task.name.replace(/</g,'&lt;')}</span>
+                <button class="task-del" onclick="deleteTask('${task.id}')" title="Remove">×</button>
+              </div>`).join('')
+          }
+        </div>
+        <div class="add-task-row">
+          <input id="newTaskInput" class="add-task-input" type="text" placeholder="Add a task…" onkeydown="onNewTaskKey(event)" maxlength="80" />
+          <button class="add-task-btn" onclick="addTask()">+</button>
+        </div>
+      </div>
+
+      <!-- ── Time Tracking ── -->
+      <div class="section">
+        <div class="section-label">Time Tracking</div>
+        <div class="timer-row">
+          <div class="timer-label-row">
+            <span class="timer-lbl">Time Tracking :</span>
+            <span class="timer-display ${state.running ? 'running' : ''}" id="timerDisplay">${formatHM(elapsed)}</span>
           </div>
-          <div class="metric">
-            <span class="metric-label">Unit</span>
-            <select id="unitSelect" class="unit-picker" ${isRunning ? 'disabled' : ''}>
-              <option value="hours"  ${state.trackingUnit==='hours'  ?'selected':''}>Hours</option>
-              <option value="days"   ${state.trackingUnit==='days'   ?'selected':''}>Days</option>
-              <option value="weeks"  ${state.trackingUnit==='weeks'  ?'selected':''}>Weeks</option>
-              <option value="months" ${state.trackingUnit==='months' ?'selected':''}>Months</option>
-            </select>
+          <div class="timer-controls">
+            ${state.running
+              ? `<button class="btn-timer-stop" onclick="toggleTimer()">${stopIcon} Stop</button>`
+              : `<button class="btn-timer-start" onclick="toggleTimer()">${playIcon} ${elapsed > 0 ? 'Resume' : 'Start'}</button>`
+            }
+            <button class="btn-reset" onclick="resetTimer()" title="Reset">${resetIcon}</button>
           </div>
         </div>
 
-        ${(isRunning && state.trackingUnit !== 'hours') ? `
-          <div id="liveSessionTicker" class="session-ticker">Session: 00:00:00</div>
-        ` : ''}
+        ${state.running && state.trackingUnit !== 'hours'
+          ? `<div id="sessionTicker" class="session-ticker">Session: 00:00:00</div>`
+          : ''
+        }
+
+        <div class="timer-meta">
+          <span class="timer-meta-pill">⏱ Elapsed <span>${formatHM(elapsed)}</span></span>
+          <span class="timer-meta-pill">🎯 Est
+            <input class="est-input" value="${formatHM(active.estimated)}"
+              onchange="onEstChange(this.value)"
+              onclick="this.select()"
+              style="background:transparent;border:none;color:#00bcd4;font-family:'SF Mono',monospace;font-size:11px;font-weight:700;width:52px;padding:0;outline:none;cursor:text;"
+            />
+          </span>
+        </div>
       </div>
 
-      <!-- Activity Log -->
-      ${state.history.length > 0 ? `
-      <div class="history-section">
+      <!-- ── Activity Log ── -->
+      ${state.history && state.history.length > 0 ? `
+      <div class="section">
         <div class="history-header">
-          <span class="history-title">Activity Log</span>
+          <span class="section-label" style="margin:0;">Activity Log</span>
           <div class="view-toggle">
             <button class="view-btn ${state.logView==='list'?'active':''}" onclick="setView('list')">List</button>
             <button class="view-btn ${state.logView==='line'?'active':''}" onclick="setView('line')">Line</button>
@@ -469,7 +488,7 @@ function render() {
         </div>
         ${state.logView === 'list' ? `
           <div class="history-list">
-            ${logsToDisplay.map(h => {
+            ${logsToShow.map(h => {
               const badge = h.unit ? `<span class="unit-badge">${UNIT_LABELS[h.unit]||h.unit}</span>` : '';
               return `<div class="history-item">
                 <span>${h.date} at ${h.time}${badge}</span>
@@ -484,39 +503,24 @@ function render() {
         ` : generateChartSVG(state.logView)}
       </div>` : ''}
 
+      <!-- Bottom progress bar -->
+      <div class="bottom-bar">
+        <div class="bottom-bar-fill ${isOver ? 'overtime' : ''}" id="bottomBarFill" style="width:${dispPct}%"></div>
+      </div>
+
     </div>
   `;
 
-  /* ── Bind events ── */
-  document.getElementById("btnToggle").onclick = toggleTimer;
-  document.getElementById("btnReset").onclick  = handleReset;
-
-  const unitSel = document.getElementById("unitSelect");
-  if (unitSel) unitSel.onchange = e => { state.trackingUnit = e.target.value; save(); render(); };
-
-  const estInput = document.getElementById("estimatedInput");
-  if (estInput) {
-    if (estInput.tagName === 'SELECT') {
-      estInput.onchange = e => {
-        state.data[state.trackingUnit].estimated = parseInt(e.target.value, 10) || UNIT_RATES[state.trackingUnit];
-        save(); render();
-      };
-    } else {
-      estInput.onchange = e => {
-        const parts = e.target.value.trim().split(":").map(Number);
-        let h=0, m=0;
-        if (parts.length >= 2) { h = parts[0]; m = parts[1]; }
-        else if (parts.length === 1) { h = parts[0]; }
-        const total = h * 3600 + m * 60;
-        if (!isNaN(total) && total > 0) {
-          state.data.hours.estimated = total;
-          save(); render();
-        } else {
-          e.target.value = formatHM(state.data.hours.estimated);
-        }
-      };
-    }
-  }
-
   setTimeout(() => t.sizeTo(document.body).done(), 50);
 }
+
+/* ── Progress source toggle ── */
+window.setProgressSource = function(source) {
+  state.progressSource = source;
+  if (source === 'manual') {
+    // Sync slider to current computed value before switching
+    state.manualProgress = computeProgress();
+  }
+  save();
+  render();
+};
