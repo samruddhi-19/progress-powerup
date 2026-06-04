@@ -3,11 +3,11 @@
 const t = TrelloPowerUp.iframe();
 
 /* ── State ── */
-let allCards  = [];   // { id, name, listName, listId, labels }
-let allLists  = [];   // { id, name, cardCount }
-let selectedIds = new Set();
-let searchQuery = "";
-let currentView = "lists";   // "lists" | "cards"
+let allCards        = [];
+let allLists        = [];
+let selectedIds     = new Set();
+let searchQuery     = "";
+let currentView     = "lists";
 let currentListId   = null;
 let currentListName = null;
 
@@ -16,32 +16,29 @@ function qs(id) { return document.getElementById(id); }
 
 function escapeHtml(str) {
   return String(str)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
-/** Map a Trello label to a display tag */
 function labelToTag(labels) {
-  if (!labels || labels.length === 0) return null;
+  if (!labels || !labels.length) return null;
   const label = labels[0];
   const name  = (label.name  || "").toLowerCase();
   const color = (label.color || "").toLowerCase();
 
-  if (name.includes("design"))                              return { text: label.name || "Design", cls: "tag-design" };
-  if (name.includes("story"))                               return { text: label.name || "Story",  cls: "tag-story"  };
-  if (name.includes("dev") || name.includes("engineer"))   return { text: label.name || "Dev",    cls: "tag-dev"    };
-  if (name.includes("bug") || name.includes("fix"))        return { text: label.name || "Bug",    cls: "tag-red"    };
-  if (name.includes("review"))                             return { text: label.name || "Review", cls: "tag-orange" };
+  if (name.includes("design"))                            return { text: label.name || "Design", cls: "tag-design" };
+  if (name.includes("story"))                             return { text: label.name || "Story",  cls: "tag-story"  };
+  if (name.includes("dev") || name.includes("engineer")) return { text: label.name || "Dev",    cls: "tag-dev"    };
+  if (name.includes("bug") || name.includes("fix"))      return { text: label.name || "Bug",    cls: "tag-red"    };
+  if (name.includes("review"))                           return { text: label.name || "Review", cls: "tag-orange" };
 
   switch (color) {
-    case "blue":   case "sky":    return { text: label.name || "Design",  cls: "tag-design" };
-    case "purple": case "pink":   return { text: label.name || "Story",   cls: "tag-story"  };
-    case "green":  case "lime":   return { text: label.name || "Dev",     cls: "tag-dev"    };
-    case "orange": case "peach":  return { text: label.name || "Review",  cls: "tag-orange" };
-    case "red":                   return { text: label.name || "Bug",     cls: "tag-red"    };
-    case "yellow": case "cream":  return { text: label.name || "Task",    cls: "tag-yellow" };
+    case "blue":   case "sky":   return { text: label.name || "Design", cls: "tag-design" };
+    case "purple": case "pink":  return { text: label.name || "Story",  cls: "tag-story"  };
+    case "green":  case "lime":  return { text: label.name || "Dev",    cls: "tag-dev"    };
+    case "orange": case "peach": return { text: label.name || "Review", cls: "tag-orange" };
+    case "red":                  return { text: label.name || "Bug",    cls: "tag-red"    };
+    case "yellow": case "cream": return { text: label.name || "Task",   cls: "tag-yellow" };
   }
 
   const word = (label.name || label.color || "").split(" ")[0];
@@ -50,25 +47,18 @@ function labelToTag(labels) {
 
 /* ── Footer ── */
 function updateFooter() {
-  const count = selectedIds.size;
+  const count   = selectedIds.size;
   const countEl = qs("selectedCount");
   const btn     = qs("startMappingBtn");
-
-  countEl.textContent = count === 0
-    ? "0 cards selected"
-    : `${count} card${count === 1 ? "" : "s"} selected`;
-
+  countEl.textContent = count === 0 ? "0 cards selected" : `${count} card${count === 1 ? "" : "s"} selected`;
   countEl.classList.toggle("has-selection", count > 0);
   btn.disabled = count === 0;
 }
 
-/* ── Toggle card selection ── */
+/* ── Toggle selection ── */
 function toggleCard(id) {
-  if (selectedIds.has(id)) {
-    selectedIds.delete(id);
-  } else {
-    selectedIds.add(id);
-  }
+  if (selectedIds.has(id)) selectedIds.delete(id);
+  else                      selectedIds.add(id);
   renderCurrentView();
   updateFooter();
 }
@@ -80,17 +70,10 @@ function renderListView(slideBack = false) {
   currentView = "lists";
   const container = qs("viewContainer");
   const q = searchQuery.trim().toLowerCase();
-
-  const filtered = q
-    ? allLists.filter(l => l.name.toLowerCase().includes(q))
-    : allLists;
+  const filtered = q ? allLists.filter(l => l.name.toLowerCase().includes(q)) : allLists;
 
   let html = `<div class="view${slideBack ? " slide-back" : ""}" id="listsView">`;
-
-  // Sub label
   html += `<div class="sub-label">Select a list to view its cards</div>`;
-
-  // Search
   html += `
     <div class="search-wrap">
       <span class="search-icon">
@@ -99,24 +82,15 @@ function renderListView(slideBack = false) {
       <input type="text" id="searchInput" placeholder="Search lists…" autocomplete="off" value="${escapeHtml(searchQuery)}" />
     </div>`;
 
-  // List items
   html += `<div class="scroll-area">`;
-
   if (filtered.length === 0) {
     html += `<div class="empty-state">${q ? "No lists match your search." : "No lists found on this board."}</div>`;
   } else {
     filtered.forEach(list => {
-      // Count how many cards from this list are already selected
       const selectedInList = allCards.filter(c => c.listId === list.id && selectedIds.has(c.id)).length;
-      const countText = list.cardCount === 0
-        ? "No cards"
-        : list.cardCount === 1
-          ? "1 card"
-          : `${list.cardCount} cards`;
-
+      const countText = list.cardCount === 0 ? "No cards" : list.cardCount === 1 ? "1 card" : `${list.cardCount} cards`;
       const selectedBadge = selectedInList > 0
-        ? ` · <span class="selected-in-list">${selectedInList} selected</span>`
-        : "";
+        ? ` · <span class="selected-in-list">${selectedInList} selected</span>` : "";
 
       html += `
         <div class="list-item" data-listid="${list.id}" data-listname="${escapeHtml(list.name)}">
@@ -130,26 +104,19 @@ function renderListView(slideBack = false) {
         </div>`;
     });
   }
-
   html += `</div></div>`;
   container.innerHTML = html;
 
-  // Bind search
   const input = qs("searchInput");
   if (input) {
-    input.addEventListener("input", (e) => {
-      searchQuery = e.target.value;
-      renderListView();
-    });
-    // Keep focus
+    input.addEventListener("input", (e) => { searchQuery = e.target.value; renderListView(); });
     input.focus();
     input.setSelectionRange(input.value.length, input.value.length);
   }
 
-  // Bind list clicks
   container.querySelectorAll(".list-item").forEach(el => {
     el.addEventListener("click", () => {
-      searchQuery = ""; // reset search when drilling in
+      searchQuery = "";
       navigateToCards(el.dataset.listid, el.dataset.listname);
     });
   });
@@ -164,15 +131,10 @@ function renderCardsView() {
   currentView = "cards";
   const container = qs("viewContainer");
   const q = searchQuery.trim().toLowerCase();
-
   const listCards = allCards.filter(c => c.listId === currentListId);
-  const filtered  = q
-    ? listCards.filter(c => c.name.toLowerCase().includes(q))
-    : listCards;
+  const filtered  = q ? listCards.filter(c => c.name.toLowerCase().includes(q)) : listCards;
 
   let html = `<div class="view" id="cardsView">`;
-
-  // Back button + list name as sub-label
   html += `
     <div style="display:flex;align-items:center;gap:6px;padding:0 12px 4px 12px;flex-shrink:0;">
       <button class="back-btn" id="backBtn">
@@ -182,7 +144,6 @@ function renderCardsView() {
       <span style="font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(currentListName)}</span>
     </div>`;
 
-  // Search
   html += `
     <div class="search-wrap">
       <span class="search-icon">
@@ -192,13 +153,8 @@ function renderCardsView() {
     </div>`;
 
   html += `<div class="scroll-area">`;
-
   if (filtered.length === 0) {
-    html += `<div class="empty-state">${
-      listCards.length === 0
-        ? "No cards in this list."
-        : "No cards match your search."
-    }</div>`;
+    html += `<div class="empty-state">${listCards.length === 0 ? "No cards in this list." : "No cards match your search."}</div>`;
   } else {
     filtered.forEach(card => {
       const isSelected = selectedIds.has(card.id);
@@ -211,29 +167,16 @@ function renderCardsView() {
         </div>`;
     });
   }
-
   html += `</div></div>`;
   container.innerHTML = html;
 
-  // Bind back button
-  const backBtn = qs("backBtn");
-  if (backBtn) {
-    backBtn.addEventListener("click", () => {
-      searchQuery = "";
-      renderListView(true);
-    });
-  }
+  qs("backBtn")?.addEventListener("click", () => { searchQuery = ""; renderListView(true); });
 
-  // Bind search
   const input = qs("searchInput");
   if (input) {
-    input.addEventListener("input", (e) => {
-      searchQuery = e.target.value;
-      renderCardsView();
-    });
+    input.addEventListener("input", (e) => { searchQuery = e.target.value; renderCardsView(); });
   }
 
-  // Bind card checkboxes
   container.querySelectorAll(".card-item").forEach(el => {
     el.addEventListener("click", () => toggleCard(el.dataset.id));
   });
@@ -241,7 +184,6 @@ function renderCardsView() {
   setTimeout(() => t.sizeTo(document.body), 40);
 }
 
-/* ── Navigation ── */
 function navigateToCards(listId, listName) {
   currentListId   = listId;
   currentListName = listName;
@@ -249,21 +191,13 @@ function navigateToCards(listId, listName) {
 }
 
 function renderCurrentView() {
-  if (currentView === "lists") {
-    renderListView();
-  } else {
-    renderCardsView();
-  }
+  currentView === "lists" ? renderListView() : renderCardsView();
 }
 
-/* ── Load data from Trello ── */
+/* ── Load ── */
 async function loadCards() {
   try {
-    const [boardCards, lists] = await Promise.all([
-      t.cards("all"),
-      t.lists("all"),
-    ]);
-
+    const [boardCards, lists] = await Promise.all([t.cards("all"), t.lists("all")]);
     const listMap = {};
     lists.forEach(l => { listMap[l.id] = l.name; });
 
@@ -275,12 +209,15 @@ async function loadCards() {
       labels:   card.labels || [],
     }));
 
-    // Build lists array with card counts (preserve Trello list order)
     allLists = lists.map(l => ({
       id:        l.id,
       name:      l.name,
       cardCount: allCards.filter(c => c.listId === l.id).length,
     }));
+
+    // Pre-check already-mapped cards so they show as selected on open
+    const alreadyMapped = (await t.get("board", "shared", "mappedCards")) || [];
+    alreadyMapped.forEach(id => selectedIds.add(id));
 
     renderListView();
     updateFooter();
@@ -290,63 +227,68 @@ async function loadCards() {
   }
 }
 
-/* ── Start Mapping ── */
+/* ══════════════════════════════════════════
+   START MAPPING  — MERGES, never overwrites
+   ══════════════════════════════════════════
+   - Reads existing mappedCards from board
+   - Merges with current selection (union)
+   - Writes default card data only for NEW cards
+     (existing cards keep their progress/timer)
+══════════════════════════════════════════ */
 async function startMapping() {
   if (selectedIds.size === 0) return;
   const btn = qs("startMappingBtn");
-  btn.disabled = true;
+  btn.disabled    = true;
   btn.textContent = "Mapping…";
 
   try {
+    /* 1. Read what was already mapped */
+    const existingMapped   = (await t.get("board", "shared", "mappedCards"))   || [];
+    const existingDefaults = (await t.get("board", "shared", "cardDefaults"))  || {};
+
+    /* 2. Merge: union of old + new */
+    const mergedSet = new Set([...existingMapped, ...selectedIds]);
+    const mergedIds = Array.from(mergedSet);
+
+    /* 3. Default data template for brand-new cards */
     const defaultCardData = {
-      progress: 0,
-      elapsed: 0,
-      estimated: 8 * 3600,
-      running: false,
-      startTime: null,
-      focusMode: false,
-      disabledProgress: false,
-      trackingUnit: "hours",
+      progress: 0, elapsed: 0, estimated: 8 * 3600,
+      running: false, startTime: null, focusMode: false,
+      disabledProgress: false, trackingUnit: "hours",
+      progressSource: "tasks", manualProgress: 0, tasks: [],
       data: {
-        hours:  { elapsed: 0, estimated: 8 * 3600 },
-        days:   { elapsed: 0, estimated: 1 * 86400 },
-        weeks:  { elapsed: 0, estimated: 1 * 604800 },
-        months: { elapsed: 0, estimated: 1 * 2592000 },
+        hours:  { elapsed: 0, estimated: 8 * 3600  },
+        days:   { elapsed: 0, estimated: 86400      },
+        weeks:  { elapsed: 0, estimated: 604800     },
+        months: { elapsed: 0, estimated: 2592000    },
       },
     };
 
-    // Save mapped card IDs
-    await t.set("board", "shared", "mappedCards", Array.from(selectedIds));
-
-    // Save default data per card ID in board storage
-    const cardDefaults = {};
-    Array.from(selectedIds).forEach(id => {
-      cardDefaults[id] = defaultCardData;
+    /* 4. Write defaults only for cards that don't already have one */
+    const cardDefaults = { ...existingDefaults };
+    selectedIds.forEach(id => {
+      if (!cardDefaults[id]) {
+        cardDefaults[id] = defaultCardData;
+      }
     });
+
+    /* 5. Persist both */
+    await t.set("board", "shared", "mappedCards",  mergedIds);
     await t.set("board", "shared", "cardDefaults", cardDefaults);
 
     await t.closePopup();
   } catch (err) {
     console.error("[ProgressCards] startMapping error:", err);
-    btn.disabled = false;
+    btn.disabled    = false;
     btn.textContent = "Start Mapping";
   }
 }
 
-/* ── Gear / Settings button ── */
-function bindGear() {
-  qs("gearBtn").addEventListener("click", () => {
-    t.popup({
-      title:  "Progress Settings",
-      url:    "./settings.html",
-      height: 620,
-    });
-  });
-}
-
 /* ── Init ── */
 (async function init() {
-  bindGear();
+  qs("gearBtn")?.addEventListener("click", () => {
+    t.popup({ title: "Progress Settings", url: "./settings.html", height: 620 });
+  });
   qs("startMappingBtn").addEventListener("click", startMapping);
   await loadCards();
 })();
