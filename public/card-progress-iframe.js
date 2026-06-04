@@ -370,7 +370,7 @@ function render() {
           <span class="timer-meta-pill">⏱ Elapsed <span>${formatHM(elapsed)}</span></span>
           <span class="timer-meta-pill">🎯 Est
             <input id="estInput" class="est-input" value="${formatHM(active.estimated)}"
-              style="background:transparent;border:none;color:#00bcd4;font-family:'SF Mono',monospace;font-size:11px;font-weight:700;width:52px;padding:0;outline:none;cursor:text;" />
+              style="background:transparent;border:none;color:#14B8A6;font-family:'SF Mono',monospace;font-size:11px;font-weight:700;width:52px;padding:0;outline:none;cursor:text;" />
           </span>
         </div>
       </div>
