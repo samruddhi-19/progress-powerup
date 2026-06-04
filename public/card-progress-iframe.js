@@ -5,20 +5,18 @@ const t = TrelloPowerUp.iframe({
   appName: 'Progress Tracker'
 });
 
-/* ── Constants ── */
 const UNIT_LABELS = { hours: 'Session', days: 'Daily', weeks: 'Weekly', months: 'Monthly' };
 
-/* ── State ── */
 let state = {
   trackingUnit: 'hours',
   running: false,
   startTime: null,
   focusMode: false,
-  manualProgress: 0,       // 0-100, set by slider
-  progressSource: 'tasks', // 'manual' | 'tasks' | 'timer'
-  etaDate: '',             // "YYYY-MM-DD"
-  etaTime: '',             // "HH:MM"
-  tasks: [],               // [{ id, name, done }]
+  manualProgress: 0,
+  progressSource: 'tasks',
+  etaDate: '',
+  etaTime: '',
+  tasks: [],
   logView: 'list',
   showAllLogs: false,
   data: {
@@ -67,16 +65,13 @@ function getLabelStyle(color) {
 
 function computeProgress() {
   if (state.progressSource === 'manual') return state.manualProgress;
-
   if (state.progressSource === 'tasks') {
     if (!state.tasks || state.tasks.length === 0) return 0;
-    const done = state.tasks.filter(t => t.done).length;
+    const done = state.tasks.filter(tk => tk.done).length;
     return Math.round((done / state.tasks.length) * 100);
   }
-
-  // timer
   const active = state.data[state.trackingUnit];
-  let elapsed  = active.elapsed;
+  let elapsed = active.elapsed;
   if (state.running && state.startTime) {
     elapsed += Math.floor((Date.now() - state.startTime) / 1000);
   }
@@ -93,6 +88,17 @@ function getLiveElapsed() {
   return el;
 }
 
+function updateProgressUI(pct) {
+  const fill    = document.getElementById('progressFill');
+  const botFill = document.getElementById('bottomBarFill');
+  const pctEl   = document.getElementById('pctDisplay');
+  const isOver  = pct > 100;
+  const disp    = Math.min(100, pct);
+  if (fill)    { fill.style.width = disp + '%'; fill.className = 'slider-fill' + (isOver ? ' overtime' : ''); }
+  if (botFill) { botFill.style.width = disp + '%'; botFill.className = 'bottom-bar-fill' + (isOver ? ' overtime' : ''); }
+  if (pctEl)   { pctEl.textContent = pct + '%'; pctEl.className = 'completion-pct' + (isOver ? ' overtime' : ''); }
+}
+
 /* ── Fetch card meta ── */
 async function fetchCardMeta() {
   try {
@@ -106,41 +112,39 @@ async function fetchCardMeta() {
 }
 
 /* ── Save / Load ── */
-function save() { 
-  try { t.set('card', 'shared', state); } 
+function save() {
+  try { t.set('card', 'shared', state); }
   catch(e) { console.error('[ProgressCard] save error:', e); }
 }
 
-
 async function load() {
   try {
-  await fetchCardMeta();
-  const saved = (await t.get('card', 'shared')) || {};
+    await fetchCardMeta();
+    const saved = (await t.get('card', 'shared')) || {};
 
-  if (saved.data)            state.data            = saved.data;
-  if (saved.history)         state.history         = saved.history;
-  if (saved.tasks)           state.tasks           = saved.tasks;
-  state.running        = saved.running        || false;
-  state.startTime      = saved.startTime      || null;
-  state.focusMode      = saved.focusMode      || false;
-  state.trackingUnit   = saved.trackingUnit   || 'hours';
-  state.logView        = saved.logView        || 'list';
-  state.showAllLogs    = saved.showAllLogs    || false;
-  state.manualProgress = saved.manualProgress ?? 0;
-  state.progressSource = saved.progressSource || 'tasks';
-  state.etaDate        = saved.etaDate        || '';
-  state.etaTime        = saved.etaTime        || '';
+    if (saved.data)    state.data    = saved.data;
+    if (saved.history) state.history = saved.history;
+    if (saved.tasks)   state.tasks   = saved.tasks;
 
-  // Migrate old elapsed/estimated format
-  if (saved.estimated !== undefined && !saved.data) {
-    state.data.hours.elapsed   = saved.elapsed   || 0;
-    state.data.hours.estimated = saved.estimated || 8 * 3600;
-  }
+    state.running        = saved.running        || false;
+    state.startTime      = saved.startTime      || null;
+    state.focusMode      = saved.focusMode      || false;
+    state.trackingUnit   = saved.trackingUnit   || 'hours';
+    state.logView        = saved.logView        || 'list';
+    state.showAllLogs    = saved.showAllLogs    || false;
+    state.manualProgress = saved.manualProgress ?? 0;
+    state.progressSource = saved.progressSource || 'tasks';
+    state.etaDate        = saved.etaDate        || '';
+    state.etaTime        = saved.etaTime        || '';
 
-  render();
-  if (state.running) startTick();
+    if (saved.estimated !== undefined && !saved.data) {
+      state.data.hours.elapsed   = saved.elapsed   || 0;
+      state.data.hours.estimated = saved.estimated || 8 * 3600;
+    }
 
-   setTimeout(() => { try { t.sizeTo(document.body); } catch(e) {} }, 40);
+    render();
+    if (state.running) startTick();
+    setTimeout(() => { try { t.sizeTo(document.body); } catch(e) {} }, 40);
   } catch(err) {
     console.error('[ProgressCard] load error:', err);
   }
@@ -154,38 +158,19 @@ function startTick() {
   timerInterval = setInterval(() => {
     if (!state.running) return;
     const elapsed = getLiveElapsed();
-
-    // Update timer display
     const disp = document.getElementById('timerDisplay');
-    if (disp) {
-      disp.textContent = formatHM(elapsed);
-    }
+    if (disp) disp.textContent = formatHM(elapsed);
 
-    // Update session ticker for non-hour units
     if (state.trackingUnit !== 'hours') {
       const sessionSec = Math.floor((Date.now() - state.startTime) / 1000);
       const ticker = document.getElementById('sessionTicker');
       if (ticker) ticker.textContent = 'Session: ' + formatHMS(sessionSec);
     }
 
-    // Update progress bar if source is timer
     if (state.progressSource === 'timer') {
-      const pct = computeProgress();
-      updateProgressUI(pct);
+      updateProgressUI(computeProgress());
     }
   }, 1000);
-}
-
-function updateProgressUI(pct) {
-  const fill    = document.getElementById('progressFill');
-  const botFill = document.getElementById('bottomBarFill');
-  const pctEl   = document.getElementById('pctDisplay');
-  const isOver  = pct > 100;
-  const disp    = Math.min(100, pct);
-
-  if (fill)    { fill.style.width    = disp + '%'; fill.className    = 'slider-fill'    + (isOver ? ' overtime' : ''); }
-  if (botFill) { botFill.style.width = disp + '%'; botFill.className = 'bottom-bar-fill' + (isOver ? ' overtime' : ''); }
-  if (pctEl)   { pctEl.textContent   = pct + '%';  pctEl.className   = 'completion-pct' + (isOver ? ' overtime' : ''); }
 }
 
 function stopSession() {
@@ -194,7 +179,7 @@ function stopSession() {
   state.data[state.trackingUnit].elapsed += sessionSec;
   state.running   = false;
   state.focusMode = false;
-  t.set('card', 'shared', 'focusMode', false);
+  try { t.set('card', 'shared', 'focusMode', false); } catch(e) {}
 
   if (sessionSec > 5) {
     const d = new Date(state.startTime);
@@ -224,105 +209,6 @@ async function syncDueDate(isoDate) {
   } catch (e) { console.error('Due date sync error:', e); }
 }
 
-/* ── Global handlers (called from HTML) ── */
-window.onSliderInput = function(val) {
-  state.manualProgress = parseInt(val);
-  state.progressSource = 'manual';
-  updateProgressUI(state.manualProgress);
-  save();
-};
-
-window.onSliderChange = function(val) {
-  state.manualProgress = parseInt(val);
-  state.progressSource = 'manual';
-  save();
-  render();
-};
-
-window.toggleTask = function(id) {
-  const task = state.tasks.find(t => t.id === id);
-  if (!task) return;
-  task.done = !task.done;
-  // Auto switch to tasks source
-  state.progressSource = 'tasks';
-  save();
-  render();
-};
-
-window.deleteTask = function(id) {
-  state.tasks = state.tasks.filter(t => t.id !== id);
-  save();
-  render();
-};
-
-window.addTask = function() {
-  const input = document.getElementById('newTaskInput');
-  if (!input) return;
-  const name = input.value.trim();
-  if (!name) return;
-  state.tasks.push({ id: Date.now().toString(), name, done: false });
-  state.progressSource = 'tasks';
-  input.value = '';
-  save();
-  render();
-};
-
-window.onNewTaskKey = function(e) {
-  if (e.key === 'Enter') window.addTask();
-};
-
-window.onEtaDateChange = function(val) {
-  state.etaDate = val;
-  save();
-  // Sync to Trello if both date and time set
-  if (state.etaDate && state.etaTime) {
-    const iso = new Date(`${state.etaDate}T${state.etaTime}`).toISOString();
-    syncDueDate(iso);
-  }
-};
-
-window.onEtaTimeChange = function(val) {
-  state.etaTime = val;
-  save();
-  if (state.etaDate && state.etaTime) {
-    const iso = new Date(`${state.etaDate}T${state.etaTime}`).toISOString();
-    syncDueDate(iso);
-  }
-};
-
-window.toggleTimer = function() {
-  if (state.running) {
-    stopSession();
-  } else {
-    state.running   = true;
-    state.startTime = Date.now();
-    startTick();
-  }
-  save();
-  render();
-};
-
-window.resetTimer = function() {
-  stopSession();
-  state.data[state.trackingUnit].elapsed = 0;
-  state.running   = false;
-  state.startTime = null;
-  if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
-  save();
-  render();
-};
-
-window.onEstChange = function(val) {
-  const sec = parseHM(val);
-  if (sec > 0) {
-    state.data[state.trackingUnit].estimated = sec;
-    save();
-  }
-};
-
-window.setView       = v  => { state.logView = v;                    save(); render(); };
-window.toggleShowAll = () => { state.showAllLogs = !state.showAllLogs; save(); render(); };
-
 /* ── Chart ── */
 function generateChartSVG(type) {
   if (!state.history || state.history.length === 0)
@@ -330,11 +216,9 @@ function generateChartSVG(type) {
 
   const W=320, H=120, pX=34, pY=20, tP=10, rP=8;
   const plotW = W-pX-rP, plotH = H-pY-tP, bY = H-pY;
-
-  const pts     = [...state.history].slice(-7);
+  const pts = [...state.history].slice(-7);
   const maxSecs = Math.max(...pts.map(d => d.seconds), 60);
-  const bw      = Math.min(26, (plotW / pts.length) - 4);
-
+  const bw = Math.min(26, (plotW / pts.length) - 4);
   let els='', lbs='', lp=[];
 
   pts.forEach((d,i) => {
@@ -363,22 +247,22 @@ function generateChartSVG(type) {
 
 /* ── Render ── */
 function render() {
-  const pct      = computeProgress();
-  const dispPct  = Math.min(100, pct);
-  const isOver   = pct > 100;
-  const elapsed  = getLiveElapsed();
-  const active   = state.data[state.trackingUnit];
+  const pct     = computeProgress();
+  const dispPct = Math.min(100, pct);
+  const isOver  = pct > 100;
+  const elapsed = getLiveElapsed();
+  const active  = state.data[state.trackingUnit];
 
   const hasLabel   = cardMeta.labelName.length > 0;
   const labelStyle = hasLabel ? getLabelStyle(cardMeta.labelColor) : '';
   const labelTxt   = hasLabel ? (cardMeta.labelName.length > 14 ? cardMeta.labelName.slice(0,14)+'…' : cardMeta.labelName) : 'No Label';
   const labelCls   = hasLabel ? '' : 'no-label';
 
-  const doneTasks  = (state.tasks || []).filter(t => t.done).length;
+  const doneTasks  = (state.tasks || []).filter(tk => tk.done).length;
   const totalTasks = (state.tasks || []).length;
 
-  const revHistory  = [...(state.history||[])].reverse();
-  const logsToShow  = state.showAllLogs ? revHistory : revHistory.slice(0,3);
+  const revHistory = [...(state.history||[])].reverse();
+  const logsToShow = state.showAllLogs ? revHistory : revHistory.slice(0,3);
 
   const playIcon  = `<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>`;
   const stopIcon  = `<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h12v12H6z"/></svg>`;
@@ -387,48 +271,43 @@ function render() {
   document.getElementById('root').innerHTML = `
     <div class="card">
 
-      <!-- Header: label + card name -->
       <div class="card-header">
         <span class="header-title">Progress Card</span>
         <span class="label-tag ${labelCls}" style="${labelStyle}">${labelTxt}</span>
       </div>
       <div class="card-name">${cardMeta.name || 'Progress Tracker'}</div>
 
-      <!-- ── Completion ── -->
+      <!-- Completion -->
       <div class="section">
         <div class="completion-row">
           <span class="completion-label">Completion :</span>
           <span class="completion-pct ${isOver ? 'overtime' : ''}" id="pctDisplay">${pct}%</span>
         </div>
-
         <div class="slider-wrap">
           <div class="slider-track">
             <div class="slider-fill ${isOver ? 'overtime' : ''}" id="progressFill" style="width:${dispPct}%"></div>
           </div>
-          <input type="range" min="0" max="100" value="${state.progressSource === 'manual' ? state.manualProgress : dispPct}"
-  oninput="onSliderInput(this.value)"
-  onchange="onSliderChange(this.value)" />
+          <input id="progressSlider" type="range" min="0" max="100" value="${state.progressSource === 'manual' ? state.manualProgress : dispPct}" />
         </div>
-
         <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;">
-          <button onclick="setProgressSource('manual')" style="font-size:10px;font-weight:700;padding:3px 9px;border-radius:6px;border:none;cursor:pointer;${state.progressSource==='manual'?'background:#00bcd4;color:#002830;':'background:rgba(255,255,255,0.06);color:#64748b;'}">Manual</button>
-          <button onclick="setProgressSource('tasks')"  style="font-size:10px;font-weight:700;padding:3px 9px;border-radius:6px;border:none;cursor:pointer;${state.progressSource==='tasks' ?'background:#00bcd4;color:#002830;':'background:rgba(255,255,255,0.06);color:#64748b;'}">From Tasks</button>
-          <button onclick="setProgressSource('timer')"  style="font-size:10px;font-weight:700;padding:3px 9px;border-radius:6px;border:none;cursor:pointer;${state.progressSource==='timer' ?'background:#00bcd4;color:#002830;':'background:rgba(255,255,255,0.06);color:#64748b;'}">From Timer</button>
+          <button data-source="manual" class="src-btn" style="font-size:10px;font-weight:700;padding:3px 9px;border-radius:6px;border:none;cursor:pointer;${state.progressSource==='manual'?'background:#00bcd4;color:#002830;':'background:rgba(255,255,255,0.06);color:#64748b;'}">Manual</button>
+          <button data-source="tasks"  class="src-btn" style="font-size:10px;font-weight:700;padding:3px 9px;border-radius:6px;border:none;cursor:pointer;${state.progressSource==='tasks' ?'background:#00bcd4;color:#002830;':'background:rgba(255,255,255,0.06);color:#64748b;'}">From Tasks</button>
+          <button data-source="timer"  class="src-btn" style="font-size:10px;font-weight:700;padding:3px 9px;border-radius:6px;border:none;cursor:pointer;${state.progressSource==='timer' ?'background:#00bcd4;color:#002830;':'background:rgba(255,255,255,0.06);color:#64748b;'}">From Timer</button>
         </div>
       </div>
 
-      <!-- ── ETA ── -->
+      <!-- ETA -->
       <div class="section">
         <div class="section-label">ETA</div>
         <div class="eta-row">
           <span class="eta-pre">ETA :</span>
-          <input type="date" class="eta-input" value="${state.etaDate}" onchange="onEtaDateChange(this.value)" />
+          <input id="etaDate" type="date" class="eta-input" value="${state.etaDate}" />
           <span class="eta-amp">&amp;</span>
-          <input type="time" class="eta-input" value="${state.etaTime}" onchange="onEtaTimeChange(this.value)" />
+          <input id="etaTime" type="time" class="eta-input" value="${state.etaTime}" />
         </div>
       </div>
 
-      <!-- ── Tasks ── -->
+      <!-- Tasks -->
       <div class="section">
         <div class="section-label">Tasks ${totalTasks > 0 ? `<span style="color:#00bcd4;margin-left:4px;">${doneTasks}/${totalTasks}</span>` : ''}</div>
         <div class="tasks-list">
@@ -436,19 +315,19 @@ function render() {
             ? `<div class="empty-tasks">No tasks yet. Add one below.</div>`
             : state.tasks.map(task => `
               <div class="task-item">
-                <div class="task-cb ${task.done ? 'checked' : ''}" onclick="toggleTask('${task.id}')"></div>
+                <div class="task-cb ${task.done ? 'checked' : ''}" data-taskid="${task.id}"></div>
                 <span class="task-name ${task.done ? 'done' : ''}">${task.name.replace(/</g,'&lt;')}</span>
-                <button class="task-del" onclick="deleteTask('${task.id}')" title="Remove">×</button>
+                <button class="task-del" data-delid="${task.id}" title="Remove">×</button>
               </div>`).join('')
           }
         </div>
         <div class="add-task-row">
-          <input id="newTaskInput" class="add-task-input" type="text" placeholder="Add a task…" onkeydown="onNewTaskKey(event)" maxlength="80" />
-          <button class="add-task-btn" onclick="addTask()">+</button>
+          <input id="newTaskInput" class="add-task-input" type="text" placeholder="Add a task…" maxlength="80" />
+          <button id="addTaskBtn" class="add-task-btn">+</button>
         </div>
       </div>
 
-      <!-- ── Time Tracking ── -->
+      <!-- Time Tracking -->
       <div class="section">
         <div class="section-label">Time Tracking</div>
         <div class="timer-row">
@@ -458,10 +337,10 @@ function render() {
           </div>
           <div class="timer-controls">
             ${state.running
-              ? `<button class="btn-timer-stop" onclick="toggleTimer()">${stopIcon} Stop</button>`
-              : `<button class="btn-timer-start" onclick="toggleTimer()">${playIcon} ${elapsed > 0 ? 'Resume' : 'Start'}</button>`
+              ? `<button id="timerBtn" class="btn-timer-stop">${stopIcon} Stop</button>`
+              : `<button id="timerBtn" class="btn-timer-start">${playIcon} ${elapsed > 0 ? 'Resume' : 'Start'}</button>`
             }
-            <button class="btn-reset" onclick="resetTimer()" title="Reset">${resetIcon}</button>
+            <button id="resetBtn" class="btn-reset" title="Reset">${resetIcon}</button>
           </div>
         </div>
 
@@ -473,24 +352,21 @@ function render() {
         <div class="timer-meta">
           <span class="timer-meta-pill">⏱ Elapsed <span>${formatHM(elapsed)}</span></span>
           <span class="timer-meta-pill">🎯 Est
-            <input class="est-input" value="${formatHM(active.estimated)}"
-              onchange="onEstChange(this.value)"
-              onclick="this.select()"
-              style="background:transparent;border:none;color:#00bcd4;font-family:'SF Mono',monospace;font-size:11px;font-weight:700;width:52px;padding:0;outline:none;cursor:text;"
-            />
+            <input id="estInput" class="est-input" value="${formatHM(active.estimated)}"
+              style="background:transparent;border:none;color:#00bcd4;font-family:'SF Mono',monospace;font-size:11px;font-weight:700;width:52px;padding:0;outline:none;cursor:text;" />
           </span>
         </div>
       </div>
 
-      <!-- ── Activity Log ── -->
+      <!-- Activity Log -->
       ${state.history && state.history.length > 0 ? `
       <div class="section">
         <div class="history-header">
           <span class="section-label" style="margin:0;">Activity Log</span>
           <div class="view-toggle">
-            <button class="view-btn ${state.logView==='list'?'active':''}" onclick="setView('list')">List</button>
-            <button class="view-btn ${state.logView==='line'?'active':''}" onclick="setView('line')">Line</button>
-            <button class="view-btn ${state.logView==='bar' ?'active':''}" onclick="setView('bar')">Bar</button>
+            <button data-view="list" class="view-btn ${state.logView==='list'?'active':''}">List</button>
+            <button data-view="line" class="view-btn ${state.logView==='line'?'active':''}">Line</button>
+            <button data-view="bar"  class="view-btn ${state.logView==='bar' ?'active':''}">Bar</button>
           </div>
         </div>
         ${state.logView === 'list' ? `
@@ -503,7 +379,7 @@ function render() {
               </div>`;
             }).join('')}
             ${state.history.length > 3 ? `
-              <button class="show-more-btn" onclick="toggleShowAll()">
+              <button id="showMoreBtn" class="show-more-btn">
                 ${state.showAllLogs ? 'Show Less ▲' : 'Show More ▼'}
               </button>` : ''}
           </div>
@@ -518,16 +394,173 @@ function render() {
     </div>
   `;
 
+  /* ── Bind all events via addEventListener (no inline handlers) ── */
+  bindEvents();
+
   setTimeout(() => { try { t.sizeTo(document.body); } catch(e) {} }, 50);
 }
 
-/* ── Progress source toggle ── */
-window.setProgressSource = function(source) {
-  state.progressSource = source;
-  if (source === 'manual') {
-    // Sync slider to current computed value before switching
-    state.manualProgress = computeProgress();
+/* ── All event bindings in one place ── */
+function bindEvents() {
+
+  /* Slider */
+  const slider = document.getElementById('progressSlider');
+  if (slider) {
+    slider.addEventListener('input', function() {
+      state.manualProgress = parseInt(this.value);
+      state.progressSource = 'manual';
+      updateProgressUI(state.manualProgress);
+      save();
+    });
+    slider.addEventListener('change', function() {
+      state.manualProgress = parseInt(this.value);
+      state.progressSource = 'manual';
+      save();
+      render();
+    });
   }
-  save();
-  render();
-};
+
+  /* Progress source buttons */
+  document.querySelectorAll('.src-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const source = this.dataset.source;
+      state.progressSource = source;
+      if (source === 'manual') state.manualProgress = computeProgress();
+      save();
+      render();
+    });
+  });
+
+  /* ETA date */
+  const etaDate = document.getElementById('etaDate');
+  if (etaDate) {
+    etaDate.addEventListener('change', function() {
+      state.etaDate = this.value;
+      save();
+      if (state.etaDate && state.etaTime) {
+        syncDueDate(new Date(`${state.etaDate}T${state.etaTime}`).toISOString());
+      }
+    });
+  }
+
+  /* ETA time */
+  const etaTime = document.getElementById('etaTime');
+  if (etaTime) {
+    etaTime.addEventListener('change', function() {
+      state.etaTime = this.value;
+      save();
+      if (state.etaDate && state.etaTime) {
+        syncDueDate(new Date(`${state.etaDate}T${state.etaTime}`).toISOString());
+      }
+    });
+  }
+
+  /* Task checkboxes */
+  document.querySelectorAll('.task-cb').forEach(cb => {
+    cb.addEventListener('click', function() {
+      const id = this.dataset.taskid;
+      const task = state.tasks.find(tk => tk.id === id);
+      if (!task) return;
+      task.done = !task.done;
+      state.progressSource = 'tasks';
+      save();
+      render();
+    });
+  });
+
+  /* Task delete buttons */
+  document.querySelectorAll('.task-del').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const id = this.dataset.delid;
+      state.tasks = state.tasks.filter(tk => tk.id !== id);
+      save();
+      render();
+    });
+  });
+
+  /* Add task button */
+  const addBtn = document.getElementById('addTaskBtn');
+  if (addBtn) {
+    addBtn.addEventListener('click', function() {
+      const input = document.getElementById('newTaskInput');
+      if (!input) return;
+      const name = input.value.trim();
+      if (!name) return;
+      state.tasks.push({ id: Date.now().toString(), name, done: false });
+      state.progressSource = 'tasks';
+      input.value = '';
+      save();
+      render();
+    });
+  }
+
+  /* Add task on Enter */
+  const taskInput = document.getElementById('newTaskInput');
+  if (taskInput) {
+    taskInput.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') document.getElementById('addTaskBtn').click();
+    });
+  }
+
+  /* Timer toggle */
+  const timerBtn = document.getElementById('timerBtn');
+  if (timerBtn) {
+    timerBtn.addEventListener('click', function() {
+      if (state.running) {
+        stopSession();
+      } else {
+        state.running   = true;
+        state.startTime = Date.now();
+        startTick();
+      }
+      save();
+      render();
+    });
+  }
+
+  /* Reset timer */
+  const resetBtn = document.getElementById('resetBtn');
+  if (resetBtn) {
+    resetBtn.addEventListener('click', function() {
+      stopSession();
+      state.data[state.trackingUnit].elapsed = 0;
+      state.running   = false;
+      state.startTime = null;
+      if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+      save();
+      render();
+    });
+  }
+
+  /* Estimate input */
+  const estInput = document.getElementById('estInput');
+  if (estInput) {
+    estInput.addEventListener('click', function() { this.select(); });
+    estInput.addEventListener('change', function() {
+      const sec = parseHM(this.value);
+      if (sec > 0) {
+        state.data[state.trackingUnit].estimated = sec;
+        save();
+      }
+    });
+  }
+
+  /* Log view buttons */
+  document.querySelectorAll('.view-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      state.logView = this.dataset.view;
+      save();
+      render();
+    });
+  });
+
+  /* Show more/less */
+  const showMoreBtn = document.getElementById('showMoreBtn');
+  if (showMoreBtn) {
+    showMoreBtn.addEventListener('click', function() {
+      state.showAllLogs = !state.showAllLogs;
+      save();
+      render();
+    });
+  }
+}
