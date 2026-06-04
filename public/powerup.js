@@ -69,9 +69,11 @@ function formatETA(etaDate, etaTime) {
 /* ─────────────────────────────────────────
    getCardData — falls back to board defaults
 ───────────────────────────────────────── */
+// REPLACE WITH
 async function getCardData(t) {
   const cardData = await t.get("card", "shared");
   if (cardData) return cardData;
+
   const card         = await t.card("id");
   const cardDefaults = await t.get("board", "shared", "cardDefaults");
   if (cardDefaults && cardDefaults[card.id]) {
@@ -79,6 +81,26 @@ async function getCardData(t) {
     await t.set("card", "shared", defaults);
     return defaults;
   }
+
+  // Card was mapped but no defaults exist yet — initialize fresh data
+  const mappedCards = await t.get("board", "shared", "mappedCards");
+  if (mappedCards && mappedCards.includes(card.id)) {
+    const fresh = {
+      progress: 0, elapsed: 0, estimated: 8 * 3600,
+      running: false, startTime: null, focusMode: false,
+      disabledProgress: false, trackingUnit: "hours",
+      progressSource: "tasks", manualProgress: 0, tasks: [],
+      data: {
+        hours:  { elapsed: 0, estimated: 8 * 3600 },
+        days:   { elapsed: 0, estimated: 86400     },
+        weeks:  { elapsed: 0, estimated: 604800    },
+        months: { elapsed: 0, estimated: 2592000   },
+      },
+    };
+    await t.set("card", "shared", fresh);
+    return fresh;
+  }
+
   return null;
 }
 
@@ -234,11 +256,14 @@ TrelloPowerUp.initialize({
   },
 
   /* ── Card back section ── */
-  "card-back-section": async function (t) {
-    const disabled = await t.get("board", "shared", "disabled");
-    if (disabled) return null;
-    const cardData = await getCardData(t);
-    if (!cardData || cardData.disabledProgress === true) return null;
+  // REPLACE WITH
+"card-back-section": async function (t) {
+  const disabled = await t.get("board", "shared", "disabled");
+  if (disabled) return null;
+  const mapped = await isMappedCard(t);
+  if (!mapped) return null;
+  const cardData = await getCardData(t);
+  if (cardData && cardData.disabledProgress === true) return null;
     return {
       title: "Progress",
       icon:  ICON,
