@@ -96,34 +96,50 @@ async function isMappedCard(t) {
 }
 
 /* ─────────────────────────────────────────
-   generateCoverHTML — clean minimal card cover:
-   [Tag pill]           [timer]
-   Card Name (bold)
-   [thin progress bar, full width, flush bottom]
+   generateCoverHTML — the card cover UI
+   matching the Figma wireframe:
+   [Tag]          [45:08]
+   Card Name
+   [ETA pill]  [Sub Task pill]
+   [═══════════progress bar═══]
 ───────────────────────────────────────── */
-function generateCoverHTML(cardName, labelName, labelColor, elapsed, unit, pct) {
+function generateCoverHTML(cardName, labelName, labelColor, elapsed, unit, pct, etaStr, firstTaskName) {
   const labelColors = {
-    blue:   { bg: "#0052cc", text: "#e9f2ff" },
-    sky:    { bg: "#0065ff", text: "#e9f2ff" },
-    lime:   { bg: "#1f845a", text: "#dcfff1" },
-    green:  { bg: "#1f845a", text: "#dcfff1" },
-    yellow: { bg: "#946f00", text: "#fff7d6" },
-    orange: { bg: "#a54800", text: "#fff3eb" },
-    red:    { bg: "#c9372c", text: "#ffd5d2" },
-    pink:   { bg: "#943d73", text: "#ffecf8" },
-    purple: { bg: "#6e5dc6", text: "#f3f0ff" },
-    black:  { bg: "#2c333a", text: "#b6c2cf" },
+    blue:   { bg: "#0079bf", text: "#fff" },
+    sky:    { bg: "#00c2e0", text: "#002830" },
+    lime:   { bg: "#51e898", text: "#002830" },
+    green:  { bg: "#61bd4f", text: "#fff" },
+    yellow: { bg: "#f2d600", text: "#333" },
+    orange: { bg: "#ff9f1a", text: "#fff" },
+    red:    { bg: "#eb5a46", text: "#fff" },
+    pink:   { bg: "#ff78cb", text: "#fff" },
+    purple: { bg: "#c377e0", text: "#fff" },
+    black:  { bg: "#344563", text: "#fff" },
   };
-  const lc       = labelColors[labelColor] || { bg: "#0052cc", text: "#e9f2ff" };
+  const lc     = labelColors[labelColor] || { bg: "#00bcd4", text: "#002830" };
   const timerStr = formatUnit(elapsed, unit);
-  const barPct   = Math.min(100, pct);
-  const barColor = barPct >= 100 ? "#22a06b" : barPct >= 60 ? "#e2812d" : "#00b8d9";
+  const barWidth = Math.min(100, pct);
 
   const tagHTML = labelName
-    ? `<span style="background:${lc.bg};color:${lc.text};font-size:11px;font-weight:700;
-        padding:3px 9px;border-radius:4px;letter-spacing:0.03em;
-        max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${labelName}</span>`
-    : `<span></span>`;
+    ? `<div style="background:${lc.bg};color:${lc.text};font-size:11px;font-weight:700;
+        padding:3px 10px;border-radius:999px;letter-spacing:0.02em;white-space:nowrap;
+        max-width:110px;overflow:hidden;text-overflow:ellipsis;">${labelName}</div>`
+    : `<div></div>`;
+
+  const etaHTML = etaStr
+    ? `<div style="background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.75);
+        font-size:11px;font-weight:500;padding:4px 10px;border-radius:6px;white-space:nowrap;
+        border:1px solid rgba(255,255,255,0.1);">ETA: ${etaStr}</div>`
+    : "";
+
+  const taskHTML = firstTaskName
+    ? `<div style="background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.75);
+        font-size:11px;font-weight:500;padding:4px 10px;border-radius:6px;white-space:nowrap;
+        max-width:160px;overflow:hidden;text-overflow:ellipsis;
+        border:1px solid rgba(255,255,255,0.1);">Sub Task : ${firstTaskName}</div>`
+    : "";
+
+  const hasMeta = etaHTML || taskHTML;
 
   return `<!DOCTYPE html>
 <html>
@@ -131,36 +147,26 @@ function generateCoverHTML(cardName, labelName, labelColor, elapsed, unit, pct) 
 <meta charset="utf-8"/>
 <style>
   *{margin:0;padding:0;box-sizing:border-box;}
-  html,body{width:100%;height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;}
-  .cover{
-    width:100%;height:100%;
-    background:#1a1f2e;
-    display:flex;flex-direction:column;
-    padding:13px 14px 0;
-  }
-  .row1{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-shrink:0;}
-  .timer{font-family:"SF Mono","Fira Code",monospace;font-size:13px;font-weight:700;
-    color:#00b8d9;letter-spacing:0.06em;white-space:nowrap;}
-  .card-name{
-    font-size:17px;font-weight:800;color:#fff;
-    letter-spacing:-0.025em;line-height:1.3;
-    margin:10px 0 0;flex:1;
-    overflow:hidden;display:-webkit-box;
-    -webkit-line-clamp:2;-webkit-box-orient:vertical;
-  }
-  .bar-wrap{margin-top:auto;height:4px;background:rgba(255,255,255,0.08);}
-  .bar-fill{height:100%;transition:width 0.4s ease;}
+  html,body{width:100%;height:100%;background:#1e2027;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;}
+  .cover{width:100%;height:100%;display:flex;flex-direction:column;justify-content:space-between;padding:10px 12px 0;}
+  .top-row{display:flex;justify-content:space-between;align-items:center;gap:8px;}
+  .timer{font-family:"SF Mono","Fira Code",monospace;font-size:13px;font-weight:700;color:#00bcd4;letter-spacing:0.05em;white-space:nowrap;}
+  .card-name{font-size:16px;font-weight:800;color:#fff;letter-spacing:-0.02em;line-height:1.25;margin:6px 0 8px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
+  .meta-row{display:flex;gap:6px;flex-wrap:wrap;align-items:center;}
+  .progress-wrap{margin-top:auto;height:5px;background:rgba(255,255,255,0.1);}
+  .progress-fill{height:100%;background:linear-gradient(90deg,#00acc1,#26c6da);transition:width 0.3s;}
 </style>
 </head>
 <body>
 <div class="cover">
-  <div class="row1">
+  <div class="top-row">
     ${tagHTML}
     <div class="timer">${timerStr}</div>
   </div>
   <div class="card-name">${cardName.replace(/</g,"&lt;")}</div>
-  <div class="bar-wrap">
-    <div class="bar-fill" style="width:${barPct}%;background:${barColor};"></div>
+  ${hasMeta ? `<div class="meta-row">${etaHTML}${taskHTML}</div>` : ""}
+  <div class="progress-wrap">
+    <div class="progress-fill" style="width:${barWidth}%"></div>
   </div>
 </div>
 </body>
@@ -226,20 +232,24 @@ TrelloPowerUp.initialize({
       ]);
       if (!data || data.disabledProgress) return null;
 
-      const pct        = computeProgress(data);
-      const elapsed    = computeElapsed(data);
-      const unit       = data.trackingUnit || "hours";
-      const labelName  = card.labels?.[0]?.name  || card.labels?.[0]?.color || "";
-      const labelColor = card.labels?.[0]?.color || "";
+      const pct          = computeProgress(data);
+      const elapsed      = computeElapsed(data);
+      const unit         = data.trackingUnit || "hours";
+      const labelName    = card.labels?.[0]?.name  || card.labels?.[0]?.color || "";
+      const labelColor   = card.labels?.[0]?.color || "";
+      const etaStr       = formatETA(data.etaDate, data.etaTime);
+      const firstTask    = (data.tasks || []).find(t => !t.done);
+      const firstTaskName = firstTask?.name || (data.tasks?.[0]?.name) || "";
 
       const html = generateCoverHTML(
-        card.name, labelName, labelColor, elapsed, unit, pct
+        card.name, labelName, labelColor,
+        elapsed, unit, pct, etaStr, firstTaskName
       );
 
       return {
         type:    "html",
         html:    html,
-        height:  130,
+        height:  120,
         refresh: 10,
       };
     } catch (e) { return null; }

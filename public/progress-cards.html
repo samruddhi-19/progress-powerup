@@ -1,290 +1,580 @@
-/* global TrelloPowerUp */
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="https://p.trellocdn.com/power-up.min.js"></script>
 
-const t = TrelloPowerUp.iframe();
+    <style>
+      :root {
+        --surface: #222428;
+        --surface-raised: #2a2d31;
+        --surface-overlay: #2c333a;
+        --text: rgba(255, 255, 255, 0.92);
+        --muted: rgba(255, 255, 255, 0.5);
+        --divider: rgba(255, 255, 255, 0.1);
+        --accent: #00bcd4;
+        --accent-hover: #26c6da;
+        --accent-bg: rgba(0, 188, 212, 0.1);
+        --green: #00bcd4;
+        --green-bg: rgba(0, 188, 212, 0.12);
+        --tag-design-bg: rgba(0, 188, 212, 0.2);
+        --tag-design-text: #00bcd4;
+        --tag-story-bg: rgba(0, 188, 212, 0.2);
+        --tag-story-text: #00bcd4;
+        --tag-dev-bg: rgba(0, 188, 212, 0.2);
+        --tag-dev-text: #00bcd4;
+        --tag-orange-bg: rgba(0, 188, 212, 0.2);
+        --tag-orange-text: #00bcd4;
+        --tag-red-bg: rgba(0, 188, 212, 0.2);
+        --tag-red-text: #00bcd4;
+        --tag-yellow-bg: rgba(0, 188, 212, 0.2);
+        --tag-yellow-text: #00bcd4;
+        --checkbox-border: rgba(255, 255, 255, 0.28);
+        --start-btn: #00a8bd;
+        --start-btn-hover: #0097a7;
+        --start-btn-hover: #26c6da;
+        --start-btn-disabled: rgba(0, 188, 212, 0.25);
+        --search-bg: rgba(255, 255, 255, 0.05);
+        --search-focus: rgba(0, 188, 212, 0.08);
+        --close-btn-hover: rgba(255, 255, 255, 0.1);
+      }
 
-/* ── State ── */
-let allCards        = [];
-let allLists        = [];
-let selectedIds     = new Set();
-let searchQuery     = "";
-let currentView     = "lists";
-let currentListId   = null;
-let currentListName = null;
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
 
-/* ── Helpers ── */
-function qs(id) { return document.getElementById(id); }
+      html,
+      body {
+        background: var(--surface);
+        color: var(--text);
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          "Helvetica Neue", sans-serif;
+        font-size: 14px;
+        overflow: hidden;
+      }
 
-function escapeHtml(str) {
-  return String(str)
-    .replace(/&/g, "&amp;").replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-}
+      .popup {
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        max-height: 560px;
+        width: 100%;
+      }
 
-function labelToTag(labels) {
-  if (!labels || !labels.length) return null;
-  const label = labels[0];
-  const name  = (label.name  || "").toLowerCase();
-  const color = (label.color || "").toLowerCase();
+      /* ── Header ── */
+      .popup-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 14px 14px 10px 16px;
+        flex-shrink: 0;
+      }
 
-  if (name.includes("design"))                            return { text: label.name || "Design", cls: "tag-design" };
-  if (name.includes("story"))                             return { text: label.name || "Story",  cls: "tag-story"  };
-  if (name.includes("dev") || name.includes("engineer")) return { text: label.name || "Dev",    cls: "tag-dev"    };
-  if (name.includes("bug") || name.includes("fix"))      return { text: label.name || "Bug",    cls: "tag-red"    };
-  if (name.includes("review"))                           return { text: label.name || "Review", cls: "tag-orange" };
+      .header-left {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
 
-  switch (color) {
-    case "blue":   case "sky":   return { text: label.name || "Design", cls: "tag-design" };
-    case "purple": case "pink":  return { text: label.name || "Story",  cls: "tag-story"  };
-    case "green":  case "lime":  return { text: label.name || "Dev",    cls: "tag-dev"    };
-    case "orange": case "peach": return { text: label.name || "Review", cls: "tag-orange" };
-    case "red":                  return { text: label.name || "Bug",    cls: "tag-red"    };
-    case "yellow": case "cream": return { text: label.name || "Task",   cls: "tag-yellow" };
-  }
+      .popup-header h2 {
+        font-size: 18px;
+        font-weight: 800;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        letter-spacing: -0.02em;
+        color: var(--text);
+      }
 
-  const word = (label.name || label.color || "").split(" ")[0];
-  return word ? { text: word, cls: "tag-design" } : null;
-}
+      .bolt-icon {
+        color: var(--accent);
+        display: flex;
+        align-items: center;
+      }
 
-/* ── Footer ── */
-function updateFooter() {
-  const count   = selectedIds.size;
-  const countEl = qs("selectedCount");
-  countEl.textContent = count === 0
-    ? "0 cards selected"
-    : `${count} card${count === 1 ? "" : "s"} selected`;
-  countEl.classList.toggle("has-selection", count > 0);
-}
+      .header-actions {
+        display: flex;
+        align-items: center;
+        gap: 2px;
+      }
 
-/* ── Toggle selection ── */
-function toggleCard(id) {
-  if (selectedIds.has(id)) selectedIds.delete(id);
-  else                      selectedIds.add(id);
-  renderCurrentView();
-  updateFooter();
-}
+      .icon-btn {
+        background: none;
+        border: none;
+        cursor: pointer;
+        color: var(--muted);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 30px;
+        height: 30px;
+        border-radius: 6px;
+        transition:
+          color 0.12s,
+          background 0.12s;
+        flex-shrink: 0;
+      }
 
-/* ══════════════════════════════════════════
-   LIST VIEW
-══════════════════════════════════════════ */
-function renderListView(slideBack = false) {
-  currentView = "lists";
-  const container = qs("viewContainer");
-  const q = searchQuery.trim().toLowerCase();
-  const filtered = q ? allLists.filter(l => l.name.toLowerCase().includes(q)) : allLists;
+      .icon-btn:hover {
+        color: var(--text);
+        background: var(--close-btn-hover);
+      }
 
-  let html = `<div class="view${slideBack ? " slide-back" : ""}" id="listsView">`;
-  html += `<div class="sub-label">Select a list to view its cards</div>`;
-  html += `
-    <div class="search-wrap">
-      <span class="search-icon">
-        <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
-      </span>
-      <input type="text" id="searchInput" placeholder="Search lists…" autocomplete="off" value="${escapeHtml(searchQuery)}" />
-    </div>`;
+      .icon-btn svg {
+        width: 16px;
+        height: 16px;
+        fill: currentColor;
+      }
 
-  html += `<div class="scroll-area">`;
-  if (filtered.length === 0) {
-    html += `<div class="empty-state">${q ? "No lists match your search." : "No lists found on this board."}</div>`;
-  } else {
-    filtered.forEach(list => {
-      const selectedInList = allCards.filter(c => c.listId === list.id && selectedIds.has(c.id)).length;
-      const countText = list.cardCount === 0 ? "No cards" : list.cardCount === 1 ? "1 card" : `${list.cardCount} cards`;
-      const selectedBadge = selectedInList > 0
-        ? ` · <span class="selected-in-list">${selectedInList} selected</span>` : "";
+      /* Back button */
+      .back-btn {
+        background: none;
+        border: none;
+        cursor: pointer;
+        color: var(--accent);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 13px;
+        font-weight: 600;
+        padding: 4px 6px 4px 2px;
+        border-radius: 6px;
+        transition: opacity 0.12s;
+        flex-shrink: 0;
+      }
 
-      html += `
-        <div class="list-item" data-listid="${list.id}" data-listname="${escapeHtml(list.name)}">
-          <div class="list-item-left">
-            <span class="list-item-name">${escapeHtml(list.name)}</span>
-            <span class="list-item-count">${countText}${selectedBadge}</span>
-          </div>
-          <span class="list-item-arrow">
-            <svg viewBox="0 0 24 24"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg>
-          </span>
-        </div>`;
-    });
-  }
-  html += `</div></div>`;
-  container.innerHTML = html;
+      .back-btn:hover {
+        opacity: 0.75;
+      }
+      .back-btn svg {
+        width: 16px;
+        height: 16px;
+        fill: currentColor;
+      }
 
-  const input = qs("searchInput");
-  if (input) {
-    input.addEventListener("input", (e) => { searchQuery = e.target.value; renderListView(); });
-    input.focus();
-    input.setSelectionRange(input.value.length, input.value.length);
-  }
+      /* ── Sub-label ── */
+      .sub-label {
+        padding: 0 16px 12px;
+        font-size: 12.5px;
+        color: var(--muted);
+        flex-shrink: 0;
+      }
 
-  container.querySelectorAll(".list-item").forEach(el => {
-    el.addEventListener("click", () => {
-      searchQuery = "";
-      navigateToCards(el.dataset.listid, el.dataset.listname);
-    });
-  });
+      /* ── Search ── */
+      .search-wrap {
+        padding: 0 12px 12px;
+        flex-shrink: 0;
+        position: relative;
+      }
 
-  setTimeout(() => t.sizeTo(document.body), 40);
-}
+      .search-icon {
+        position: absolute;
+        left: 24px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--muted);
+        pointer-events: none;
+        display: flex;
+        align-items: center;
+      }
 
-/* ══════════════════════════════════════════
-   CARDS VIEW
-══════════════════════════════════════════ */
-function renderCardsView() {
-  currentView = "cards";
-  const container = qs("viewContainer");
-  const q = searchQuery.trim().toLowerCase();
-  const listCards = allCards.filter(c => c.listId === currentListId);
-  const filtered  = q ? listCards.filter(c => c.name.toLowerCase().includes(q)) : listCards;
+      .search-icon svg {
+        width: 14px;
+        height: 14px;
+        fill: currentColor;
+      }
 
-  let html = `<div class="view" id="cardsView">`;
-  html += `
-    <div style="display:flex;align-items:center;gap:6px;padding:0 12px 4px 12px;flex-shrink:0;">
-      <button class="back-btn" id="backBtn">
-        <svg viewBox="0 0 24 24"><path d="M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6z"/></svg>
-        Back
-      </button>
-      <span style="font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(currentListName)}</span>
-    </div>`;
+      #searchInput {
+        width: 100%;
+        padding: 9px 12px 9px 38px;
+        background: transparent;
+        border: 1.5px solid var(--accent);
+        border-radius: 10px;
+        color: var(--text);
+        font-size: 13px;
+        outline: none;
+        transition:
+          border-color 0.15s,
+          background 0.15s;
+      }
 
-  html += `
-    <div class="search-wrap">
-      <span class="search-icon">
-        <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
-      </span>
-      <input type="text" id="searchInput" placeholder="Search cards…" autocomplete="off" value="${escapeHtml(searchQuery)}" />
-    </div>`;
+      #searchInput::placeholder {
+        color: var(--muted);
+      }
 
-  html += `<div class="scroll-area">`;
-  if (filtered.length === 0) {
-    html += `<div class="empty-state">${listCards.length === 0 ? "No cards in this list." : "No cards match your search."}</div>`;
-  } else {
-    filtered.forEach(card => {
-      const isSelected = selectedIds.has(card.id);
-      const tag = labelToTag(card.labels);
-      html += `
-        <div class="card-item${isSelected ? " selected" : ""}" data-id="${card.id}">
-          <div class="cb-wrap"><span class="cb-check">✓</span></div>
-          <span class="card-name">${escapeHtml(card.name)}</span>
-          ${tag ? `<span class="card-tag ${tag.cls}">${escapeHtml(tag.text)}</span>` : ""}
-        </div>`;
-    });
-  }
-  html += `</div></div>`;
-  container.innerHTML = html;
+      #searchInput:focus {
+        border-color: var(--accent-hover);
+        background: var(--search-focus);
+      }
 
-  qs("backBtn")?.addEventListener("click", () => { searchQuery = ""; renderListView(true); });
+      /* ── Section labels ── */
+      .section-label {
+        padding: 10px 4px 6px;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+        color: var(--muted);
+        flex-shrink: 0;
+      }
 
-  const input = qs("searchInput");
-  if (input) {
-    input.addEventListener("input", (e) => { searchQuery = e.target.value; renderCardsView(); });
-  }
+      /* ── Scrollable area ── */
+      .scroll-area {
+        flex: 1;
+        overflow-y: auto;
+        padding: 2px 12px 4px;
+        scrollbar-width: thin;
+        scrollbar-color: var(--divider) transparent;
+      }
 
-  container.querySelectorAll(".card-item").forEach(el => {
-    el.addEventListener("click", () => toggleCard(el.dataset.id));
-  });
+      .scroll-area::-webkit-scrollbar {
+        width: 4px;
+      }
+      .scroll-area::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      .scroll-area::-webkit-scrollbar-thumb {
+        background: var(--divider);
+        border-radius: 99px;
+      }
 
-  setTimeout(() => t.sizeTo(document.body), 40);
-}
+      /* ── LIST VIEW ── */
+      .list-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 11px 14px;
+        border-radius: 8px;
+        background: var(--surface-raised);
+        margin-bottom: 7px;
+        cursor: pointer;
+        transition:
+          background 0.12s,
+          border-color 0.12s;
+        border-left: 3px solid transparent;
+        user-select: none;
+      }
 
-function navigateToCards(listId, listName) {
-  currentListId   = listId;
-  currentListName = listName;
-  renderCardsView();
-}
+      .list-item:hover {
+        background: var(--accent-bg);
+        border-left-color: var(--accent);
+      }
 
-function renderCurrentView() {
-  currentView === "lists" ? renderListView() : renderCardsView();
-}
+      .list-item-left {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
 
-/* ── Load ── */
-async function loadCards() {
-  try {
-    const [boardCards, lists] = await Promise.all([t.cards("all"), t.lists("all")]);
-    const listMap = {};
-    lists.forEach(l => { listMap[l.id] = l.name; });
+      .list-item-name {
+        font-size: 13.5px;
+        font-weight: 600;
+        color: var(--text);
+        letter-spacing: -0.01em;
+      }
 
-    allCards = boardCards.map(card => ({
-      id:       card.id,
-      name:     card.name,
-      listId:   card.idList,
-      listName: listMap[card.idList] || "Unknown List",
-      labels:   card.labels || [],
-    }));
+      .list-item-count {
+        font-size: 11.5px;
+        color: var(--muted);
+        font-weight: 400;
+      }
 
-    allLists = lists.map(l => ({
-      id:        l.id,
-      name:      l.name,
-      cardCount: allCards.filter(c => c.listId === l.id).length,
-    }));
+      .list-item-count .selected-in-list {
+        color: var(--accent);
+        font-weight: 600;
+      }
 
-    // Pre-check already-mapped cards so they show as selected on open
-    const alreadyMapped = (await t.get("board", "shared", "mappedCards")) || [];
-    alreadyMapped.forEach(id => selectedIds.add(id));
+      .list-item-arrow {
+        color: var(--muted);
+        display: flex;
+        align-items: center;
+        transition:
+          color 0.12s,
+          transform 0.12s;
+      }
 
-    renderListView();
-    updateFooter();
-  } catch (err) {
-    qs("viewContainer").innerHTML = `<div class="empty-state">Failed to load. Please try again.</div>`;
-    console.error("[ProgressCards] loadCards error:", err);
-  }
-}
+      .list-item:hover .list-item-arrow {
+        color: var(--accent);
+        transform: translateX(2px);
+      }
 
-/* ══════════════════════════════════════════
-   START MAPPING  — MERGES, never overwrites
-   ══════════════════════════════════════════
-   - Reads existing mappedCards from board
-   - Merges with current selection (union)
-   - Writes default card data only for NEW cards
-     (existing cards keep their progress/timer)
-══════════════════════════════════════════ */
-async function startMapping() {
-  const btn = qs("startMappingBtn");
-  btn.disabled    = true;
-  btn.textContent = "Saving…";
+      .list-item-arrow svg {
+        width: 16px;
+        height: 16px;
+        fill: currentColor;
+      }
 
-  try {
-    /*
-     * selectedIds is the single source of truth.
-     * Checked   → mapped   (cover + badges appear)
-     * Unchecked → removed  (cover + badges disappear; progress data preserved)
-     */
-    const newMappedIds = Array.from(selectedIds);
+      /* ── CARD VIEW ── */
+      .card-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 12px;
+        border-radius: 8px;
+        background: var(--surface-raised);
+        border-left: 3px solid transparent;
+        cursor: pointer;
+        transition:
+          background 0.1s,
+          border-color 0.1s;
+        user-select: none;
+        margin-bottom: 7px;
+      }
 
-    /* Keep saved progress for cards that stay mapped; add defaults for new ones */
-    const existingDefaults = (await t.get("board", "shared", "cardDefaults")) || {};
-    const defaultCardData = {
-      progress: 0, elapsed: 0, estimated: 8 * 3600,
-      running: false, startTime: null, focusMode: false,
-      disabledProgress: false, trackingUnit: "hours",
-      progressSource: "tasks", manualProgress: 0, tasks: [],
-      data: {
-        hours:  { elapsed: 0, estimated: 8 * 3600 },
-        days:   { elapsed: 0, estimated: 86400     },
-        weeks:  { elapsed: 0, estimated: 604800    },
-        months: { elapsed: 0, estimated: 2592000   },
-      },
-    };
+      .card-item:hover {
+        background: var(--accent-bg);
+      }
 
-    const cardDefaults = { ...existingDefaults };
-    selectedIds.forEach(id => {
-      if (!cardDefaults[id]) cardDefaults[id] = defaultCardData;
-    });
+      .card-item.selected {
+        background: rgba(0, 188, 212, 0.1);
+        border-left-color: var(--accent);
+      }
 
-    /* Write exact selection — no union, no leftovers */
-    await t.set("board", "shared", "mappedCards",  newMappedIds);
-    await t.set("board", "shared", "cardDefaults", cardDefaults);
+      /* Custom checkbox */
+      .cb-wrap {
+        flex-shrink: 0;
+        width: 18px;
+        height: 18px;
+        border: 1.8px solid var(--checkbox-border);
+        border-radius: 5px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition:
+          border-color 0.12s,
+          background 0.12s;
+      }
 
-    await t.closePopup();
-  } catch (err) {
-    console.error("[ProgressCards] startMapping error:", err);
-    btn.disabled    = false;
-    btn.textContent = "Save Mapping";
-  }
-}
+      .card-item.selected .cb-wrap {
+        background: var(--accent);
+        border-color: var(--accent);
+      }
 
-/* ── Init ── */
-(async function init() {
-  qs("gearBtn")?.addEventListener("click", () => {
-    t.popup({ title: "Progress Settings", url: "./settings.html", height: 620 });
-  });
-  qs("startMappingBtn").addEventListener("click", startMapping);
-  await loadCards();
-})();
+      .cb-check {
+        display: none;
+        color: #000;
+        font-size: 11px;
+        font-weight: 900;
+        line-height: 1;
+      }
+
+      .card-item.selected .cb-check {
+        display: block;
+      }
+
+      .card-name {
+        flex: 1;
+        font-size: 13px;
+        font-weight: 500;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        color: var(--text);
+        letter-spacing: -0.005em;
+      }
+
+      .card-tag {
+        flex-shrink: 0;
+        font-size: 11.5px;
+        font-weight: 600;
+        padding: 3px 10px;
+        border-radius: 999px;
+        letter-spacing: 0.01em;
+      }
+
+      .tag-design,
+      .tag-story,
+      .tag-dev,
+      .tag-orange,
+      .tag-red,
+      .tag-yellow {
+        background: var(--tag-design-bg);
+        color: var(--tag-design-text);
+      }
+
+      .section-group {
+        margin-bottom: 2px;
+      }
+
+      .section-group + .section-group {
+        border-top: 1px solid var(--divider);
+        padding-top: 4px;
+        margin-top: 6px;
+      }
+
+      .empty-state {
+        padding: 28px 16px;
+        text-align: center;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      /* ── View transition ── */
+      .view {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        overflow: hidden;
+        animation: fadeSlideIn 0.18s ease;
+      }
+
+      @keyframes fadeSlideIn {
+        from {
+          opacity: 0;
+          transform: translateX(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateX(0);
+        }
+      }
+
+      @keyframes fadeSlideBack {
+        from {
+          opacity: 0;
+          transform: translateX(-10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateX(0);
+        }
+      }
+
+      .view.slide-back {
+        animation: fadeSlideBack 0.18s ease;
+      }
+
+      /* ── Footer ── */
+      .popup-footer {
+        padding: 10px 14px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border-top: 1px solid var(--divider);
+        flex-shrink: 0;
+      }
+
+      .selected-count {
+        font-size: 12.5px;
+        color: var(--muted);
+        font-weight: 500;
+        transition: color 0.15s;
+      }
+
+      .selected-count.has-selection {
+        color: var(--text);
+        font-weight: 600;
+      }
+
+      #startMappingBtn {
+        padding: 7px 16px;
+        border: none;
+        border-radius: 8px;
+        background: var(--start-btn);
+        color: #000;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        transition:
+          background 0.15s,
+          opacity 0.15s;
+        letter-spacing: 0.01em;
+      }
+
+      #startMappingBtn:hover:not(:disabled) {
+        background: var(--start-btn-hover);
+        transform: translateY(-1px);
+      }
+
+      #startMappingBtn:disabled {
+        background: var(--start-btn-disabled);
+        color: rgba(0, 0, 0, 0.4);
+        cursor: not-allowed;
+      }
+
+      /* Loading state */
+      .loading {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 36px 16px;
+        color: var(--muted);
+        font-size: 13px;
+        gap: 8px;
+      }
+
+      .spinner {
+        width: 16px;
+        height: 16px;
+        border: 2px solid var(--divider);
+        border-top-color: var(--accent);
+        border-radius: 50%;
+        animation: spin 0.7s linear infinite;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="popup">
+      <!-- Header -->
+      <div class="popup-header">
+        <div class="header-left" id="headerLeft">
+          <h2>
+            <span class="bolt-icon">
+              <svg
+                viewBox="0 0 24 24"
+                width="18"
+                height="18"
+                fill="currentColor"
+                style="color: var(--accent)"
+              >
+                <path d="M13 2L4.5 13.5H11L10 22L19.5 10.5H13L13 2Z" />
+              </svg>
+            </span>
+            Progress Cards
+          </h2>
+        </div>
+        <div class="header-actions">
+          <button class="icon-btn" id="gearBtn" title="Settings">
+            <svg viewBox="0 0 24 24">
+              <path
+                d="M12 15.5A3.5 3.5 0 018.5 12 3.5 3.5 0 0112 8.5a3.5 3.5 0 013.5 3.5 3.5 3.5 0 01-3.5 3.5m7.43-2.92c.04-.34.07-.69.07-1.08s-.03-.74-.07-1.08l2.32-1.82c.21-.16.27-.46.13-.7l-2.2-3.81c-.14-.24-.42-.32-.66-.24l-2.74 1.1c-.57-.44-1.18-.79-1.85-1.06L14.07 2.1C14 1.84 13.77 1.66 13.5 1.66h-3c-.27 0-.5.18-.57.44l-.42 2.9c-.67.27-1.28.62-1.85 1.06L4.92 5c-.24-.08-.52 0-.66.24L2.06 9.05c-.14.23-.08.54.13.7l2.32 1.82C4.47 11.86 4.44 12.21 4.44 12.5s.03.74.07 1.08l-2.32 1.82c-.21.16-.27.46-.13.7l2.2 3.81c.14.24.42.32.66.24l2.74-1.1c.57.44 1.18.79 1.85 1.06l.42 2.9c.07.26.3.44.57.44h3c.27 0 .5-.18.57-.44l.42-2.9c.67-.27 1.28-.62 1.85-1.06l2.74 1.1c.24.08.52 0 .66-.24l2.2-3.81c.14-.24.08-.54-.13-.7l-2.32-1.82z"
+              />
+            </svg>
+          </button>
+        
+        </div>
+      </div>
+
+      <!-- Dynamic view container -->
+      <div
+        id="viewContainer"
+        style="flex: 1; overflow: hidden; display: flex; flex-direction: column"
+      >
+        <div class="loading">
+          <div class="spinner"></div>
+          Loading…
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="popup-footer">
+        <span class="selected-count" id="selectedCount">0 cards selected</span>
+        <button id="startMappingBtn" disabled>Start Mapping</button>
+      </div>
+    </div>
+
+    <script src="./progress-cards.js?v=20260602-2"></script>
+   
+  </body>
+</html>
