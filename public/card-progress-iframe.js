@@ -58,8 +58,8 @@ function getLabelStyle(color) {
     yellow: '#f2d600', orange: '#ff9f1a', red: '#eb5a46', pink: '#ff78cb',
     purple: '#c377e0'
   };
-  const bg  = map[color] || '#00bcd4';
-  const txt = ['yellow','lime','sky'].includes(color) ? '#002830' : '#ffffff';
+  const bg  = map[color] || '#14B8A6';
+  const txt = '#ffffff';
   return `background:${bg};color:${txt};`;
 }
 
