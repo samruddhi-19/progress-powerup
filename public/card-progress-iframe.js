@@ -106,9 +106,14 @@ async function fetchCardMeta() {
 }
 
 /* ── Save / Load ── */
-function save() { t.set('card', 'shared', state); }
+function save() { 
+  try { t.set('card', 'shared', state); } 
+  catch(e) { console.error('[ProgressCard] save error:', e); }
+}
+
 
 async function load() {
+  try {
   await fetchCardMeta();
   const saved = (await t.get('card', 'shared')) || {};
 
@@ -135,7 +140,10 @@ async function load() {
   render();
   if (state.running) startTick();
 
-  setTimeout(() => t.sizeTo(document.body).done(), 40);
+   setTimeout(() => { try { t.sizeTo(document.body); } catch(e) {} }, 40);
+  } catch(err) {
+    console.error('[ProgressCard] load error:', err);
+  }
 }
 
 load();
@@ -398,9 +406,8 @@ function render() {
             <div class="slider-fill ${isOver ? 'overtime' : ''}" id="progressFill" style="width:${dispPct}%"></div>
           </div>
           <input type="range" min="0" max="100" value="${state.progressSource === 'manual' ? state.manualProgress : dispPct}"
-            ${state.progressSource !== 'manual' ? 'readonly style="pointer-events:none;opacity:0.5;"' : ''}
-            oninput="onSliderInput(this.value)"
-            onchange="onSliderChange(this.value)" />
+  oninput="onSliderInput(this.value)"
+  onchange="onSliderChange(this.value)" />
         </div>
 
         <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;">
@@ -511,7 +518,7 @@ function render() {
     </div>
   `;
 
-  setTimeout(() => t.sizeTo(document.body).done(), 50);
+  setTimeout(() => { try { t.sizeTo(document.body); } catch(e) {} }, 50);
 }
 
 /* ── Progress source toggle ── */
