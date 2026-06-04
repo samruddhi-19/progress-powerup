@@ -192,6 +192,14 @@ TrelloPowerUp.initialize({
     return t.popup({ title: "Authorize Progress Power-Up", url: "./auth.html", height: 200 });
   },
 
+  "show-settings": function (t) {
+  return t.popup({
+    title: "Progress Settings",
+    url: "./settings.html",
+    height: 620,
+  });
+},
+
   /* ── Board button → Progress Cards popup ── */
   "board-buttons": async function (t, opts) {
     const disabled = await t.get("board", "shared", "disabled");

@@ -4,16 +4,16 @@
   "icon": {
     "url": "https://cdn-icons-png.flaticon.com/512/992/992651.png"
   },
-  "author": "samruddhi",
+  "author": "Prabhjot",
   "capabilities": [
     "authorization-status",
     "show-authorization",
+    "show-settings",
     "board-buttons",
     "card-badges",
     "card-detail-badges",
     "card-buttons",
-    "card-back-section",
-    "card-cover"
+    "card-back-section"
   ],
   "connectorName": "Progress",
   "tags": ["productivity", "time-tracking"]
