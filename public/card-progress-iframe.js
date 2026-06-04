@@ -290,9 +290,26 @@ function render() {
           <input id="progressSlider" type="range" min="0" max="100" value="${state.progressSource === 'manual' ? state.manualProgress : dispPct}" />
         </div>
         <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;">
-          <button data-source="manual" class="src-btn" style="font-size:10px;font-weight:700;padding:3px 9px;border-radius:6px;border:none;cursor:pointer;${state.progressSource==='manual'?'background:#00bcd4;color:#002830;':'background:rgba(255,255,255,0.06);color:#64748b;'}">Manual</button>
-          <button data-source="tasks"  class="src-btn" style="font-size:10px;font-weight:700;padding:3px 9px;border-radius:6px;border:none;cursor:pointer;${state.progressSource==='tasks' ?'background:#00bcd4;color:#002830;':'background:rgba(255,255,255,0.06);color:#64748b;'}">From Tasks</button>
-          <button data-source="timer"  class="src-btn" style="font-size:10px;font-weight:700;padding:3px 9px;border-radius:6px;border:none;cursor:pointer;${state.progressSource==='timer' ?'background:#00bcd4;color:#002830;':'background:rgba(255,255,255,0.06);color:#64748b;'}">From Timer</button>
+          <button data-source="manual" class="src-btn" style="
+  font-size:10px;font-weight:700;padding:3px 9px;border-radius:6px;border:none;cursor:pointer;
+  ${state.progressSource==='manual'
+    ?'background:#14B8A6;color:#ffffff;'
+    :'background:rgba(255,255,255,0.06);color:#64748b;'}
+">Manual</button>
+
+<button data-source="tasks" class="src-btn" style="
+  font-size:10px;font-weight:700;padding:3px 9px;border-radius:6px;border:none;cursor:pointer;
+  ${state.progressSource==='tasks'
+    ?'background:#3B82F6;color:#ffffff;'
+    :'background:rgba(59,130,246,0.1);color:#3B82F6;'}
+">From Tasks</button>
+
+<button data-source="timer" class="src-btn" style="
+  font-size:10px;font-weight:700;padding:3px 9px;border-radius:6px;border:none;cursor:pointer;
+  ${state.progressSource==='timer'
+    ?'background:#8B5CF6;color:#ffffff;'
+    :'background:rgba(139,92,246,0.1);color:#8B5CF6;'}
+">From Timer</button>
         </div>
       </div>
 
