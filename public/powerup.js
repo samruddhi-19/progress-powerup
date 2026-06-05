@@ -60,7 +60,14 @@ function computeProgress(cardData) {
 function formatETA(etaDate, etaTime) {
   if (!etaDate) return null;
   try {
-    const dt = new Date(`${etaDate}T${etaTime || "00:00"}`);
+    // Normalize: HTML date input stores YYYY-MM-DD but handle DD-MM-YYYY too
+    let normalized = etaDate;
+    if (/^\d{2}-\d{2}-\d{4}$/.test(etaDate)) {
+      const [d, m, y] = etaDate.split("-");
+      normalized = `${y}-${m}-${d}`;
+    }
+    const dt = new Date(`${normalized}T${etaTime || "00:00"}`);
+    if (isNaN(dt.getTime())) return null;
     return dt.toLocaleDateString("en-US", { day: "numeric", month: "short" })
       + (etaTime ? ", " + dt.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }) : "");
   } catch (e) { return null; }
@@ -154,7 +161,7 @@ function generateCoverHTML(cardName, labelName, labelColor, elapsed, unit, pct, 
     : "";
 
   const metaRow = (etaHTML || taskHTML)
-    ? `<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:7px;flex-shrink:0;">${etaHTML}${taskHTML}</div>`
+    ? `<div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center;margin-top:6px;flex-shrink:0;">${etaHTML}${taskHTML}</div>`
     : "";
 
   return `<!DOCTYPE html>
@@ -164,11 +171,13 @@ function generateCoverHTML(cardName, labelName, labelColor, elapsed, unit, pct, 
 <style>
   *{margin:0;padding:0;box-sizing:border-box;}
   html,body{width:100%;height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;}
-  .cover{width:100%;height:100%;background:#1e2027;display:flex;flex-direction:column;padding:11px 13px 0;}
-  .row1{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-shrink:0;}
-  .timer{font-family:"SF Mono","Fira Code",monospace;font-size:13px;font-weight:700;color:#00bcd4;letter-spacing:0.05em;white-space:nowrap;}
-  .card-name{font-size:16px;font-weight:800;color:#fff;letter-spacing:-0.02em;line-height:1.25;margin:7px 0 0;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;flex-shrink:0;}
-  .bar-wrap{margin-top:auto;height:4px;background:rgba(255,255,255,0.08);}
+  .cover{width:100%;height:100%;background:#1e2027;display:flex;flex-direction:column;padding:10px 12px 0;}
+  .row1{display:flex;justify-content:space-between;align-items:center;gap:6px;flex-shrink:0;}
+  .timer{font-family:"SF Mono","Fira Code",monospace;font-size:12px;font-weight:700;color:#00bcd4;letter-spacing:0.05em;white-space:nowrap;}
+  .card-name{font-size:14px;font-weight:800;color:#fff;letter-spacing:-0.02em;line-height:1.2;margin:5px 0 0;flex-shrink:0;overflow:hidden;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;}
+  .meta{display:flex;gap:5px;flex-wrap:wrap;align-items:center;margin-top:5px;flex-shrink:0;}
+  .pill{font-size:10px;font-weight:600;padding:2px 8px;border-radius:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:145px;background:rgba(255,255,255,0.09);color:rgba(255,255,255,0.82);border:1px solid rgba(255,255,255,0.13);}
+  .bar-wrap{margin-top:auto;height:3px;background:rgba(255,255,255,0.08);}
   .bar-fill{height:100%;transition:width 0.3s ease;}
 </style>
 </head>
@@ -179,7 +188,7 @@ function generateCoverHTML(cardName, labelName, labelColor, elapsed, unit, pct, 
     <div class="timer">${timerStr}</div>
   </div>
   <div class="card-name">${cardName.replace(/</g,"&lt;")}</div>
-  ${metaRow}
+  ${(etaHTML || taskHTML) ? `<div class="meta">${etaHTML}${taskHTML}</div>` : ""}
   <div class="bar-wrap">
     <div class="bar-fill" style="width:${barPct}%;background:${barColor};"></div>
   </div>
@@ -263,7 +272,7 @@ TrelloPowerUp.initialize({
       return {
         type:    "html",
         html:    html,
-        height:  160,
+        height:  155,
         refresh: 10,
       };
     } catch (e) { return null; }
