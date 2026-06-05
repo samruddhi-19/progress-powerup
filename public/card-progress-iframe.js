@@ -70,16 +70,19 @@ function computeProgress() {
     const done = state.tasks.filter(tk => tk.done).length;
     return Math.round((done / state.tasks.length) * 100);
   }
-  const active = state.data[state.trackingUnit];
-  let elapsed = active.elapsed;
+  const unit   = state.trackingUnit || 'hours';
+  const active = state.data[unit] || { elapsed: 0, estimated: 8 * 3600 };
+  let elapsed  = Number(active.elapsed) || 0;
   if (state.running && state.startTime)
     elapsed += Math.floor((Date.now() - state.startTime) / 1000);
   return Math.min(100, Math.round((elapsed / (active.estimated || 1)) * 100));
 }
 
+/* FIX: guard against undefined unit bucket and NaN elapsed */
 function getLiveElapsed() {
-  const active = state.data[state.trackingUnit];
-  let el = active.elapsed;
+  const unit   = state.trackingUnit || 'hours';
+  const active = state.data[unit] || { elapsed: 0 };
+  let el = Number(active.elapsed) || 0;
   if (state.running && state.startTime)
     el += Math.floor((Date.now() - state.startTime) / 1000);
   return el;
@@ -131,10 +134,32 @@ async function load() {
     state.progressSource = saved.progressSource || 'tasks';
     state.etaDate        = saved.etaDate        || '';
     state.etaTime        = saved.etaTime        || '';
+
+    // Migrate old format
     if (saved.estimated !== undefined && !saved.data) {
       state.data.hours.elapsed   = saved.elapsed   || 0;
       state.data.hours.estimated = saved.estimated || 8 * 3600;
     }
+
+    /* FIX: repair any NaN elapsed values from previous buggy saves */
+    ['hours', 'days', 'weeks', 'months'].forEach(u => {
+      if (!state.data[u]) state.data[u] = { elapsed: 0, estimated: 8 * 3600 };
+      if (isNaN(state.data[u].elapsed))   state.data[u].elapsed   = 0;
+      if (isNaN(state.data[u].estimated)) state.data[u].estimated = 8 * 3600;
+    });
+
+    /* FIX: if elapsed is 0 but history exists, rebuild elapsed by summing history */
+    const unit = state.trackingUnit || 'hours';
+    if (state.data[unit].elapsed === 0 && state.history && state.history.length > 0) {
+      const rebuilt = state.history
+        .filter(h => !h.unit || h.unit === unit)
+        .reduce((sum, h) => sum + (Number(h.seconds) || 0), 0);
+      if (rebuilt > 0) {
+        state.data[unit].elapsed = rebuilt;
+        t.set('card', 'shared', 'data', state.data);
+      }
+    }
+
     render();
     if (state.running) startTick();
     setTimeout(() => { try { t.sizeTo(document.body); } catch(e) {} }, 40);
@@ -162,23 +187,32 @@ function startTick() {
   }, 1000);
 }
 
+/* FIX: guard against undefined unit bucket and NaN, fix elapsed accumulation */
 function stopSession() {
   if (!state.running) return;
   const sessionSec = Math.floor((Date.now() - state.startTime) / 1000);
-  state.data[state.trackingUnit].elapsed += sessionSec;
+  if (sessionSec <= 0) { state.running = false; state.startTime = null; return; }
+
+  const unit = state.trackingUnit || 'hours';
+  if (!state.data[unit]) state.data[unit] = { elapsed: 0, estimated: 8 * 3600 };
+  const prev = Number(state.data[unit].elapsed) || 0;
+  state.data[unit].elapsed = prev + sessionSec;
+
   state.running   = false;
   state.focusMode = false;
   try { t.set('card', 'shared', 'focusMode', false); } catch(e) {}
+
   if (sessionSec > 5) {
     const d = new Date(state.startTime);
     state.history.push({
       date:    d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
       time:    d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
       seconds: sessionSec,
-      unit:    state.trackingUnit
+      unit:    unit
     });
     if (state.history.length > 20) state.history.shift();
   }
+
   state.startTime = null;
   clearInterval(timerInterval);
   timerInterval = null;
@@ -473,7 +507,8 @@ function bindEvents() {
   const resetBtn = document.getElementById('resetBtn');
   if (resetBtn) resetBtn.addEventListener('click', function() {
     stopSession();
-    state.data[state.trackingUnit].elapsed = 0;
+    const unit = state.trackingUnit || 'hours';
+    state.data[unit].elapsed = 0;
     state.running = false; state.startTime = null;
     if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
     save(); render();
