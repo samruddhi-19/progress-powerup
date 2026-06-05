@@ -270,11 +270,96 @@ async function startMapping() {
   }
 }
 
+function showAuthView() {
+  const container = qs("viewContainer");
+  container.innerHTML = `
+    <div style="padding: 24px 16px; display:flex; flex-direction:column; gap:16px;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span style="font-size:28px;">🔒</span>
+        <div>
+          <div style="font-size:15px;font-weight:800;color:var(--text);">Authorization Required</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:3px;">Enable Progress features on this board</div>
+        </div>
+      </div>
+      <p style="font-size:13px;color:var(--muted);line-height:1.5;">
+        Click Authorize below to start tracking progress on your cards.
+      </p>
+      <button id="inlineAuthBtn" style="
+        padding: 12px;
+        background: var(--accent);
+        color: #000;
+        border: none;
+        border-radius: 999px;
+        font-size: 14px;
+        font-weight: 800;
+        cursor: pointer;
+        width: 100%;
+        transition: opacity 0.15s;
+      ">⚡ Authorize Progress</button>
+      <div id="inlineAuthMsg" style="font-size:12px;color:var(--muted);text-align:center;"></div>
+    </div>
+  `;
+
+  // Hide footer start mapping button — not needed on auth screen
+  qs("startMappingBtn").style.display = "none";
+  qs("selectedCount").style.display  = "none";
+
+  // Bind auth button — NO inline handlers, CSP safe
+  document.getElementById("inlineAuthBtn").addEventListener("click", async function() {
+    const btn = document.getElementById("inlineAuthBtn");
+    const msg = document.getElementById("inlineAuthMsg");
+    btn.disabled = true;
+    btn.textContent = "Authorizing…";
+    msg.textContent = "";
+
+    try {
+      await t.set("member", "private", "authorized", true);
+      await t.set("board", "shared", "disabled", false);
+      msg.textContent = "✅ Authorized! Loading…";
+      // Re-init after auth
+      setTimeout(async () => {
+        qs("startMappingBtn").style.display = "";
+        qs("selectedCount").style.display  = "";
+        await loadCards();
+        updateFooter();
+      }, 600);
+    } catch(e) {
+      btn.disabled = false;
+      btn.textContent = "⚡ Authorize Progress";
+      msg.textContent = "❌ Failed. Please try again.";
+    }
+  });
+
+  setTimeout(() => { try { t.sizeTo(document.body); } catch(e) {} }, 40);
+}
+
+/* ── Init ── */
+function bindGear() {
+  const gearBtn = qs("gearBtn");
+  if (!gearBtn) return;
+  gearBtn.addEventListener("click", () => {
+    t.popup({
+      title:  "Progress Settings",
+      url:    "./settings.html",
+      height: 620,
+    });
+  });
+}
+
 /* ── Init ── */
 (async function init() {
-  qs("gearBtn")?.addEventListener("click", () => {
-    t.popup({ title: "Progress Settings", url: "./settings.html", height: 620 });
-  });
+  bindGear();
   qs("startMappingBtn").addEventListener("click", startMapping);
+
+  // Check auth first — show inline auth if not authorized
+  const all = await t.getAll();
+  const authorized = all?.member?.private?.authorized === true;
+  const disabled   = all?.board?.shared?.disabled === true;
+
+  if (!authorized || disabled) {
+    showAuthView();
+    return;
+  }
+
   await loadCards();
 })();

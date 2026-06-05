@@ -32,7 +32,8 @@ async function loadUI() {
   qs("focusMode").checked = board.autoFocus ?? DEFAULTS.autoFocus;
   qs("autoTrackMode").value = board.autoTrackMode ?? DEFAULTS.autoTrackMode;
 
-  setTimeout(() => t.sizeTo(document.body).done(), 40);
+  // REPLACE BOTH WITH
+setTimeout(() => { try { t.sizeTo(document.body); } catch(e) {} }, 40);
 }
 
 async function setBoard(key, value) {
@@ -77,7 +78,8 @@ function showPanel(which) {
     if (settingsPanel) settingsPanel.style.display = "block";
   }
 
-  setTimeout(() => t.sizeTo(document.body).done(), 40);
+ // REPLACE BOTH WITH
+setTimeout(() => { try { t.sizeTo(document.body); } catch(e) {} }, 40);
 }
 
 async function bindAuthButton() {
