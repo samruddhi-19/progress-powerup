@@ -250,10 +250,25 @@ TrelloPowerUp.initialize({
       const mapped = await isMappedCard(t);
       if (!mapped) return null;
 
-      const [data, card] = await Promise.all([
-        getCardData(t),
+      /* Read card-level data first, then fall back to board defaults */
+      const [cardShared, card] = await Promise.all([
+        t.get("card", "shared"),
         t.card("name", "labels"),
       ]);
+
+      let data = cardShared;
+
+      /* If no card-level data, try board defaults */
+      if (!data) {
+        const [cardInfo, cardDefaults] = await Promise.all([
+          t.card("id"),
+          t.get("board", "shared", "cardDefaults"),
+        ]);
+        if (cardDefaults && cardDefaults[cardInfo.id]) {
+          data = cardDefaults[cardInfo.id];
+        }
+      }
+
       if (!data || data.disabledProgress) return null;
 
       const pct           = computeProgress(data);
