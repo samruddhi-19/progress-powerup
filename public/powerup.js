@@ -69,7 +69,6 @@ function formatETA(etaDate, etaTime) {
 /* ─────────────────────────────────────────
    getCardData — falls back to board defaults
 ───────────────────────────────────────── */
-// REPLACE WITH
 async function getCardData(t) {
   const cardData = await t.get("card", "shared");
   if (cardData) return cardData;
@@ -118,12 +117,13 @@ async function isMappedCard(t) {
 }
 
 /* ─────────────────────────────────────────
-   generateCoverHTML — clean minimal cover:
-   [Tag pill]           [timer]
-   Card Name (bold, large)
-   [thin progress bar, flush bottom]
+   generateCoverHTML
+   [Tag pill]              [timer]
+   Card Name
+   [ETA pill] [SubTask pill]   ← only if set
+   [progress bar flush bottom]
 ───────────────────────────────────────── */
-function generateCoverHTML(cardName, labelName, labelColor, elapsed, unit, pct) {
+function generateCoverHTML(cardName, labelName, labelColor, elapsed, unit, pct, etaStr, firstTaskName) {
   const labelColors = {
     blue:   { bg: "#0052cc", text: "#e9f2ff" },
     sky:    { bg: "#0065ff", text: "#e9f2ff" },
@@ -136,16 +136,26 @@ function generateCoverHTML(cardName, labelName, labelColor, elapsed, unit, pct) 
     purple: { bg: "#6e5dc6", text: "#f3f0ff" },
     black:  { bg: "#2c333a", text: "#b6c2cf" },
   };
-  const lc       = labelColors[labelColor] || { bg: "#0052cc", text: "#e9f2ff" };
+  const lc       = labelColors[labelColor] || { bg: "#00bcd4", text: "#002830" };
   const timerStr = formatUnit(elapsed, unit);
   const barPct   = Math.min(100, pct);
-  const barColor = barPct >= 100 ? "#22a06b" : barPct >= 60 ? "#e2812d" : "#00b8d9";
+  const barColor = barPct >= 100 ? "#22a06b" : barPct >= 60 ? "#e2812d" : "#00bcd4";
 
   const tagHTML = labelName
-    ? `<span style="background:${lc.bg};color:${lc.text};font-size:11px;font-weight:700;
-        padding:3px 9px;border-radius:4px;letter-spacing:0.03em;
-        max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${labelName}</span>`
+    ? `<span style="background:${lc.bg};color:${lc.text};font-size:11px;font-weight:700;padding:3px 10px;border-radius:999px;letter-spacing:0.02em;white-space:nowrap;max-width:110px;overflow:hidden;text-overflow:ellipsis;">${labelName}</span>`
     : `<span></span>`;
+
+  const etaHTML = etaStr
+    ? `<span style="background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.8);font-size:11px;font-weight:600;padding:3px 9px;border-radius:6px;white-space:nowrap;border:1px solid rgba(255,255,255,0.12);max-width:140px;overflow:hidden;text-overflow:ellipsis;">ETA: ${etaStr}</span>`
+    : "";
+
+  const taskHTML = firstTaskName
+    ? `<span style="background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.8);font-size:11px;font-weight:600;padding:3px 9px;border-radius:6px;white-space:nowrap;border:1px solid rgba(255,255,255,0.12);max-width:140px;overflow:hidden;text-overflow:ellipsis;">Sub Task : ${firstTaskName}</span>`
+    : "";
+
+  const metaRow = (etaHTML || taskHTML)
+    ? `<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:7px;flex-shrink:0;">${etaHTML}${taskHTML}</div>`
+    : "";
 
   return `<!DOCTYPE html>
 <html>
@@ -154,12 +164,12 @@ function generateCoverHTML(cardName, labelName, labelColor, elapsed, unit, pct) 
 <style>
   *{margin:0;padding:0;box-sizing:border-box;}
   html,body{width:100%;height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;}
-  .cover{width:100%;height:100%;background:#1a1f2e;display:flex;flex-direction:column;padding:13px 14px 0;}
+  .cover{width:100%;height:100%;background:#1e2027;display:flex;flex-direction:column;padding:11px 13px 0;}
   .row1{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-shrink:0;}
-  .timer{font-family:"SF Mono","Fira Code",monospace;font-size:13px;font-weight:700;color:#00b8d9;letter-spacing:0.06em;white-space:nowrap;}
-  .card-name{font-size:17px;font-weight:800;color:#fff;letter-spacing:-0.025em;line-height:1.3;margin:10px 0 0;flex:1;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
+  .timer{font-family:"SF Mono","Fira Code",monospace;font-size:13px;font-weight:700;color:#00bcd4;letter-spacing:0.05em;white-space:nowrap;}
+  .card-name{font-size:16px;font-weight:800;color:#fff;letter-spacing:-0.02em;line-height:1.25;margin:7px 0 0;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;flex-shrink:0;}
   .bar-wrap{margin-top:auto;height:4px;background:rgba(255,255,255,0.08);}
-  .bar-fill{height:100%;transition:width 0.4s ease;}
+  .bar-fill{height:100%;transition:width 0.3s ease;}
 </style>
 </head>
 <body>
@@ -169,6 +179,7 @@ function generateCoverHTML(cardName, labelName, labelColor, elapsed, unit, pct) 
     <div class="timer">${timerStr}</div>
   </div>
   <div class="card-name">${cardName.replace(/</g,"&lt;")}</div>
+  ${metaRow}
   <div class="bar-wrap">
     <div class="bar-fill" style="width:${barPct}%;background:${barColor};"></div>
   </div>
@@ -221,7 +232,7 @@ TrelloPowerUp.initialize({
     }];
   },
 
-  /* ── Card cover — clean minimal design ── */
+  /* ── Card cover ── */
   "card-cover": async function (t) {
     try {
       const disabled = await t.get("board", "shared", "disabled");
@@ -236,34 +247,39 @@ TrelloPowerUp.initialize({
       ]);
       if (!data || data.disabledProgress) return null;
 
-      const pct        = computeProgress(data);
-      const elapsed    = computeElapsed(data);
-      const unit       = data.trackingUnit || "hours";
-      const labelName  = card.labels?.[0]?.name  || card.labels?.[0]?.color || "";
-      const labelColor = card.labels?.[0]?.color || "";
+      const pct           = computeProgress(data);
+      const elapsed       = computeElapsed(data);
+      const unit          = data.trackingUnit || "hours";
+      const labelName     = card.labels?.[0]?.name  || card.labels?.[0]?.color || "";
+      const labelColor    = card.labels?.[0]?.color || "";
+      const etaStr        = formatETA(data.etaDate, data.etaTime);
+      const firstTask     = (data.tasks || []).find(tk => !tk.done) || data.tasks?.[0];
+      const firstTaskName = firstTask?.name || "";
 
       const html = generateCoverHTML(
-        card.name, labelName, labelColor, elapsed, unit, pct
+        card.name, labelName, labelColor, elapsed, unit, pct, etaStr, firstTaskName
       );
 
       return {
         type:    "html",
         html:    html,
-        height:  130,
+        height:  160,
         refresh: 10,
       };
     } catch (e) { return null; }
   },
 
   /* ── Card back section ── */
-  // REPLACE WITH
-"card-back-section": async function (t) {
-  const disabled = await t.get("board", "shared", "disabled");
-  if (disabled) return null;
-  const mapped = await isMappedCard(t);
-  if (!mapped) return null;
-  const cardData = await getCardData(t);
-  if (cardData && cardData.disabledProgress === true) return null;
+  "card-back-section": async function (t) {
+    const disabled = await t.get("board", "shared", "disabled");
+    if (disabled) return null;
+
+    const mapped = await isMappedCard(t);
+    if (!mapped) return null;
+
+    const cardData = await getCardData(t);
+    if (cardData && cardData.disabledProgress === true) return null;
+
     return {
       title: "Progress",
       icon:  ICON,
