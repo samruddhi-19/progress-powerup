@@ -9,9 +9,8 @@ var Promise = TrelloPowerUp.Promise;
 
 function makeBar(pct) {
   if (!pct || isNaN(pct)) pct = 0;
-  const total  = 8;
-  const filled = Math.round((Math.min(pct, 100) / 100) * total);
-  return "▰".repeat(filled) + "▱".repeat(total - filled);
+  const filled = Math.round((Math.min(pct, 100) / 100) * 8);
+  return "▰".repeat(filled) + "▱".repeat(8 - filled);
 }
 
 function formatUnit(sec, unit) {
@@ -26,55 +25,58 @@ function formatUnit(sec, unit) {
   return parseFloat((sec / rates[unit]).toFixed(1)) + symbols[unit];
 }
 
-function computeElapsed(cardData) {
-  if (!cardData || !cardData.data) return cardData?.elapsed || 0;
-  const unit     = cardData.trackingUnit || "hours";
-  const unitData = cardData.data[unit]   || { elapsed: 0 };
-  if (unit === "hours" && cardData.running && cardData.startTime) {
-    return unitData.elapsed + Math.floor((Date.now() - cardData.startTime) / 1000);
-  }
-  return unitData.elapsed || 0;
+function computeElapsed(d) {
+  if (!d) return 0;
+  const unit = d.trackingUnit || "hours";
+  const bucket = (d.data && d.data[unit]) ? d.data[unit] : { elapsed: d.elapsed || 0 };
+  let el = Number(bucket.elapsed) || 0;
+  if (unit === "hours" && d.running && d.startTime)
+    el += Math.floor((Date.now() - d.startTime) / 1000);
+  return el;
 }
 
-function computeEstimated(cardData) {
-  if (!cardData || !cardData.data) return cardData?.estimated || 8 * 3600;
-  const unit     = cardData.trackingUnit || "hours";
-  const unitData = cardData.data[unit]   || { estimated: 8 * 3600 };
-  return unitData.estimated || 8 * 3600;
+function computeEstimated(d) {
+  if (!d) return 8 * 3600;
+  const unit = d.trackingUnit || "hours";
+  const bucket = (d.data && d.data[unit]) ? d.data[unit] : {};
+  return Number(bucket.estimated) || d.estimated || 8 * 3600;
 }
 
-function computeProgress(cardData) {
-  if (!cardData) return 0;
-  if (cardData.progressSource === "manual") return Math.min(100, cardData.manualProgress || 0);
-  if (cardData.progressSource === "tasks") {
-    const tasks = cardData.tasks || [];
+function computeProgress(d) {
+  if (!d) return 0;
+  if (d.progressSource === "manual") return Math.min(100, d.manualProgress || 0);
+  if (d.progressSource === "tasks") {
+    const tasks = d.tasks || [];
     if (!tasks.length) return 0;
     return Math.round((tasks.filter(t => t.done).length / tasks.length) * 100);
   }
-  const elapsed   = computeElapsed(cardData);
-  const estimated = computeEstimated(cardData);
-  if (!estimated) return 0;
-  return Math.min(100, Math.round((elapsed / estimated) * 100));
+  const el  = computeElapsed(d);
+  const est = computeEstimated(d);
+  return est ? Math.min(100, Math.round((el / est) * 100)) : 0;
 }
 
+/* Format ETA date+time into a readable string like "4 Jun, 10:30 PM" */
 function formatETA(etaDate, etaTime) {
   if (!etaDate) return null;
   try {
-    // Normalize: HTML date input stores YYYY-MM-DD but handle DD-MM-YYYY too
-    let normalized = etaDate;
+    let iso = etaDate;
+    // Handle DD-MM-YYYY format from some locales
     if (/^\d{2}-\d{2}-\d{4}$/.test(etaDate)) {
       const [d, m, y] = etaDate.split("-");
-      normalized = `${y}-${m}-${d}`;
+      iso = `${y}-${m}-${d}`;
     }
-    const dt = new Date(`${normalized}T${etaTime || "00:00"}`);
+    const dt = new Date(`${iso}T${etaTime || "00:00"}`);
     if (isNaN(dt.getTime())) return null;
-    return dt.toLocaleDateString("en-US", { day: "numeric", month: "short" })
-      + (etaTime ? ", " + dt.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }) : "");
+    const datePart = dt.toLocaleDateString("en-US", { day: "numeric", month: "short" });
+    const timePart = etaTime
+      ? dt.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })
+      : null;
+    return timePart ? `${datePart}, ${timePart}` : datePart;
   } catch (e) { return null; }
 }
 
 /* ─────────────────────────────────────────
-   getCardData — falls back to board defaults
+   getCardData
 ───────────────────────────────────────── */
 async function getCardData(t) {
   const cardData = await t.get("card", "shared");
@@ -88,7 +90,7 @@ async function getCardData(t) {
     return defaults;
   }
 
-  // Card was mapped but no defaults exist yet — initialize fresh data
+  // Mapped but no data yet — initialise fresh
   const mappedCards = await t.get("board", "shared", "mappedCards");
   if (mappedCards && mappedCards.includes(card.id)) {
     const fresh = {
@@ -96,6 +98,7 @@ async function getCardData(t) {
       running: false, startTime: null, focusMode: false,
       disabledProgress: false, trackingUnit: "hours",
       progressSource: "tasks", manualProgress: 0, tasks: [],
+      etaDate: "", etaTime: "",
       data: {
         hours:  { elapsed: 0, estimated: 8 * 3600 },
         days:   { elapsed: 0, estimated: 86400     },
@@ -106,13 +109,11 @@ async function getCardData(t) {
     await t.set("card", "shared", fresh);
     return fresh;
   }
-
   return null;
 }
 
 /* ─────────────────────────────────────────
-   isMappedCard — only show badges/cover on
-   cards the user explicitly mapped
+   isMappedCard
 ───────────────────────────────────────── */
 async function isMappedCard(t) {
   const [card, mappedCards] = await Promise.all([
@@ -121,80 +122,6 @@ async function isMappedCard(t) {
   ]);
   if (!mappedCards || !mappedCards.length) return false;
   return mappedCards.includes(card.id);
-}
-
-/* ─────────────────────────────────────────
-   generateCoverHTML
-   [Tag pill]              [timer]
-   Card Name
-   [ETA pill] [SubTask pill]   ← only if set
-   [progress bar flush bottom]
-───────────────────────────────────────── */
-function generateCoverHTML(cardName, labelName, labelColor, elapsed, unit, pct, etaStr, firstTaskName) {
-  const labelColors = {
-    blue:   { bg: "#0052cc", text: "#e9f2ff" },
-    sky:    { bg: "#0065ff", text: "#e9f2ff" },
-    lime:   { bg: "#1f845a", text: "#dcfff1" },
-    green:  { bg: "#1f845a", text: "#dcfff1" },
-    yellow: { bg: "#946f00", text: "#fff7d6" },
-    orange: { bg: "#a54800", text: "#fff3eb" },
-    red:    { bg: "#c9372c", text: "#ffd5d2" },
-    pink:   { bg: "#943d73", text: "#ffecf8" },
-    purple: { bg: "#6e5dc6", text: "#f3f0ff" },
-    black:  { bg: "#2c333a", text: "#b6c2cf" },
-  };
-  const lc       = labelColors[labelColor] || { bg: "#00bcd4", text: "#002830" };
-  const timerStr = formatUnit(elapsed, unit);
-  const barPct   = Math.min(100, pct);
-  const barColor = barPct >= 100 ? "#22a06b" : barPct >= 60 ? "#e2812d" : "#00bcd4";
-
-  const tagHTML = labelName
-    ? `<span style="background:${lc.bg};color:${lc.text};font-size:11px;font-weight:700;padding:3px 10px;border-radius:999px;letter-spacing:0.02em;white-space:nowrap;max-width:110px;overflow:hidden;text-overflow:ellipsis;">${labelName}</span>`
-    : `<span></span>`;
-
-  const etaHTML = etaStr
-    ? `<span style="background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.8);font-size:11px;font-weight:600;padding:3px 9px;border-radius:6px;white-space:nowrap;border:1px solid rgba(255,255,255,0.12);max-width:140px;overflow:hidden;text-overflow:ellipsis;">ETA: ${etaStr}</span>`
-    : "";
-
-  const taskHTML = firstTaskName
-    ? `<span style="background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.8);font-size:11px;font-weight:600;padding:3px 9px;border-radius:6px;white-space:nowrap;border:1px solid rgba(255,255,255,0.12);max-width:140px;overflow:hidden;text-overflow:ellipsis;">Sub Task : ${firstTaskName}</span>`
-    : "";
-
-  const metaRow = (etaHTML || taskHTML)
-    ? `<div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center;margin-top:6px;flex-shrink:0;">${etaHTML}${taskHTML}</div>`
-    : "";
-
-  return `<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8"/>
-<style>
-  *{margin:0;padding:0;box-sizing:border-box;}
-  html,body{width:100%;height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;}
-  .cover{width:100%;height:100%;background:#1e2027;display:flex;flex-direction:column;padding:10px 12px 0;}
-  .row1{display:flex;justify-content:space-between;align-items:center;gap:6px;flex-shrink:0;}
-  .timer{font-family:"SF Mono","Fira Code",monospace;font-size:12px;font-weight:700;color:#00bcd4;letter-spacing:0.05em;white-space:nowrap;}
-  .card-name{font-size:14px;font-weight:800;color:#fff;letter-spacing:-0.02em;line-height:1.2;margin:5px 0 0;flex-shrink:0;overflow:hidden;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;}
-  .meta{display:flex;gap:5px;flex-wrap:wrap;align-items:center;margin-top:5px;flex-shrink:0;}
-  .pill{font-size:10px;font-weight:600;padding:2px 8px;border-radius:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:145px;background:rgba(255,255,255,0.09);color:rgba(255,255,255,0.82);border:1px solid rgba(255,255,255,0.13);}
-  .bar-wrap{margin-top:auto;height:3px;background:rgba(255,255,255,0.08);}
-  .bar-fill{height:100%;transition:width 0.3s ease;}
-</style>
-</head>
-<body>
-<div class="cover">
-  <div class="row1">
-    ${tagHTML}
-    <div class="timer">${timerStr}</div>
-  </div>
-  <div class="card-name">${cardName.replace(/</g,"&lt;")}</div>
-  ${(etaHTML || taskHTML) ? `<div class="meta">${etaHTML}${taskHTML}</div>` : ""}
-  <div class="bar-wrap">
-    <div class="bar-fill" style="width:${barPct}%;background:${barColor};"></div>
-  </div>
-</div>
-</body>
-</html>`;
 }
 
 /* ─────────────────────────────────────────
@@ -217,14 +144,10 @@ TrelloPowerUp.initialize({
   },
 
   "show-settings": function (t) {
-    return t.popup({
-      title: "Progress Settings",
-      url: "./settings.html",
-      height: 620,
-    });
+    return t.popup({ title: "Progress Settings", url: "./settings.html", height: 620 });
   },
 
-  /* ── Board button → Progress Cards popup ── */
+  /* ── Board button ── */
   "board-buttons": async function (t, opts) {
     const disabled = await t.get("board", "shared", "disabled");
     return [{
@@ -241,69 +164,14 @@ TrelloPowerUp.initialize({
     }];
   },
 
-  /* ── Card cover ── */
-  "card-cover": async function (t) {
-    try {
-      const disabled = await t.get("board", "shared", "disabled");
-      if (disabled) return null;
-
-      const mapped = await isMappedCard(t);
-      if (!mapped) return null;
-
-      /* Read card-level data first, then fall back to board defaults */
-      const [cardShared, card] = await Promise.all([
-        t.get("card", "shared"),
-        t.card("name", "labels"),
-      ]);
-
-      let data = cardShared;
-
-      /* If no card-level data, try board defaults */
-      if (!data) {
-        const [cardInfo, cardDefaults] = await Promise.all([
-          t.card("id"),
-          t.get("board", "shared", "cardDefaults"),
-        ]);
-        if (cardDefaults && cardDefaults[cardInfo.id]) {
-          data = cardDefaults[cardInfo.id];
-        }
-      }
-
-      if (!data || data.disabledProgress) return null;
-
-      const pct           = computeProgress(data);
-      const elapsed       = computeElapsed(data);
-      const unit          = data.trackingUnit || "hours";
-      const labelName     = card.labels?.[0]?.name  || card.labels?.[0]?.color || "";
-      const labelColor    = card.labels?.[0]?.color || "";
-      const etaStr        = formatETA(data.etaDate, data.etaTime);
-      const firstTask     = (data.tasks || []).find(tk => !tk.done) || data.tasks?.[0];
-      const firstTaskName = firstTask?.name || "";
-
-      const html = generateCoverHTML(
-        card.name, labelName, labelColor, elapsed, unit, pct, etaStr, firstTaskName
-      );
-
-      return {
-        type:    "html",
-        html:    html,
-        height:  155,
-        refresh: 10,
-      };
-    } catch (e) { return null; }
-  },
-
   /* ── Card back section ── */
   "card-back-section": async function (t) {
     const disabled = await t.get("board", "shared", "disabled");
     if (disabled) return null;
-
     const mapped = await isMappedCard(t);
     if (!mapped) return null;
-
     const cardData = await getCardData(t);
     if (cardData && cardData.disabledProgress === true) return null;
-
     return {
       title: "Progress",
       icon:  ICON,
@@ -315,7 +183,14 @@ TrelloPowerUp.initialize({
     };
   },
 
-  /* ── Card badges — ONLY on mapped cards ── */
+  /* ══════════════════════════════════════════
+     CARD BADGES
+     Shows on mapped cards only.
+     Badge 1: progress bar + %
+     Badge 2: ⏱ elapsed time
+     Badge 3: 📅 ETA (if set)
+     Badge 4: ✦ first incomplete subtask (if any)
+  ══════════════════════════════════════════ */
   "card-badges": async function (t) {
     try {
       const disabled = await t.get("board", "shared", "disabled");
@@ -335,8 +210,10 @@ TrelloPowerUp.initialize({
 
       const badges = [];
 
+      /* Focus mode */
       if (data.focusMode) badges.push({ text: "🎯 Focus", color: "red" });
 
+      /* ── Badge 1: Progress bar ── */
       const pct = computeProgress(data);
       badges.push({
         title: "Progress",
@@ -346,12 +223,16 @@ TrelloPowerUp.initialize({
           return getCardData(t).then(function (d) {
             if (!d) return { text: "▱▱▱▱▱▱▱▱  0%", color: "blue" };
             const p = computeProgress(d);
-            return { text: hideBars ? `${p}%` : `${makeBar(p)}  ${p}%`, color: p >= 100 ? "green" : "blue" };
+            return {
+              text:  hideBars ? `${p}%` : `${makeBar(p)}  ${p}%`,
+              color: p >= 100 ? "green" : "blue",
+            };
           }).catch(() => ({ text: "0%", color: "blue" }));
         },
         refresh: 30,
       });
 
+      /* ── Badge 2: Timer ── */
       if (!hideTimer) {
         const unit = data.trackingUnit || "hours";
         badges.push({
@@ -361,10 +242,57 @@ TrelloPowerUp.initialize({
           dynamic: function (t) {
             return getCardData(t).then(function (d) {
               if (!d) return { text: "⏱ 0:00", color: "blue" };
-              return { text: `⏱ ${formatUnit(computeElapsed(d), d.trackingUnit || "hours")}`, color: "blue" };
+              return {
+                text: `⏱ ${formatUnit(computeElapsed(d), d.trackingUnit || "hours")}`,
+                color: "blue",
+              };
             }).catch(() => ({ text: "⏱ 0:00", color: "blue" }));
           },
           refresh: 10,
+        });
+      }
+
+      /* ── Badge 3: ETA (only if user has set it) ── */
+      const etaStr = formatETA(data.etaDate, data.etaTime);
+      if (etaStr) {
+        badges.push({
+          title: "ETA",
+          text:  `📅 ${etaStr}`,
+          color: "yellow",
+          dynamic: function (t) {
+            return getCardData(t).then(function (d) {
+              if (!d) return { text: "", color: "yellow" };
+              const s = formatETA(d.etaDate, d.etaTime);
+              return s ? { text: `📅 ${s}`, color: "yellow" } : { text: "" };
+            }).catch(() => ({ text: "" }));
+          },
+          refresh: 60,
+        });
+      }
+
+      /* ── Badge 4: First incomplete subtask (only if tasks exist) ── */
+      const tasks = data.tasks || [];
+      const firstPending = tasks.find(tk => !tk.done);
+      if (firstPending) {
+        const taskText = firstPending.name.length > 24
+          ? firstPending.name.slice(0, 24) + "…"
+          : firstPending.name;
+        badges.push({
+          title: "Sub Task",
+          text:  `✦ ${taskText}`,
+          color: "purple",
+          dynamic: function (t) {
+            return getCardData(t).then(function (d) {
+              if (!d) return { text: "" };
+              const pending = (d.tasks || []).find(tk => !tk.done);
+              if (!pending) return { text: "" };
+              const name = pending.name.length > 24
+                ? pending.name.slice(0, 24) + "…"
+                : pending.name;
+              return { text: `✦ ${name}`, color: "purple" };
+            }).catch(() => ({ text: "" }));
+          },
+          refresh: 30,
         });
       }
 
@@ -372,7 +300,7 @@ TrelloPowerUp.initialize({
     } catch (e) { return []; }
   },
 
-  /* ── Card detail badges — ONLY on mapped cards ── */
+  /* ── Card detail badges ── */
   "card-detail-badges": async function (t) {
     try {
       const disabled = await t.get("board", "shared", "disabled");
@@ -399,7 +327,10 @@ TrelloPowerUp.initialize({
           return getCardData(t).then(function (d) {
             if (!d) return { text: "▱▱▱▱▱▱▱▱  0%", color: "blue" };
             const p = computeProgress(d);
-            return { text: hideBars ? `${p}%` : `${makeBar(p)}  ${p}%`, color: p >= 100 ? "green" : "blue" };
+            return {
+              text:  hideBars ? `${p}%` : `${makeBar(p)}  ${p}%`,
+              color: p >= 100 ? "green" : "blue",
+            };
           }).catch(() => ({ text: "0%", color: "blue" }));
         },
         refresh: 30,
@@ -411,12 +342,51 @@ TrelloPowerUp.initialize({
           dynamic: function (t) {
             return getCardData(t).then(function (d) {
               if (!d) return { text: "⏱ 0:00", color: "blue" };
-              return { text: `⏱ ${formatUnit(computeElapsed(d), d.trackingUnit || "hours")}`, color: "blue" };
+              return {
+                text: `⏱ ${formatUnit(computeElapsed(d), d.trackingUnit || "hours")}`,
+                color: "blue",
+              };
             }).catch(() => ({ text: "⏱ 0:00", color: "blue" }));
           },
           refresh: 10,
         });
       }
+
+      const etaStr = formatETA(data.etaDate, data.etaTime);
+      if (etaStr) {
+        badges.push({
+          title: "ETA",
+          dynamic: function (t) {
+            return getCardData(t).then(function (d) {
+              if (!d) return { text: "" };
+              const s = formatETA(d.etaDate, d.etaTime);
+              return s ? { text: `📅 ${s}`, color: "yellow" } : { text: "" };
+            }).catch(() => ({ text: "" }));
+          },
+          refresh: 60,
+        });
+      }
+
+      const tasks = data.tasks || [];
+      const firstPending = tasks.find(tk => !tk.done);
+      if (firstPending) {
+        badges.push({
+          title: "Sub Task",
+          dynamic: function (t) {
+            return getCardData(t).then(function (d) {
+              if (!d) return { text: "" };
+              const pending = (d.tasks || []).find(tk => !tk.done);
+              if (!pending) return { text: "" };
+              const name = pending.name.length > 24
+                ? pending.name.slice(0, 24) + "…"
+                : pending.name;
+              return { text: `✦ ${name}`, color: "purple" };
+            }).catch(() => ({ text: "" }));
+          },
+          refresh: 30,
+        });
+      }
+
       return badges;
     } catch (e) { return []; }
   },
@@ -435,6 +405,7 @@ TrelloPowerUp.initialize({
             running: false, startTime: null, focusMode: false,
             disabledProgress: false, trackingUnit: "hours",
             progressSource: "tasks", manualProgress: 0, tasks: [],
+            etaDate: "", etaTime: "",
             data: {
               hours:  { elapsed: 0, estimated: 8 * 3600 },
               days:   { elapsed: 0, estimated: 86400     },
