@@ -23,26 +23,21 @@ function escapeHtml(str) {
 function labelToTag(labels) {
   if (!labels || !labels.length) return null;
   const label = labels[0];
-  const name  = (label.name  || "").toLowerCase();
   const color = (label.color || "").toLowerCase();
 
-  if (name.includes("design"))                            return { text: label.name || "Design", cls: "tag-design" };
-  if (name.includes("story"))                             return { text: label.name || "Story",  cls: "tag-story"  };
-  if (name.includes("dev") || name.includes("engineer")) return { text: label.name || "Dev",    cls: "tag-dev"    };
-  if (name.includes("bug") || name.includes("fix"))      return { text: label.name || "Bug",    cls: "tag-red"    };
-  if (name.includes("review"))                           return { text: label.name || "Review", cls: "tag-orange" };
+  const colorClassMap = {
+    green:  "tag-green",  lime:   "tag-green",
+    blue:   "tag-blue",   sky:    "tag-blue",
+    purple: "tag-purple", pink:   "tag-pink",
+    red:    "tag-red",
+    orange: "tag-orange", peach:  "tag-orange",
+    yellow: "tag-yellow", cream:  "tag-yellow",
+    black:  "tag-black",
+  };
 
-  switch (color) {
-    case "blue":   case "sky":   return { text: label.name || "Design", cls: "tag-design" };
-    case "purple": case "pink":  return { text: label.name || "Story",  cls: "tag-story"  };
-    case "green":  case "lime":  return { text: label.name || "Dev",    cls: "tag-dev"    };
-    case "orange": case "peach": return { text: label.name || "Review", cls: "tag-orange" };
-    case "red":                  return { text: label.name || "Bug",    cls: "tag-red"    };
-    case "yellow": case "cream": return { text: label.name || "Task",   cls: "tag-yellow" };
-  }
-
-  const word = (label.name || label.color || "").split(" ")[0];
-  return word ? { text: word, cls: "tag-design" } : null;
+  const cls  = colorClassMap[color] || "tag-default";
+  const text = label.name || label.color || "Label";
+  return { text, cls };
 }
 
 /* ── Footer ── */

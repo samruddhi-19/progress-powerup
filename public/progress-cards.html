@@ -13,26 +13,32 @@
         --text: rgba(255, 255, 255, 0.92);
         --muted: rgba(255, 255, 255, 0.5);
         --divider: rgba(255, 255, 255, 0.1);
-        --accent: #14B8A6;
-        --accent-hover: #0D9488;
+        --accent: #14b8a6;
+        --accent-hover: #0d9488;
         --accent-bg: rgba(20, 184, 166, 0.1);
-        --green: #14B8A6;
+        --green: #14b8a6;
         --green-bg: rgba(20, 184, 166, 0.12);
-        --tag-design-bg: rgba(20, 184, 166, 0.2);
-        --tag-design-text: #14B8A6;
-        --tag-story-bg: rgba(20, 184, 166, 0.2);
-        --tag-story-text: #14B8A6;
-        --tag-dev-bg: rgba(20, 184, 166, 0.2);
-        --tag-dev-text: #14B8A6;
-        --tag-orange-bg: rgba(20, 184, 166, 0.2);
-        --tag-orange-text: #14B8A6;
-        --tag-red-bg: rgba(20, 184, 166, 0.2);
-        --tag-red-text: #14B8A6;
-        --tag-yellow-bg: rgba(20, 184, 166, 0.2);
-        --tag-yellow-text: #14B8A6;
+        --tag-green-bg: rgba(34, 197, 94, 0.15);
+        --tag-green-text: #4ade80;
+        --tag-blue-bg: rgba(59, 130, 246, 0.15);
+        --tag-blue-text: #60a5fa;
+        --tag-purple-bg: rgba(139, 92, 246, 0.15);
+        --tag-purple-text: #a78bfa;
+        --tag-pink-bg: rgba(236, 72, 153, 0.15);
+        --tag-pink-text: #f472b6;
+        --tag-red-bg: rgba(239, 68, 68, 0.15);
+        --tag-red-text: #f87171;
+        --tag-orange-bg: rgba(249, 115, 22, 0.15);
+        --tag-orange-text: #fb923c;
+        --tag-yellow-bg: rgba(234, 179, 8, 0.15);
+        --tag-yellow-text: #facc15;
+        --tag-black-bg: rgba(255, 255, 255, 0.08);
+        --tag-black-text: rgba(255, 255, 255, 0.6);
+        --tag-default-bg: rgba(148, 163, 184, 0.15);
+        --tag-default-text: #94a3b8;
         --checkbox-border: rgba(255, 255, 255, 0.28);
-        --start-btn: #14B8A6;
-        --start-btn-hover: #0D9488;
+        --start-btn: #14b8a6;
+        --start-btn-hover: #0d9488;
         --start-btn-disabled: rgba(20, 184, 166, 0.25);
         --search-bg: rgba(255, 255, 255, 0.05);
         --search-focus: rgba(20, 184, 166, 0.08);
@@ -385,16 +391,42 @@
         letter-spacing: 0.01em;
       }
 
-      .tag-design,
-      .tag-story,
-      .tag-dev,
-      .tag-orange,
-      .tag-red,
-      .tag-yellow {
-        background: var(--tag-design-bg);
-        color: var(--tag-design-text);
+      .tag-green {
+        background: var(--tag-green-bg);
+        color: var(--tag-green-text);
       }
-
+      .tag-blue {
+        background: var(--tag-blue-bg);
+        color: var(--tag-blue-text);
+      }
+      .tag-purple {
+        background: var(--tag-purple-bg);
+        color: var(--tag-purple-text);
+      }
+      .tag-pink {
+        background: var(--tag-pink-bg);
+        color: var(--tag-pink-text);
+      }
+      .tag-red {
+        background: var(--tag-red-bg);
+        color: var(--tag-red-text);
+      }
+      .tag-orange {
+        background: var(--tag-orange-bg);
+        color: var(--tag-orange-text);
+      }
+      .tag-yellow {
+        background: var(--tag-yellow-bg);
+        color: var(--tag-yellow-text);
+      }
+      .tag-black {
+        background: var(--tag-black-bg);
+        color: var(--tag-black-text);
+      }
+      .tag-default {
+        background: var(--tag-default-bg);
+        color: var(--tag-default-text);
+      }
       .section-group {
         margin-bottom: 2px;
       }
@@ -551,7 +583,6 @@
               />
             </svg>
           </button>
-        
         </div>
       </div>
 
@@ -574,6 +605,5 @@
     </div>
 
     <script src="./progress-cards.js?v=20260602-2"></script>
-   
   </body>
 </html>
