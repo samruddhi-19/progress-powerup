@@ -7,12 +7,17 @@ var Promise = TrelloPowerUp.Promise;
    HELPERS
 ───────────────────────────────────────── */
 
-function makeBar(pct) {
-  if (!pct || isNaN(pct)) pct = 0;
-  const clamped = Math.min(pct, 100);
-  const filled = Math.round((clamped / 100) * 10);
-  const empty = 10 - filled;
-  return "■".repeat(filled) + "□".repeat(empty);
+function createProgressBar(percentage = 0, segments = 10) {
+  const safe = Number.isFinite(percentage) ? percentage : 0;
+  const clamped = Math.max(0, Math.min(100, safe));
+
+  const filled = Math.round((clamped / 100) * segments);
+  const empty = segments - filled;
+
+  const filledBar = "▰".repeat(filled);
+  const emptyBar = "▱".repeat(empty);
+
+  return `${filledBar}${emptyBar} ${clamped}%`;
 }
 
 function formatUnit(sec, unit) {
