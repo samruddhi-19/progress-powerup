@@ -273,7 +273,11 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 /* ── Time Tracking ── */
 .timer-row {
   display: flex; align-items: center;
-  justify-content: space-between; gap: 8px; margin-bottom: 8px;
+  justify-content: space-between; gap: 10px; margin-bottom: 8px;
+  flex-wrap: nowrap;
+}
+.timer-meta {
+  display: flex; gap: 6px; flex: 1; flex-wrap: wrap;
 }
 .timer-left { display: flex; flex-direction: column; gap: 3px; }
 .timer-elapsed-label {
@@ -408,6 +412,9 @@ input[type="time"]::-webkit-calendar-picker-indicator {
   border: 1px solid #579dff; border-radius: 4px;
   color: #9fadbc; padding: 2px 6px; width: 90px;
   outline: none; font-family: 'DM Sans', sans-serif;
+}.timer-row {
+  display: flex; align-items: center;
+  justify-content: space-between; gap: 8px; margin-bottom: 8px;
 }
 
 /* ── Bottom bar ── */
