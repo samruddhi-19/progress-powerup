@@ -10,9 +10,9 @@ var Promise = TrelloPowerUp.Promise;
 function makeBar(pct) {
   if (!pct || isNaN(pct)) pct = 0;
   const clamped = Math.min(pct, 100);
-  const filled = Math.round((clamped / 100) * 15);
-  const empty = 15 - filled;
-  return "━".repeat(filled) + "─".repeat(empty);
+  const filled = Math.round((clamped / 100) * 10);
+  const empty = 10 - filled;
+  return "▰".repeat(filled) + "▱".repeat(empty);
 }
 
 function formatUnit(sec, unit) {
