@@ -112,10 +112,7 @@ function updateProgressUI(pct) {
     fill.style.width = disp + "%";
     fill.className = "progress-fill" + (isOver ? " overtime" : "");
   }
-  if (botFill) {
-    botFill.style.width = disp + "%";
-    botFill.className = "bottom-bar-fill" + (isOver ? " overtime" : "");
-  }
+ 
   if (pctEl) {
     pctEl.textContent = pct + "%";
     pctEl.className = "pct-text" + (isOver ? " overtime" : "");
@@ -502,9 +499,7 @@ function render() {
         </div>`}
       </div>` : ""}
 
-      <div class="bottom-bar">
-        <div class="bottom-bar-fill${isOver ? " overtime" : ""}" id="bottomBarFill" style="width:${dispPct}%"></div>
-      </div>
+    
 
     </div>
   `;

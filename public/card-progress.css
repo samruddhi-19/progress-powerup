@@ -417,9 +417,3 @@ input[type="time"]::-webkit-calendar-picker-indicator {
   justify-content: space-between; gap: 8px; margin-bottom: 8px;
 }
 
-/* ── Bottom bar ── */
-.bottom-bar { height: 3px; background: rgba(255,255,255,0.06); }
-.bottom-bar-fill {
-  height: 100%; background: #579dff; transition: width 0.3s ease;
-}
-.bottom-bar-fill.overtime { background: #f87168; }
