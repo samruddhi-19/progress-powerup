@@ -668,4 +668,33 @@ function bindEvents() {
       save();
       render();
     });
+
+    document.querySelectorAll('.session-edit-btn').forEach(btn => {
+    btn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      const idx = parseInt(this.dataset.idx);
+      const wrap = this.closest('.session-label-wrap');
+      const currentLabel = state.history[idx]?.label || `Session ${idx + 1}`;
+
+      wrap.innerHTML = `<input class="session-edit-input" type="text" value="${currentLabel}" maxlength="30" />`;
+      const input = wrap.querySelector('.session-edit-input');
+      input.focus();
+      input.select();
+
+      function saveLabel() {
+        const newLabel = input.value.trim() || currentLabel;
+        if (state.history[idx]) {
+          state.history[idx].label = newLabel;
+          t.set('card', 'shared', state);
+        }
+        render();
+      }
+
+      input.addEventListener('blur', saveLabel);
+      input.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') { e.preventDefault(); saveLabel(); }
+        if (e.key === 'Escape') render();
+      });
+    });
+  });
 }
