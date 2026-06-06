@@ -3,21 +3,25 @@
 const t = TrelloPowerUp.iframe();
 
 /* ── State ── */
-let allCards        = [];
-let allLists        = [];
-let selectedIds     = new Set();
-let searchQuery     = "";
-let currentView     = "lists";
-let currentListId   = null;
+let allCards = [];
+let allLists = [];
+let selectedIds = new Set();
+let searchQuery = "";
+let currentView = "lists";
+let currentListId = null;
 let currentListName = null;
 
 /* ── Helpers ── */
-function qs(id) { return document.getElementById(id); }
+function qs(id) {
+  return document.getElementById(id);
+}
 
 function escapeHtml(str) {
   return String(str)
-    .replace(/&/g, "&amp;").replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
 }
 
 function labelToTag(labels) {
@@ -26,28 +30,34 @@ function labelToTag(labels) {
   const color = (label.color || "").toLowerCase();
 
   const colorClassMap = {
-    green:  "tag-green",  lime:   "tag-green",
-    blue:   "tag-blue",   sky:    "tag-blue",
-    purple: "tag-purple", pink:   "tag-pink",
-    red:    "tag-red",
-    orange: "tag-orange", peach:  "tag-orange",
-    yellow: "tag-yellow", cream:  "tag-yellow",
-    black:  "tag-black",
+    green: "tag-green",
+    lime: "tag-green",
+    blue: "tag-blue",
+    sky: "tag-blue",
+    purple: "tag-purple",
+    pink: "tag-pink",
+    red: "tag-red",
+    orange: "tag-orange",
+    peach: "tag-orange",
+    yellow: "tag-yellow",
+    cream: "tag-yellow",
+    black: "tag-black",
   };
 
-  const cls  = colorClassMap[color] || "tag-default";
+  const cls = colorClassMap[color] || "tag-default";
   const text = label.name || label.color || "Label";
   return { text, cls };
 }
 
 /* ── Footer ── */
 function updateFooter() {
-  const count   = selectedIds.size;
+  const count = selectedIds.size;
   const countEl = qs("selectedCount");
-  const btn     = qs("startMappingBtn");
-  countEl.textContent = count === 0
-    ? "0 cards selected"
-    : `${count} card${count === 1 ? "" : "s"} selected`;
+  const btn = qs("startMappingBtn");
+  countEl.textContent =
+    count === 0
+      ? "0 cards selected"
+      : `${count} card${count === 1 ? "" : "s"} selected`;
   countEl.classList.toggle("has-selection", count > 0);
   if (btn) btn.disabled = false;
 }
@@ -55,7 +65,7 @@ function updateFooter() {
 /* ── Toggle selection ── */
 function toggleCard(id) {
   if (selectedIds.has(id)) selectedIds.delete(id);
-  else                      selectedIds.add(id);
+  else selectedIds.add(id);
   renderCurrentView();
   updateFooter();
 }
@@ -67,7 +77,9 @@ function renderListView(slideBack = false) {
   currentView = "lists";
   const container = qs("viewContainer");
   const q = searchQuery.trim().toLowerCase();
-  const filtered = q ? allLists.filter(l => l.name.toLowerCase().includes(q)) : allLists;
+  const filtered = q
+    ? allLists.filter((l) => l.name.toLowerCase().includes(q))
+    : allLists;
 
   let html = `<div class="view${slideBack ? " slide-back" : ""}" id="listsView">`;
   html += `<div class="sub-label">Select a list to view its cards</div>`;
@@ -83,14 +95,25 @@ function renderListView(slideBack = false) {
   if (filtered.length === 0) {
     html += `<div class="empty-state">${q ? "No lists match your search." : "No lists found on this board."}</div>`;
   } else {
-    filtered.forEach(list => {
-      const selectedInList = allCards.filter(c => c.listId === list.id && selectedIds.has(c.id)).length;
-      const countText = list.cardCount === 0 ? "No cards" : list.cardCount === 1 ? "1 card" : `${list.cardCount} cards`;
-      const selectedBadge = selectedInList > 0
-        ? ` · <span class="selected-in-list">${selectedInList} selected</span>` : "";
+    filtered.forEach((list) => {
+      const selectedInList = allCards.filter(
+        (c) => c.listId === list.id && selectedIds.has(c.id),
+      ).length;
+      const countText =
+        list.cardCount === 0
+          ? "No cards"
+          : list.cardCount === 1
+            ? "1 card"
+            : `${list.cardCount} cards`;
+      const selectedBadge =
+        selectedInList > 0
+          ? ` · <span class="selected-in-list">${selectedInList} selected</span>`
+          : "";
 
+      const hasSelection = selectedInList > 0;
+      const isEmpty = list.cardCount === 0;
       html += `
-        <div class="list-item" data-listid="${list.id}" data-listname="${escapeHtml(list.name)}">
+        <div class="list-item${hasSelection ? " has-selection" : ""}${isEmpty ? " no-cards" : ""}" data-listid="${list.id}" data-listname="${escapeHtml(list.name)}">
           <div class="list-item-left">
             <span class="list-item-name">${escapeHtml(list.name)}</span>
             <span class="list-item-count">${countText}${selectedBadge}</span>
@@ -106,12 +129,15 @@ function renderListView(slideBack = false) {
 
   const input = qs("searchInput");
   if (input) {
-    input.addEventListener("input", (e) => { searchQuery = e.target.value; renderListView(); });
+    input.addEventListener("input", (e) => {
+      searchQuery = e.target.value;
+      renderListView();
+    });
     input.focus();
     input.setSelectionRange(input.value.length, input.value.length);
   }
 
-  container.querySelectorAll(".list-item").forEach(el => {
+  container.querySelectorAll(".list-item").forEach((el) => {
     el.addEventListener("click", () => {
       searchQuery = "";
       navigateToCards(el.dataset.listid, el.dataset.listname);
@@ -128,8 +154,10 @@ function renderCardsView() {
   currentView = "cards";
   const container = qs("viewContainer");
   const q = searchQuery.trim().toLowerCase();
-  const listCards = allCards.filter(c => c.listId === currentListId);
-  const filtered  = q ? listCards.filter(c => c.name.toLowerCase().includes(q)) : listCards;
+  const listCards = allCards.filter((c) => c.listId === currentListId);
+  const filtered = q
+    ? listCards.filter((c) => c.name.toLowerCase().includes(q))
+    : listCards;
 
   let html = `<div class="view" id="cardsView">`;
   html += `
@@ -153,7 +181,7 @@ function renderCardsView() {
   if (filtered.length === 0) {
     html += `<div class="empty-state">${listCards.length === 0 ? "No cards in this list." : "No cards match your search."}</div>`;
   } else {
-    filtered.forEach(card => {
+    filtered.forEach((card) => {
       const isSelected = selectedIds.has(card.id);
       const tag = labelToTag(card.labels);
       html += `
@@ -167,14 +195,20 @@ function renderCardsView() {
   html += `</div></div>`;
   container.innerHTML = html;
 
-  qs("backBtn")?.addEventListener("click", () => { searchQuery = ""; renderListView(true); });
+  qs("backBtn")?.addEventListener("click", () => {
+    searchQuery = "";
+    renderListView(true);
+  });
 
   const input = qs("searchInput");
   if (input) {
-    input.addEventListener("input", (e) => { searchQuery = e.target.value; renderCardsView(); });
+    input.addEventListener("input", (e) => {
+      searchQuery = e.target.value;
+      renderCardsView();
+    });
   }
 
-  container.querySelectorAll(".card-item").forEach(el => {
+  container.querySelectorAll(".card-item").forEach((el) => {
     el.addEventListener("click", () => toggleCard(el.dataset.id));
   });
 
@@ -182,7 +216,7 @@ function renderCardsView() {
 }
 
 function navigateToCards(listId, listName) {
-  currentListId   = listId;
+  currentListId = listId;
   currentListName = listName;
   renderCardsView();
 }
@@ -194,32 +228,38 @@ function renderCurrentView() {
 /* ── Load ── */
 async function loadCards() {
   try {
-    const [boardCards, lists] = await Promise.all([t.cards("all"), t.lists("all")]);
+    const [boardCards, lists] = await Promise.all([
+      t.cards("all"),
+      t.lists("all"),
+    ]);
     const listMap = {};
-    lists.forEach(l => { listMap[l.id] = l.name; });
+    lists.forEach((l) => {
+      listMap[l.id] = l.name;
+    });
 
-    allCards = boardCards.map(card => ({
-      id:       card.id,
-      name:     card.name,
-      listId:   card.idList,
+    allCards = boardCards.map((card) => ({
+      id: card.id,
+      name: card.name,
+      listId: card.idList,
       listName: listMap[card.idList] || "Unknown List",
-      labels:   card.labels || [],
+      labels: card.labels || [],
     }));
 
-    allLists = lists.map(l => ({
-      id:        l.id,
-      name:      l.name,
-      cardCount: allCards.filter(c => c.listId === l.id).length,
+    allLists = lists.map((l) => ({
+      id: l.id,
+      name: l.name,
+      cardCount: allCards.filter((c) => c.listId === l.id).length,
     }));
 
     // Pre-check already-mapped cards so they show as selected on open
     const alreadyMapped = (await t.get("board", "shared", "mappedCards")) || [];
-    alreadyMapped.forEach(id => selectedIds.add(id));
+    alreadyMapped.forEach((id) => selectedIds.add(id));
 
     renderListView();
     updateFooter();
   } catch (err) {
-    qs("viewContainer").innerHTML = `<div class="empty-state">Failed to load. Please try again.</div>`;
+    qs("viewContainer").innerHTML =
+      `<div class="empty-state">Failed to load. Please try again.</div>`;
     console.error("[ProgressCards] loadCards error:", err);
   }
 }
@@ -233,39 +273,47 @@ async function loadCards() {
 ══════════════════════════════════════════ */
 async function startMapping() {
   const btn = qs("startMappingBtn");
-  btn.disabled    = true;
+  btn.disabled = true;
   btn.textContent = "Saving…";
 
   try {
     const newMappedIds = Array.from(selectedIds);
 
-    const existingDefaults = (await t.get("board", "shared", "cardDefaults")) || {};
+    const existingDefaults =
+      (await t.get("board", "shared", "cardDefaults")) || {};
     const defaultCardData = {
-      progress: 0, elapsed: 0, estimated: 8 * 3600,
-      running: false, startTime: null, focusMode: false,
-      disabledProgress: false, trackingUnit: "hours",
-      progressSource: "tasks", manualProgress: 0, tasks: [],
+      progress: 0,
+      elapsed: 0,
+      estimated: 8 * 3600,
+      running: false,
+      startTime: null,
+      focusMode: false,
+      disabledProgress: false,
+      trackingUnit: "hours",
+      progressSource: "tasks",
+      manualProgress: 0,
+      tasks: [],
       data: {
-        hours:  { elapsed: 0, estimated: 8 * 3600 },
-        days:   { elapsed: 0, estimated: 86400     },
-        weeks:  { elapsed: 0, estimated: 604800    },
-        months: { elapsed: 0, estimated: 2592000   },
+        hours: { elapsed: 0, estimated: 8 * 3600 },
+        days: { elapsed: 0, estimated: 86400 },
+        weeks: { elapsed: 0, estimated: 604800 },
+        months: { elapsed: 0, estimated: 2592000 },
       },
     };
 
     const cardDefaults = { ...existingDefaults };
-    selectedIds.forEach(id => {
+    selectedIds.forEach((id) => {
       if (!cardDefaults[id]) cardDefaults[id] = defaultCardData;
     });
 
     /* Write exact selection — unchecked cards are no longer in mappedCards */
-    await t.set("board", "shared", "mappedCards",  newMappedIds);
+    await t.set("board", "shared", "mappedCards", newMappedIds);
     await t.set("board", "shared", "cardDefaults", cardDefaults);
 
     await t.closePopup();
   } catch (err) {
     console.error("[ProgressCards] startMapping error:", err);
-    btn.disabled    = false;
+    btn.disabled = false;
     btn.textContent = "Save Mapping";
   }
 }
@@ -302,35 +350,41 @@ function showAuthView() {
 
   // Hide footer start mapping button — not needed on auth screen
   qs("startMappingBtn").style.display = "none";
-  qs("selectedCount").style.display  = "none";
+  qs("selectedCount").style.display = "none";
 
   // Bind auth button — NO inline handlers, CSP safe
-  document.getElementById("inlineAuthBtn").addEventListener("click", async function() {
-    const btn = document.getElementById("inlineAuthBtn");
-    const msg = document.getElementById("inlineAuthMsg");
-    btn.disabled = true;
-    btn.textContent = "Authorizing…";
-    msg.textContent = "";
+  document
+    .getElementById("inlineAuthBtn")
+    .addEventListener("click", async function () {
+      const btn = document.getElementById("inlineAuthBtn");
+      const msg = document.getElementById("inlineAuthMsg");
+      btn.disabled = true;
+      btn.textContent = "Authorizing…";
+      msg.textContent = "";
 
+      try {
+        await t.set("member", "private", "authorized", true);
+        await t.set("board", "shared", "disabled", false);
+        msg.textContent = "✅ Authorized! Loading…";
+        // Re-init after auth
+        setTimeout(async () => {
+          qs("startMappingBtn").style.display = "";
+          qs("selectedCount").style.display = "";
+          await loadCards();
+          updateFooter();
+        }, 600);
+      } catch (e) {
+        btn.disabled = false;
+        btn.textContent = "⚡ Authorize Progress";
+        msg.textContent = "❌ Failed. Please try again.";
+      }
+    });
+
+  setTimeout(() => {
     try {
-      await t.set("member", "private", "authorized", true);
-      await t.set("board", "shared", "disabled", false);
-      msg.textContent = "✅ Authorized! Loading…";
-      // Re-init after auth
-      setTimeout(async () => {
-        qs("startMappingBtn").style.display = "";
-        qs("selectedCount").style.display  = "";
-        await loadCards();
-        updateFooter();
-      }, 600);
-    } catch(e) {
-      btn.disabled = false;
-      btn.textContent = "⚡ Authorize Progress";
-      msg.textContent = "❌ Failed. Please try again.";
-    }
-  });
-
-  setTimeout(() => { try { t.sizeTo(document.body); } catch(e) {} }, 40);
+      t.sizeTo(document.body);
+    } catch (e) {}
+  }, 40);
 }
 
 /* ── Init ── */
@@ -339,8 +393,8 @@ function bindGear() {
   if (!gearBtn) return;
   gearBtn.addEventListener("click", () => {
     t.popup({
-      title:  "Progress Settings",
-      url:    "./settings.html",
+      title: "Progress Settings",
+      url: "./settings.html",
       height: 620,
     });
   });
@@ -354,7 +408,7 @@ function bindGear() {
   // Check auth first — show inline auth if not authorized
   const all = await t.getAll();
   const authorized = all?.member?.private?.authorized === true;
-  const disabled   = all?.board?.shared?.disabled === true;
+  const disabled = all?.board?.shared?.disabled === true;
 
   if (!authorized || disabled) {
     showAuthView();
