@@ -24,6 +24,12 @@ let state = {
   tasks: [],
   logView: "list",
   showAllLogs: false,
+  collapsed: {
+    eta: false,
+    tasks: false,
+    timer: false,
+    log: true,
+  },
   data: {
     hours: { elapsed: 0, estimated: 8 * 3600 },
     days: { elapsed: 0, estimated: 86400 * 5 },
@@ -153,6 +159,11 @@ async function load() {
     state.progressSource = saved.progressSource || "tasks";
     state.etaDate = saved.etaDate || "";
     state.etaTime = saved.etaTime || "";
+    // merge saved collapsed state; activity log stays collapsed if never saved before
+    state.collapsed = Object.assign(
+      { eta: false, tasks: false, timer: false, log: true },
+      saved.collapsed || {}
+    );
 
     if (saved.estimated !== undefined && !saved.data) {
       state.data.hours.elapsed = saved.elapsed || 0;
@@ -183,9 +194,7 @@ async function load() {
     render();
     if (state.running) startTick();
     setTimeout(() => {
-      try {
-        t.sizeTo(document.body);
-      } catch (e) {}
+      try { t.sizeTo(document.body); } catch (e) {}
     }, 40);
   } catch (err) {
     console.error("[ProgressCard] load error:", err);
@@ -226,19 +235,14 @@ function stopSession() {
 
   state.running = false;
   state.focusMode = false;
-  try {
-    t.set("card", "shared", "focusMode", false);
-  } catch (e) {}
+  try { t.set("card", "shared", "focusMode", false); } catch (e) {}
 
   if (sessionSec > 5) {
     const d = new Date(state.startTime);
     const sessionNumber = state.history.length + 1;
     state.history.push({
       date: d.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
-      time: d.toLocaleTimeString("en-US", {
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
+      time: d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }),
       seconds: sessionSec,
       unit: unit,
       label: `Session ${sessionNumber}`,
@@ -256,9 +260,7 @@ async function syncDueDate(isoDate) {
     const card = await t.card("id");
     const isAuth = await t.getRestApi().isAuthorized();
     if (!isAuth)
-      await t
-        .getRestApi()
-        .authorize({ scope: "read,write", expiration: "never" });
+      await t.getRestApi().authorize({ scope: "read,write", expiration: "never" });
     const token = await t.getRestApi().getToken();
     if (!token) return;
     await fetch(
@@ -274,21 +276,12 @@ function generateChartSVG(type) {
   if (!state.history || state.history.length === 0)
     return '<div style="text-align:center;padding:12px;color:#596773;font-size:11px;">No activity yet</div>';
 
-  const W = 300,
-    H = 100,
-    pX = 30,
-    pY = 16,
-    tP = 8,
-    rP = 6;
-  const plotW = W - pX - rP,
-    plotH = H - pY - tP,
-    bY = H - pY;
+  const W = 300, H = 100, pX = 30, pY = 16, tP = 8, rP = 6;
+  const plotW = W - pX - rP, plotH = H - pY - tP, bY = H - pY;
   const pts = [...state.history].slice(-7);
   const maxSecs = Math.max(...pts.map((d) => d.seconds), 60);
   const bw = Math.min(22, plotW / pts.length - 3);
-  let els = "",
-    lbs = "",
-    lp = [];
+  let els = "", lbs = "", lp = [];
 
   pts.forEach((d, i) => {
     const x =
@@ -327,6 +320,10 @@ const playIcon = `<svg width="9" height="9" viewBox="0 0 24 24" fill="currentCol
 const stopIcon = `<svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h12v12H6z"/></svg>`;
 const resetIcon = `<svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg>`;
 
+function chevron(collapsed) {
+  return `<svg class="chevron${collapsed ? "" : " open"}" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>`;
+}
+
 /* ── Render ── */
 function render() {
   const pct = computeProgress();
@@ -349,23 +346,20 @@ function render() {
   const logsToShow = state.showAllLogs ? revHistory : revHistory.slice(0, 3);
 
   const sa = (s) => (state.progressSource === s ? " active" : "");
+  const c = state.collapsed;
 
   document.getElementById("root").innerHTML = `
     <div class="card">
 
-      ${
-        hasLabel
-          ? `
+      ${hasLabel ? `
       <div class="card-label-row">
         <div class="label-dot" style="background:${labelColor}"></div>
         <span class="label-name">${labelTxt}</span>
-      </div>`
-          : ""
-      }
+      </div>` : ""}
 
       ${cardMeta.name ? `<div class="card-name-text">${cardMeta.name.replace(/</g, "&lt;")}</div>` : ""}
 
-      <!-- Completion -->
+      <!-- Completion — always visible, no toggle -->
       <div class="section">
         <div class="section-header">
           <span class="section-title">Completion</span>
@@ -387,123 +381,128 @@ function render() {
 
       <!-- ETA -->
       <div class="section">
-        <div class="section-header">
-          <span class="section-title">ETA</span>
+        <div class="section-header collapsible" data-toggle="eta">
+          <div class="section-header-left">
+            ${chevron(c.eta)}
+            <span class="section-title">ETA</span>
+          </div>
+          ${state.etaDate ? `<span class="section-meta">${state.etaDate}${state.etaTime ? " · " + state.etaTime : ""}</span>` : ""}
         </div>
-        <div class="eta-row">
-          <span class="eta-label">Due</span>
-          <input id="etaDate" type="date" class="eta-input" value="${state.etaDate}" />
-          <span class="eta-sep">at</span>
-          <input id="etaTime" type="time" class="eta-input" value="${state.etaTime}" />
-        </div>
+        ${c.eta ? "" : `
+        <div class="section-body">
+          <div class="eta-row">
+            <span class="eta-label">Due</span>
+            <input id="etaDate" type="date" class="eta-input" value="${state.etaDate}" />
+            <span class="eta-sep">at</span>
+            <input id="etaTime" type="time" class="eta-input" value="${state.etaTime}" />
+          </div>
+        </div>`}
       </div>
 
       <!-- Tasks -->
       <div class="section">
-        <div class="section-header">
-          <span class="section-title">Tasks</span>
+        <div class="section-header collapsible" data-toggle="tasks">
+          <div class="section-header-left">
+            ${chevron(c.tasks)}
+            <span class="section-title">Tasks</span>
+          </div>
           ${totalTasks > 0 ? `<span class="section-badge">${doneTasks}/${totalTasks}</span>` : ""}
         </div>
-        <div class="tasks-list">
-          ${
-            totalTasks === 0
+        ${c.tasks ? "" : `
+        <div class="section-body">
+          <div class="tasks-list">
+            ${totalTasks === 0
               ? `<div class="empty-tasks">No tasks yet — add one below</div>`
-              : state.tasks
-                  .map(
-                    (task) => `
+              : state.tasks.map((task) => `
               <div class="task-item">
                 <div class="task-cb${task.done ? " checked" : ""}" data-taskid="${task.id}"></div>
                 <span class="task-name${task.done ? " done" : ""}">${task.name.replace(/</g, "&lt;")}</span>
                 <button class="task-del" data-delid="${task.id}" title="Remove">×</button>
-              </div>`,
-                  )
-                  .join("")
-          }
-        </div>
-        <div class="add-task-row">
-          <input id="newTaskInput" class="add-task-input" type="text" placeholder="Add a task…" maxlength="80" />
-          <button id="addTaskBtn" class="add-task-btn">+</button>
-        </div>
+              </div>`).join("")}
+          </div>
+          <div class="add-task-row">
+            <input id="newTaskInput" class="add-task-input" type="text" placeholder="Add a task…" maxlength="80" />
+            <button id="addTaskBtn" class="add-task-btn">+</button>
+          </div>
+        </div>`}
       </div>
 
       <!-- Time Tracking -->
       <div class="section">
-        <div class="section-header">
-          <span class="section-title">Time Tracking</span>
+        <div class="section-header collapsible" data-toggle="timer">
+          <div class="section-header-left">
+            ${chevron(c.timer)}
+            <span class="section-title">Time Tracking</span>
+          </div>
+          <span class="section-meta${state.running ? " running-pill" : ""}">${state.running ? "● " : ""}${formatHM(elapsed)}</span>
         </div>
-        <div class="timer-row">
-          <div class="timer-left">
-            <div class="timer-elapsed-label">Elapsed</div>
-            <div class="timer-display${state.running ? " running" : ""}" id="timerDisplay">${formatHM(elapsed)}</div>
-            ${
-              state.running && state.trackingUnit !== "hours"
+        ${c.timer ? "" : `
+        <div class="section-body">
+          <div class="timer-row">
+            <div class="timer-left">
+              <div class="timer-elapsed-label">Elapsed</div>
+              <div class="timer-display${state.running ? " running" : ""}" id="timerDisplay">${formatHM(elapsed)}</div>
+              ${state.running && state.trackingUnit !== "hours"
                 ? `<div id="sessionTicker" class="session-ticker">00:00:00</div>`
-                : ""
-            }
-          </div>
-          <div class="timer-right">
-            ${
-              state.running
+                : ""}
+            </div>
+            <div class="timer-right">
+              ${state.running
                 ? `<button id="timerBtn" class="btn-timer-stop">${stopIcon} Stop</button>`
-                : `<button id="timerBtn" class="btn-timer-start">${playIcon} ${elapsed > 0 ? "Resume" : "Start"}</button>`
-            }
-            <button id="resetBtn" class="btn-reset" title="Reset">${resetIcon}</button>
+                : `<button id="timerBtn" class="btn-timer-start">${playIcon} ${elapsed > 0 ? "Resume" : "Start"}</button>`}
+              <button id="resetBtn" class="btn-reset" title="Reset">${resetIcon}</button>
+            </div>
           </div>
-        </div>
-        <div class="timer-meta">
-          <span class="timer-meta-pill">Elapsed <span class="val">${formatHM(elapsed)}</span></span>
-          <span class="timer-meta-pill">Target <input id="estInput" class="est-input" value="${formatHM(active.estimated)}" /></span>
-        </div>
+          <div class="timer-meta">
+            <span class="timer-meta-pill">Elapsed <span class="val">${formatHM(elapsed)}</span></span>
+            <span class="timer-meta-pill">Target <input id="estInput" class="est-input" value="${formatHM(active.estimated)}" /></span>
+          </div>
+        </div>`}
       </div>
 
       <!-- Activity Log -->
-      ${
-        state.history && state.history.length > 0
-          ? `
+      ${state.history && state.history.length > 0 ? `
       <div class="section">
-        <div class="log-header">
-          <span class="section-title">Activity Log</span>
-          <div class="view-toggle">
-            <button data-view="list" class="view-btn${state.logView === "list" ? " active" : ""}">LIST</button>
-            <button data-view="line" class="view-btn${state.logView === "line" ? " active" : ""}">LINE</button>
-            <button data-view="bar"  class="view-btn${state.logView === "bar" ? " active" : ""}">BAR</button>
+        <div class="section-header collapsible" data-toggle="log">
+          <div class="section-header-left">
+            ${chevron(c.log)}
+            <span class="section-title">Activity Log</span>
           </div>
+          <span class="section-badge">${state.history.length} session${state.history.length !== 1 ? "s" : ""}</span>
         </div>
-        ${
-          state.logView === "list"
-            ? `
-          <div class="history-list">
-            ${logsToShow
-              .map((h, i) => {
+        ${c.log ? "" : `
+        <div class="section-body">
+          <div class="log-view-toggle">
+            <div class="view-toggle">
+              <button data-view="list" class="view-btn${state.logView === "list" ? " active" : ""}">LIST</button>
+              <button data-view="line" class="view-btn${state.logView === "line" ? " active" : ""}">LINE</button>
+              <button data-view="bar"  class="view-btn${state.logView === "bar"  ? " active" : ""}">BAR</button>
+            </div>
+          </div>
+          ${state.logView === "list" ? `
+            <div class="history-list">
+              ${logsToShow.map((h, i) => {
                 const actualIdx = state.history.length - 1 - i;
                 const sessionLabel = h.label || `Session ${actualIdx + 1}`;
                 return `<div class="history-item">
-                <span class="meta">${h.date} · ${h.time}</span>
-                <span class="session-label-wrap">
-                  <span class="session-label" data-idx="${actualIdx}">${sessionLabel}</span>
-                  <button class="session-edit-btn" data-idx="${actualIdx}" title="Rename">
-                    <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zm2.92 1.42L14.06 10.5l1.44 1.44-8.14 8.17H5.92v-1.42zM20.71 5.63l-2.34-2.34a1 1 0 00-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83a1 1 0 000-1.41z"/></svg>
-                  </button>
-                </span>
-                <span class="val">+${formatHMS(h.seconds)}</span>
-              </div>`;
-              })
-              .join("")}
-            ${
-              state.history.length > 3
-                ? `
-              <button id="showMoreBtn" class="show-more-btn">
-                ${state.showAllLogs ? "↑ Show less" : "↓ Show more"}
-              </button>`
-                : ""
-            }
-          </div>
-        `
-            : generateChartSVG(state.logView)
-        }
-      </div>`
-          : ""
-      }
+                  <span class="meta">${h.date} · ${h.time}</span>
+                  <span class="session-label-wrap">
+                    <span class="session-label" data-idx="${actualIdx}">${sessionLabel}</span>
+                    <button class="session-edit-btn" data-idx="${actualIdx}" title="Rename">
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zm2.92 1.42L14.06 10.5l1.44 1.44-8.14 8.17H5.92v-1.42zM20.71 5.63l-2.34-2.34a1 1 0 00-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83a1 1 0 000-1.41z"/></svg>
+                    </button>
+                  </span>
+                  <span class="val">+${formatHMS(h.seconds)}</span>
+                </div>`;
+              }).join("")}
+              ${state.history.length > 3 ? `
+                <button id="showMoreBtn" class="show-more-btn">
+                  ${state.showAllLogs ? "↑ Show less" : "↓ Show more"}
+                </button>` : ""}
+            </div>
+          ` : generateChartSVG(state.logView)}
+        </div>`}
+      </div>` : ""}
 
       <div class="bottom-bar">
         <div class="bottom-bar-fill${isOver ? " overtime" : ""}" id="bottomBarFill" style="width:${dispPct}%"></div>
@@ -514,14 +513,22 @@ function render() {
 
   bindEvents();
   setTimeout(() => {
-    try {
-      t.sizeTo(document.body);
-    } catch (e) {}
+    try { t.sizeTo(document.body); } catch (e) {}
   }, 50);
 }
 
 /* ── Event bindings ── */
 function bindEvents() {
+  // Collapsible toggles
+  document.querySelectorAll(".collapsible[data-toggle]").forEach((header) => {
+    header.addEventListener("click", function () {
+      const key = this.dataset.toggle;
+      state.collapsed[key] = !state.collapsed[key];
+      save();
+      render();
+    });
+  });
+
   const slider = document.getElementById("progressSlider");
   if (slider) {
     slider.addEventListener("input", function () {
@@ -554,9 +561,7 @@ function bindEvents() {
       state.etaDate = this.value;
       save();
       if (state.etaDate && state.etaTime)
-        syncDueDate(
-          new Date(`${state.etaDate}T${state.etaTime}`).toISOString(),
-        );
+        syncDueDate(new Date(`${state.etaDate}T${state.etaTime}`).toISOString());
     });
 
   const etaTime = document.getElementById("etaTime");
@@ -565,9 +570,7 @@ function bindEvents() {
       state.etaTime = this.value;
       save();
       if (state.etaDate && state.etaTime)
-        syncDueDate(
-          new Date(`${state.etaDate}T${state.etaTime}`).toISOString(),
-        );
+        syncDueDate(new Date(`${state.etaDate}T${state.etaTime}`).toISOString());
     });
 
   document.querySelectorAll(".task-cb").forEach((cb) => {
@@ -641,9 +644,7 @@ function bindEvents() {
 
   const estInput = document.getElementById("estInput");
   if (estInput) {
-    estInput.addEventListener("click", function () {
-      this.select();
-    });
+    estInput.addEventListener("click", function () { this.select(); });
     estInput.addEventListener("change", function () {
       const sec = parseHM(this.value);
       if (sec > 0) {
@@ -669,15 +670,15 @@ function bindEvents() {
       render();
     });
 
-    document.querySelectorAll('.session-edit-btn').forEach(btn => {
-    btn.addEventListener('click', function(e) {
+  document.querySelectorAll(".session-edit-btn").forEach((btn) => {
+    btn.addEventListener("click", function (e) {
       e.stopPropagation();
       const idx = parseInt(this.dataset.idx);
-      const wrap = this.closest('.session-label-wrap');
+      const wrap = this.closest(".session-label-wrap");
       const currentLabel = state.history[idx]?.label || `Session ${idx + 1}`;
 
       wrap.innerHTML = `<input class="session-edit-input" type="text" value="${currentLabel}" maxlength="30" />`;
-      const input = wrap.querySelector('.session-edit-input');
+      const input = wrap.querySelector(".session-edit-input");
       input.focus();
       input.select();
 
@@ -685,15 +686,15 @@ function bindEvents() {
         const newLabel = input.value.trim() || currentLabel;
         if (state.history[idx]) {
           state.history[idx].label = newLabel;
-          t.set('card', 'shared', state);
+          t.set("card", "shared", state);
         }
         render();
       }
 
-      input.addEventListener('blur', saveLabel);
-      input.addEventListener('keydown', function(e) {
-        if (e.key === 'Enter') { e.preventDefault(); saveLabel(); }
-        if (e.key === 'Escape') render();
+      input.addEventListener("blur", saveLabel);
+      input.addEventListener("keydown", function (e) {
+        if (e.key === "Enter") { e.preventDefault(); saveLabel(); }
+        if (e.key === "Escape") render();
       });
     });
   });
