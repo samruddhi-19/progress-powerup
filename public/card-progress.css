@@ -643,6 +643,7 @@ input[type="time"]::-webkit-calendar-picker-indicator {
   background: #22272b;
   border-radius: 4px;
   border: 1px solid rgba(255,255,255,0.04);
+  gap: 6px;
 }
 
 .history-item .meta {
@@ -651,6 +652,20 @@ input[type="time"]::-webkit-calendar-picker-indicator {
   display: flex;
   align-items: center;
   gap: 5px;
+  flex-shrink: 0;
+}
+
+.history-item .session-label-wrap {
+  flex: 1;
+  justify-content: flex-start;
+}
+
+.history-item .val {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  font-weight: 500;
+  color: #4bce97;
+  flex-shrink: 0;
 }
 
 .unit-badge {
