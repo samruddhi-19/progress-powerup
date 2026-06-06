@@ -712,3 +712,43 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 }
 
 .bottom-bar-fill.overtime { background: #f87168; }
+
+/* ── Session label edit ── */
+.session-label-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.session-label {
+  font-size: 11px;
+  color: #596773;
+  font-weight: 500;
+}
+
+.session-edit-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #596773;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  opacity: 0;
+  transition: opacity 0.15s, color 0.15s;
+}
+
+.history-item:hover .session-edit-btn { opacity: 1; }
+.session-edit-btn:hover { color: #579dff; }
+
+.session-edit-input {
+  font-size: 11px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid #579dff;
+  border-radius: 4px;
+  color: #9fadbc;
+  padding: 1px 5px;
+  width: 90px;
+  outline: none;
+  font-family: 'DM Sans', sans-serif;
+}
