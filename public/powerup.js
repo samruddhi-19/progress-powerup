@@ -220,14 +220,14 @@ TrelloPowerUp.initialize({
       badges.push({
         title: "Progress",
         text:  hideBars ? `${pct}%` : `${makeBar(pct)}  ${pct}%`,
-        color: pct >= 100 ? "green" : "lime",
+        color: pct >= 100 ? "green" : pct >= 80 ? "green" : pct >= 50 ? "lime" : pct >= 25 ? "yellow" : "red",
         dynamic: function (t) {
           return getCardData(t).then(function (d) {
             if (!d) return { text: "▱▱▱▱▱▱▱▱  0%", color: "blue" };
             const p = computeProgress(d);
             return {
               text:  hideBars ? `${p}%` : `${makeBar(p)}  ${p}%`,
-              color: p >= 100 ? "green" : "lime",
+              color: p >= 100 ? "green" : p >= 80 ? "green" : p >= 50 ? "lime" : p >= 25 ? "yellow" : "red",
             };
           }).catch(() => ({ text: "0%", color: "blue" }));
         },
@@ -331,7 +331,7 @@ TrelloPowerUp.initialize({
             const p = computeProgress(d);
             return {
               text:  hideBars ? `${p}%` : `${makeBar(p)}  ${p}%`,
-              color: p >= 100 ? "green" : "lime",
+              color: p >= 100 ? "green" : p >= 80 ? "green" : p >= 50 ? "lime" : p >= 25 ? "yellow" : "red",
             };
           }).catch(() => ({ text: "0%", color: "blue" }));
         },
