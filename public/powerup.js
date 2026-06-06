@@ -12,7 +12,7 @@ function makeBar(pct) {
   const clamped = Math.min(pct, 100);
   const filled = Math.round((clamped / 100) * 10);
   const empty = 10 - filled;
-  return "▰".repeat(filled) + "▱".repeat(empty);
+  return "█".repeat(filled) + "░".repeat(empty);
 }
 
 function formatUnit(sec, unit) {
