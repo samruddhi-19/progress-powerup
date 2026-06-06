@@ -52,15 +52,13 @@ function parseHM(str) {
   return 8 * 3600;
 }
 
-function getLabelStyle(color) {
+function getLabelColor(color) {
   const map = {
-    blue: '#0079bf', sky: '#00c2e0', lime: '#51e898', green: '#61bd4f',
-    yellow: '#f2d600', orange: '#ff9f1a', red: '#eb5a46', pink: '#ff78cb',
-    purple: '#c377e0'
+    blue: '#579dff', sky: '#6fc8ff', lime: '#94c748', green: '#4bce97',
+    yellow: '#f5cd47', orange: '#fea362', red: '#f87168', pink: '#e774bb',
+    purple: '#9f8fef'
   };
-  const bg  = map[color] || '#00c9a7';
-  const txt = ['yellow', 'lime', 'sky'].includes(color) ? '#002830' : '#ffffff';
-  return `background:${bg};color:${txt};`;
+  return map[color] || '#579dff';
 }
 
 function computeProgress() {
@@ -78,7 +76,6 @@ function computeProgress() {
   return Math.min(100, Math.round((elapsed / (active.estimated || 1)) * 100));
 }
 
-/* FIX: guard against undefined unit bucket and NaN elapsed */
 function getLiveElapsed() {
   const unit   = state.trackingUnit || 'hours';
   const active = state.data[unit] || { elapsed: 0 };
@@ -94,12 +91,11 @@ function updateProgressUI(pct) {
   const pctEl   = document.getElementById('pctDisplay');
   const isOver  = pct > 100;
   const disp    = Math.min(100, pct);
-  if (fill)    { fill.style.width = disp + '%'; fill.className = 'slider-fill' + (isOver ? ' overtime' : ''); }
+  if (fill)    { fill.style.width = disp + '%'; fill.className = 'progress-fill' + (isOver ? ' overtime' : ''); }
   if (botFill) { botFill.style.width = disp + '%'; botFill.className = 'bottom-bar-fill' + (isOver ? ' overtime' : ''); }
-  if (pctEl)   { pctEl.textContent = pct + '%'; pctEl.className = 'completion-pct' + (isOver ? ' overtime' : ''); }
+  if (pctEl)   { pctEl.textContent = pct + '%'; pctEl.className = 'pct-text' + (isOver ? ' overtime' : ''); }
 }
 
-/* ── Fetch card meta ── */
 async function fetchCardMeta() {
   try {
     const card = await t.card('name', 'labels');
@@ -111,7 +107,6 @@ async function fetchCardMeta() {
   } catch (e) {}
 }
 
-/* ── Save / Load ── */
 function save() {
   try { t.set('card', 'shared', state); }
   catch(e) { console.error('[ProgressCard] save error:', e); }
@@ -135,20 +130,17 @@ async function load() {
     state.etaDate        = saved.etaDate        || '';
     state.etaTime        = saved.etaTime        || '';
 
-    // Migrate old format
     if (saved.estimated !== undefined && !saved.data) {
       state.data.hours.elapsed   = saved.elapsed   || 0;
       state.data.hours.estimated = saved.estimated || 8 * 3600;
     }
 
-    /* FIX: repair any NaN elapsed values from previous buggy saves */
     ['hours', 'days', 'weeks', 'months'].forEach(u => {
       if (!state.data[u]) state.data[u] = { elapsed: 0, estimated: 8 * 3600 };
       if (isNaN(state.data[u].elapsed))   state.data[u].elapsed   = 0;
       if (isNaN(state.data[u].estimated)) state.data[u].estimated = 8 * 3600;
     });
 
-    /* FIX: if elapsed is 0 but history exists, rebuild elapsed by summing history */
     const unit = state.trackingUnit || 'hours';
     if (state.data[unit].elapsed === 0 && state.history && state.history.length > 0) {
       const rebuilt = state.history
@@ -170,7 +162,6 @@ async function load() {
 
 load();
 
-/* ── Timer ── */
 function startTick() {
   if (timerInterval) return;
   timerInterval = setInterval(() => {
@@ -187,7 +178,6 @@ function startTick() {
   }, 1000);
 }
 
-/* FIX: guard against undefined unit bucket and NaN, fix elapsed accumulation */
 function stopSession() {
   if (!state.running) return;
   const sessionSec = Math.floor((Date.now() - state.startTime) / 1000);
@@ -218,7 +208,6 @@ function stopSession() {
   timerInterval = null;
 }
 
-/* ── Calendar sync ── */
 async function syncDueDate(isoDate) {
   try {
     const card   = await t.card('id');
@@ -230,48 +219,46 @@ async function syncDueDate(isoDate) {
   } catch (e) { console.error('Due date sync error:', e); }
 }
 
-/* ── Chart ── */
 function generateChartSVG(type) {
   if (!state.history || state.history.length === 0)
-    return '<div style="text-align:center;padding:16px;color:#4d5868;font-size:12px;">No activity yet</div>';
+    return '<div style="text-align:center;padding:12px;color:#596773;font-size:11px;">No activity yet</div>';
 
-  const W=320, H=120, pX=34, pY=20, tP=10, rP=8;
+  const W=300, H=100, pX=30, pY=16, tP=8, rP=6;
   const plotW = W-pX-rP, plotH = H-pY-tP, bY = H-pY;
   const pts = [...state.history].slice(-7);
   const maxSecs = Math.max(...pts.map(d => d.seconds), 60);
-  const bw = Math.min(26, (plotW / pts.length) - 4);
+  const bw = Math.min(22, (plotW / pts.length) - 3);
   let els='', lbs='', lp=[];
 
   pts.forEach((d, i) => {
     const x = pts.length===1 ? pX+plotW/2 : pX + (i/(pts.length-1))*plotW;
     const y = bY - ((d.seconds/maxSecs)*plotH);
-    lbs += `<text x="${x}" y="${H-3}" font-size="9" fill="#4d5868" text-anchor="middle">${d.date.split(',')[0]}</text>`;
+    lbs += `<text x="${x}" y="${H-2}" font-size="8" fill="#596773" text-anchor="middle">${d.date.split(',')[0]}</text>`;
     if (type === 'line') {
       lp.push(`${x},${y}`);
-      els += `<circle cx="${x}" cy="${y}" r="3" fill="#1e2328" stroke="#00c9a7" stroke-width="2"><title>${d.date} ${d.time}: ${formatHMS(d.seconds)}</title></circle>`;
+      els += `<circle cx="${x}" cy="${y}" r="2.5" fill="#1d2125" stroke="#579dff" stroke-width="1.5"><title>${d.date} ${d.time}: ${formatHMS(d.seconds)}</title></circle>`;
     } else {
-      els += `<rect x="${x-bw/2}" y="${y}" width="${bw}" height="${bY-y}" fill="#00c9a7" opacity="0.8" rx="3" class="chart-bar"><title>${d.date} ${d.time}: ${formatHMS(d.seconds)}</title></rect>`;
+      els += `<rect x="${x-bw/2}" y="${y}" width="${bw}" height="${bY-y}" fill="#579dff" opacity="0.7" rx="2" class="chart-bar"><title>${d.date} ${d.time}: ${formatHMS(d.seconds)}</title></rect>`;
     }
   });
 
   const gc = 'rgba(255,255,255,0.05)';
   const fmtY = s => s>=3600 ? parseFloat((s/3600).toFixed(1))+'h' : s>=60 ? Math.round(s/60)+'m' : s+'s';
-  lbs += `<text x="${pX-5}" y="${tP+4}" font-size="9" fill="#4d5868" text-anchor="end">${fmtY(maxSecs)}</text>
+  lbs += `<text x="${pX-4}" y="${tP+3}" font-size="8" fill="#596773" text-anchor="end">${fmtY(maxSecs)}</text>
           <line x1="${pX}" y1="${tP}" x2="${W-rP}" y2="${tP}" stroke="${gc}" stroke-dasharray="3"/>
-          <text x="${pX-5}" y="${tP+plotH/2+4}" font-size="9" fill="#4d5868" text-anchor="end">${fmtY(maxSecs/2)}</text>
+          <text x="${pX-4}" y="${tP+plotH/2+3}" font-size="8" fill="#596773" text-anchor="end">${fmtY(maxSecs/2)}</text>
           <line x1="${pX}" y1="${tP+plotH/2}" x2="${W-rP}" y2="${tP+plotH/2}" stroke="${gc}" stroke-dasharray="3"/>
           <line x1="${pX}" y1="${bY}" x2="${W-rP}" y2="${bY}" stroke="${gc}"/>`;
 
   const poly = type === 'line'
-    ? `<polyline points="${lp.join(' ')}" fill="none" stroke="#00c9a7" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>`
+    ? `<polyline points="${lp.join(' ')}" fill="none" stroke="#579dff" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>`
     : '';
   return `<svg class="chart-svg" viewBox="0 0 ${W} ${H}">${lbs}${poly}${els}</svg>`;
 }
 
-/* ── SVG Icons ── */
-const playIcon  = `<svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>`;
-const stopIcon  = `<svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h12v12H6z"/></svg>`;
-const resetIcon = `<svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg>`;
+const playIcon  = `<svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>`;
+const stopIcon  = `<svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h12v12H6z"/></svg>`;
+const resetIcon = `<svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg>`;
 
 /* ── Render ── */
 function render() {
@@ -281,10 +268,9 @@ function render() {
   const elapsed = getLiveElapsed();
   const active  = state.data[state.trackingUnit];
 
-  const hasLabel   = cardMeta.labelName.length > 0;
-  const labelStyle = hasLabel ? getLabelStyle(cardMeta.labelColor) : '';
-  const labelTxt   = hasLabel ? (cardMeta.labelName.length > 14 ? cardMeta.labelName.slice(0,14)+'…' : cardMeta.labelName) : 'No Label';
-  const labelCls   = hasLabel ? '' : 'no-label';
+  const hasLabel = cardMeta.labelName.length > 0;
+  const labelColor = hasLabel ? getLabelColor(cardMeta.labelColor) : '#579dff';
+  const labelTxt   = hasLabel ? (cardMeta.labelName.length > 16 ? cardMeta.labelName.slice(0,16)+'…' : cardMeta.labelName) : '';
 
   const doneTasks  = (state.tasks || []).filter(tk => tk.done).length;
   const totalTasks = (state.tasks || []).length;
@@ -296,25 +282,23 @@ function render() {
   document.getElementById('root').innerHTML = `
     <div class="card">
 
-      <div class="card-header">
-        <div class="header-eyebrow">
-          <div class="header-dot"></div>
-          <span class="header-title">Progress Card</span>
-        </div>
-        <span class="label-tag ${labelCls}" style="${labelStyle}">${labelTxt}</span>
-      </div>
+      ${hasLabel ? `
+      <div class="card-label-row">
+        <div class="label-dot" style="background:${labelColor}"></div>
+        <span class="label-name">${labelTxt}</span>
+      </div>` : ''}
 
-      <div class="card-name">${cardMeta.name || 'Progress Tracker'}</div>
+      ${cardMeta.name ? `<div class="card-name-text">${cardMeta.name.replace(/</g,'&lt;')}</div>` : ''}
 
       <!-- Completion -->
       <div class="section">
-        <div class="completion-row">
-          <span class="completion-label">Completion</span>
-          <span class="completion-pct${isOver ? ' overtime' : ''}" id="pctDisplay">${pct}%</span>
+        <div class="section-header">
+          <span class="section-title">Completion</span>
+          <span class="pct-text${isOver ? ' overtime' : ''}" id="pctDisplay">${pct}%</span>
         </div>
         <div class="slider-wrap">
-          <div class="slider-track">
-            <div class="slider-fill${isOver ? ' overtime' : ''}" id="progressFill" style="width:${dispPct}%"></div>
+          <div class="progress-track">
+            <div class="progress-fill${isOver ? ' overtime' : ''}" id="progressFill" style="width:${dispPct}%"></div>
           </div>
           <input id="progressSlider" type="range" min="0" max="100"
             value="${state.progressSource === 'manual' ? state.manualProgress : dispPct}" />
@@ -328,7 +312,9 @@ function render() {
 
       <!-- ETA -->
       <div class="section">
-        <div class="section-label">ETA</div>
+        <div class="section-header">
+          <span class="section-title">ETA</span>
+        </div>
         <div class="eta-row">
           <span class="eta-label">Due</span>
           <input id="etaDate" type="date" class="eta-input" value="${state.etaDate}" />
@@ -339,9 +325,9 @@ function render() {
 
       <!-- Tasks -->
       <div class="section">
-        <div class="section-label">
-          Tasks
-          ${totalTasks > 0 ? `<span class="count-pill">${doneTasks}/${totalTasks}</span>` : ''}
+        <div class="section-header">
+          <span class="section-title">Tasks</span>
+          ${totalTasks > 0 ? `<span class="section-badge">${doneTasks}/${totalTasks}</span>` : ''}
         </div>
         <div class="tasks-list">
           ${totalTasks === 0
@@ -362,13 +348,17 @@ function render() {
 
       <!-- Time Tracking -->
       <div class="section">
-        <div class="section-label">Time Tracking</div>
-        <div class="timer-main">
-          <div class="timer-time">
-            <div class="timer-sublabel">Elapsed</div>
+        <div class="section-header">
+          <span class="section-title">Time Tracking</span>
+        </div>
+        <div class="timer-row">
+          <div class="timer-left">
+            <div class="timer-elapsed-label">Elapsed</div>
             <div class="timer-display${state.running ? ' running' : ''}" id="timerDisplay">${formatHM(elapsed)}</div>
+            ${state.running && state.trackingUnit !== 'hours'
+              ? `<div id="sessionTicker" class="session-ticker">00:00:00</div>` : ''}
           </div>
-          <div class="timer-controls">
+          <div class="timer-right">
             ${state.running
               ? `<button id="timerBtn" class="btn-timer-stop">${stopIcon} Stop</button>`
               : `<button id="timerBtn" class="btn-timer-start">${playIcon} ${elapsed > 0 ? 'Resume' : 'Start'}</button>`
@@ -376,8 +366,6 @@ function render() {
             <button id="resetBtn" class="btn-reset" title="Reset">${resetIcon}</button>
           </div>
         </div>
-        ${state.running && state.trackingUnit !== 'hours'
-          ? `<div id="sessionTicker" class="session-ticker">00:00:00</div>` : ''}
         <div class="timer-meta">
           <span class="timer-meta-pill">Elapsed <span class="val">${formatHM(elapsed)}</span></span>
           <span class="timer-meta-pill">Target <input id="estInput" class="est-input" value="${formatHM(active.estimated)}" /></span>
@@ -388,11 +376,11 @@ function render() {
       ${state.history && state.history.length > 0 ? `
       <div class="section">
         <div class="log-header">
-          <div class="section-label" style="margin:0;">Activity Log</div>
+          <span class="section-title">Activity Log</span>
           <div class="view-toggle">
-            <button data-view="list" class="view-btn${state.logView==='list'?' active':''}">List</button>
-            <button data-view="line" class="view-btn${state.logView==='line'?' active':''}">Line</button>
-            <button data-view="bar"  class="view-btn${state.logView==='bar' ?' active':''}">Bar</button>
+            <button data-view="list" class="view-btn${state.logView==='list'?' active':''}">LIST</button>
+            <button data-view="line" class="view-btn${state.logView==='line'?' active':''}">LINE</button>
+            <button data-view="bar"  class="view-btn${state.logView==='bar' ?' active':''}">BAR</button>
           </div>
         </div>
         ${state.logView === 'list' ? `
@@ -400,7 +388,7 @@ function render() {
             ${logsToShow.map(h => {
               const badge = h.unit ? `<span class="unit-badge">${UNIT_LABELS[h.unit]||h.unit}</span>` : '';
               return `<div class="history-item">
-                <span class="meta">${h.date} · ${h.time}${badge}</span>
+                <span class="meta">${h.date} · ${h.time} ${badge}</span>
                 <span class="val">+${formatHMS(h.seconds)}</span>
               </div>`;
             }).join('')}
