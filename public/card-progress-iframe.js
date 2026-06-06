@@ -438,10 +438,14 @@ function render() {
         </div>
         ${c.timer ? "" : `
         <div class="section-body">
-          <div class="timer-row">
+         <div class="timer-row">
             <div class="timer-left">
               <div class="timer-elapsed-label">Elapsed</div>
               <div class="timer-display${state.running ? " running" : ""}" id="timerDisplay">${formatHM(elapsed)}</div>
+              <div class="timer-meta" style="margin-top:6px;">
+                <span class="timer-meta-pill">Elapsed <span class="val">${formatHM(elapsed)}</span></span>
+                <span class="timer-meta-pill">Target <input id="estInput" class="est-input" value="${formatHM(active.estimated)}" /></span>
+              </div>
               ${state.running && state.trackingUnit !== "hours"
                 ? `<div id="sessionTicker" class="session-ticker">00:00:00</div>`
                 : ""}
@@ -452,10 +456,6 @@ function render() {
                 : `<button id="timerBtn" class="btn-timer-start">${playIcon} ${elapsed > 0 ? "Resume" : "Start"}</button>`}
               <button id="resetBtn" class="btn-reset" title="Reset">${resetIcon}</button>
             </div>
-          </div>
-          <div class="timer-meta">
-            <span class="timer-meta-pill">Elapsed <span class="val">${formatHM(elapsed)}</span></span>
-            <span class="timer-meta-pill">Target <input id="estInput" class="est-input" value="${formatHM(active.estimated)}" /></span>
           </div>
         </div>`}
       </div>
