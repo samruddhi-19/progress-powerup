@@ -227,15 +227,23 @@ TrelloPowerUp.initialize({
       const mapped = await isMappedCard(t);
       if (!mapped) return [];
 
-      const [data, hideBadges, hideBars, hideTimer, hideEta, hideSubtask] =
-        await Promise.all([
-          getCardData(t),
-          t.get("board", "shared", "hideBadges"),
-          t.get("board", "shared", "hideProgressBars"),
-          t.get("board", "shared", "hideTimerBadges"),
-          t.get("board", "shared", "hideEta"),
-          t.get("board", "shared", "hideSubtask"),
-        ]);
+      const [
+        data,
+        hideBadges,
+        hideBars,
+        hideTimer,
+        rawHideEta,
+        rawHideSubtask,
+      ] = await Promise.all([
+        getCardData(t),
+        t.get("board", "shared", "hideBadges"),
+        t.get("board", "shared", "hideProgressBars"),
+        t.get("board", "shared", "hideTimerBadges"),
+        t.get("board", "shared", "hideEta"),
+        t.get("board", "shared", "hideSubtask"),
+      ]);
+      const hideEta = rawHideEta ?? true;
+      const hideSubtask = rawHideSubtask ?? true;
 
       if (hideBadges || !data || data.disabledProgress) return [];
 
@@ -377,12 +385,23 @@ TrelloPowerUp.initialize({
       const mapped = await isMappedCard(t);
       if (!mapped) return [];
 
-      const [data, hideDetail, hideBars, hideTimer] = await Promise.all([
+      const [
+        data,
+        hideDetail,
+        hideBars,
+        hideTimer,
+        rawHideEta,
+        rawHideSubtask,
+      ] = await Promise.all([
         getCardData(t),
         t.get("board", "shared", "hideDetailBadges"),
         t.get("board", "shared", "hideProgressBars"),
         t.get("board", "shared", "hideTimerBadges"),
+        t.get("board", "shared", "hideEta"),
+        t.get("board", "shared", "hideSubtask"),
       ]);
+      const hideEta = rawHideEta ?? true;
+      const hideSubtask = rawHideSubtask ?? true;
 
       if (hideDetail || !data || data.disabledProgress) return [];
 
