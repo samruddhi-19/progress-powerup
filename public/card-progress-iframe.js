@@ -411,9 +411,8 @@ function render() {
           <div class="timer-row">
             <div class="timer-display${state.running ? " running" : ""}" id="timerDisplay">${formatHM(elapsed)}</div>
             <div class="timer-meta">
-              <span class="timer-meta-pill">Elapsed <span class="val">${formatHM(elapsed)}</span></span>
-              <span class="timer-meta-pill">Target <input id="estInput" class="est-input" value="${formatHM(active.estimated)}" /></span>
-            </div>
+  <span class="timer-meta-pill">Target <input id="estInput" class="est-input" value="${formatHM(active.estimated)}" /></span>
+</div>
             <div class="timer-right">
               ${state.running
                 ? `<button id="timerBtn" class="btn-timer-stop">${stopIcon} Stop</button>`
