@@ -13,8 +13,8 @@ const UNIT_LABELS = {
 };
 
 let boardSettings = {
-  hideEta: false,
-  hideSubtask: false,
+  hideEta: true,
+  hideSubtask: true,
 };
 
 let state = {
@@ -148,8 +148,8 @@ async function load() {
     const all = await t.getAll();
     const shared = all?.board?.shared || {};
 
-    boardSettings.hideEta = shared.hideEta ?? false;
-    boardSettings.hideSubtask = shared.hideSubtask ?? false;
+    boardSettings.hideEta = shared.hideEta ?? true;
+boardSettings.hideSubtask = shared.hideSubtask ?? true;
     if (saved.data) state.data = saved.data;
     if (saved.history) state.history = saved.history;
     if (saved.tasks) state.tasks = saved.tasks;

@@ -242,8 +242,9 @@ TrelloPowerUp.initialize({
         t.get("board", "shared", "hideEta"),
         t.get("board", "shared", "hideSubtask"),
       ]);
-     const hideEta = rawHideEta ?? false;
-const hideSubtask = rawHideSubtask ?? false;
+
+      const hideEta = rawHideEta ?? true;
+      const hideSubtask = rawHideSubtask ?? true;
 
       if (hideBadges || !data || data.disabledProgress) return [];
 
@@ -408,8 +409,9 @@ const hideSubtask = rawHideSubtask ?? false;
         t.get("board", "shared", "hideEta"),
         t.get("board", "shared", "hideSubtask"),
       ]);
-      const hideEta = rawHideEta ?? false;
-const hideSubtask = rawHideSubtask ?? false;
+
+      const hideEta = rawHideEta ?? true;
+      const hideSubtask = rawHideSubtask ?? true;
 
       if (hideDetail || !data || data.disabledProgress) return [];
 
@@ -469,14 +471,16 @@ const hideSubtask = rawHideSubtask ?? false;
             return Promise.all([
               getCardData(t),
               t.get("board", "shared", "hideEta"),
-            ]).then(function ([d, rawHideEtaFresh]) {
-              if (!d) return { text: "" };
-              const hideEtaFresh = rawHideEtaFresh ?? true;
-              const s = formatETA(d.etaDate, d.etaTime);
-              return !hideEtaFresh && s
-                ? { text: `📅 ${s}`, color: "yellow" }
-                : { text: "" };
-            }).catch(() => ({ text: "" }));
+            ])
+              .then(function ([d, rawHideEtaFresh]) {
+                if (!d) return { text: "" };
+                const hideEtaFresh = rawHideEtaFresh ?? true;
+                const s = formatETA(d.etaDate, d.etaTime);
+                return !hideEtaFresh && s
+                  ? { text: `📅 ${s}`, color: "yellow" }
+                  : { text: "" };
+              })
+              .catch(() => ({ text: "" }));
           },
           refresh: 60,
         });
@@ -490,18 +494,17 @@ const hideSubtask = rawHideSubtask ?? false;
           dynamic: function (t) {
             return Promise.all([
               getCardData(t),
-              t.get("board", "shared", "hideSubtask"),
-            ]).then(function ([d, rawHideSubtaskFresh]) {
-              if (!d) return { text: "" };
-              const hideSubtaskFresh = rawHideSubtaskFresh ?? true;
-              const pending = (d.tasks || []).find((tk) => !tk.done);
-              if (!pending || hideSubtaskFresh) return { text: "" };
-              const name =
-                pending.name.length > 24
-                  ? pending.name.slice(0, 24) + "…"
-                  : pending.name;
-              return { text: `✦ ${name}`, color: "purple" };
-            }).catch(() => ({ text: "" }));
+              t.get("board", "shared", "hideEta"),
+            ])
+              .then(function ([d, rawHideEtaFresh]) {
+                if (!d) return { text: "" };
+                const hideEtaFresh = rawHideEtaFresh ?? true;
+                const s = formatETA(d.etaDate, d.etaTime);
+                return !hideEtaFresh && s
+                  ? { text: `📅 ${s}`, color: "yellow" }
+                  : { text: "" };
+              })
+              .catch(() => ({ text: "" }));
           },
           refresh: 30,
         });
