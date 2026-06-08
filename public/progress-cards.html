@@ -18,14 +18,13 @@
         --text: #b6c2cf;
         --text-strong: #e2e8ee;
         --text-dim: #6b788a;
-        --accent: #d49900;
-        --accent-dim: rgba(212, 153, 0, 0.1);
-        --accent-hover: rgba(212, 153, 0, 0.18);
-        --bolt-color: #d49900;
-        --bolt-bg: rgba(212, 153, 0, 0.12);
-        --btn-color: #d49900;
-        --btn-hover: #b88200;
+        --accent: #579dff;
+        --accent-dim: rgba(87, 157, 255, 0.1);
         --accent-hover: rgba(87, 157, 255, 0.18);
+        --bolt-color: #579dff;
+        --bolt-bg: rgba(87, 157, 255, 0.12);
+        --btn-color: #579dff;
+        --btn-hover: #4488ee;
         --green: #4bce97;
         --radius: 8px;
         --radius-sm: 5px;
@@ -181,23 +180,27 @@
       }
 
       #searchInput {
-      width: 100%;
-      padding: 8px 12px 8px 34px;
-      background: var(--surface-2);
-      border: 1.5px solid var(--border-hover);
-      border-radius: var(--radius);
-      color: var(--text);
-      font-family: 'DM Sans', sans-serif;
-      font-size: 12.5px;
-      outline: none;
-      transition: border-color 0.15s, background 0.15s;
-    }
+        width: 100%;
+        padding: 8px 12px 8px 34px;
+        background: var(--surface-2);
+        border: 1.5px solid var(--border-hover);
+        border-radius: var(--radius);
+        color: var(--text);
+        font-family: "DM Sans", sans-serif;
+        font-size: 12.5px;
+        outline: none;
+        transition:
+          border-color 0.15s,
+          background 0.15s;
+      }
 
-    #searchInput::placeholder { color: var(--text-dim); }
-    #searchInput:focus {
-      border-color: var(--accent);
-      background: var(--surface-3);
-    }
+      #searchInput::placeholder {
+        color: var(--text-dim);
+      }
+      #searchInput:focus {
+        border-color: var(--accent);
+        background: var(--surface-3);
+      }
 
       /* ── Scrollable area ── */
       .scroll-area {
@@ -235,20 +238,20 @@
         user-select: none;
       }
 
-     .list-item:hover {
-      background: var(--surface-2);
-      border-color: var(--border-hover);
-      border-left-color: var(--accent);
-    }
+      .list-item:hover {
+        background: var(--surface-2);
+        border-color: var(--border-hover);
+        border-left-color: var(--accent);
+      }
 
-    .list-item.has-selection {
-      border-left-color: var(--accent);
-      background: rgba(212,153,0,0.05);
-    }
+      .list-item.has-selection {
+        border-left-color: var(--accent);
+        background: rgba(87, 157, 255, 0.05);
+      }
 
-    .list-item.no-cards {
-      opacity: 0.45;
-    }
+      .list-item.no-cards {
+        opacity: 0.45;
+      }
 
       .list-item-left {
         display: flex;
@@ -469,11 +472,11 @@
       }
 
       #startMappingBtn {
-    padding: 7px 16px;
-    border: none;
-    border-radius: var(--radius);
-    background: var(--btn-color);
-    color: #1a1200;
+        padding: 7px 16px;
+        border: none;
+        border-radius: var(--radius);
+        background: var(--btn-color);
+        color: #fff;
         font-family: "DM Sans", sans-serif;
         font-size: 12.5px;
         font-weight: 700;
@@ -487,11 +490,11 @@
         transform: translateY(-1px);
       }
 
-     #startMappingBtn:disabled {
-    background: rgba(212,153,0,0.15);
-    color: rgba(212,153,0,0.35);
-    cursor: not-allowed;
-  }
+      #startMappingBtn:disabled {
+        background: rgba(87, 157, 255, 0.15);
+        color: rgba(87, 157, 255, 0.35);
+        cursor: not-allowed;
+      }
 
       /* ── Loading ── */
       .loading {
@@ -532,7 +535,6 @@
             </svg>
           </span>
           <div>
-           
             <div
               style="
                 font-size: 10.5px;
