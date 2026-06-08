@@ -149,7 +149,8 @@ async function load() {
     const shared = all?.board?.shared || {};
 
     boardSettings.hideEta = shared.hideEta ?? true;
-boardSettings.hideSubtask = shared.hideSubtask ?? true;
+    boardSettings.hideSubtask = shared.hideSubtask ?? true;
+
     if (saved.data) state.data = saved.data;
     if (saved.history) state.history = saved.history;
     if (saved.tasks) state.tasks = saved.tasks;
@@ -163,7 +164,6 @@ boardSettings.hideSubtask = shared.hideSubtask ?? true;
     state.progressSource = saved.progressSource || "tasks";
     state.etaDate = saved.etaDate || "";
     state.etaTime = saved.etaTime || "";
-    // Merge collapsed — drop old "log" key, only eta/tasks/timer now
     const savedCollapsed = saved.collapsed || {};
     state.collapsed = {
       eta: savedCollapsed.eta ?? false,
@@ -268,16 +268,19 @@ function stopSession() {
   timerInterval = null;
 }
 
+/* ── FIX: Silent skip if not authorized, show inline prompt instead of OAuth popup ── */
 async function syncDueDate(isoDate) {
   try {
-    const card = await t.card("id");
     const isAuth = await t.getRestApi().isAuthorized();
-    if (!isAuth)
-      await t
-        .getRestApi()
-        .authorize({ scope: "read,write", expiration: "never" });
+    if (!isAuth) {
+      // Silently skip — show inline connect prompt instead of popup
+      const syncPrompt = document.getElementById("syncPrompt");
+      if (syncPrompt) syncPrompt.style.display = "flex";
+      return;
+    }
     const token = await t.getRestApi().getToken();
     if (!token) return;
+    const card = await t.card("id");
     await fetch(
       `https://api.trello.com/1/cards/${card.id}?key=${TRELLO_API_KEY}&token=${token}&due=${isoDate}`,
       { method: "PUT" },
@@ -407,47 +410,40 @@ function render() {
         </div>
       </div>
 
-      <!-- ETA -->
-${
-  boardSettings.hideEta
-    ? ""
-    : `
-<div class="section">
-
-  <div class="section-header collapsible" data-toggle="eta">
-    <div class="section-header-left">
-      ${chevron(c.eta)}
-      <span class="section-title">ETA</span>
-    </div>
-    ${
-      state.etaDate
-        ? `
-      <span class="section-meta">
-        ${state.etaDate}${state.etaTime ? " • " + state.etaTime : ""}
-      </span>
-    `
-        : ""
-    }
-  </div>
-
-  ${
-    c.eta
-      ? ""
-      : `
-  <div class="section-body">
-    <div class="eta-row">
-      <span class="eta-label">Due</span>
-      <input id="etaDate" type="date" class="eta-input" value="${state.etaDate || ""}" />
-      <span class="eta-sep">at</span>
-      <input id="etaTime" type="time" class="eta-input" value="${state.etaTime || ""}" />
-    </div>
-  </div>
-  `
-  }
-
-</div>
-`
-}
+      <!-- ETA — always visible regardless of hideEta setting -->
+      <!-- hideEta only controls the card front badge, not this input section -->
+      <div class="section">
+        <div class="section-header collapsible" data-toggle="eta">
+          <div class="section-header-left">
+            ${chevron(c.eta)}
+            <span class="section-title">ETA</span>
+          </div>
+          ${
+            state.etaDate
+              ? `<span class="section-meta">
+                  ${state.etaDate}${state.etaTime ? " • " + state.etaTime : ""}
+                 </span>`
+              : ""
+          }
+        </div>
+        ${
+          c.eta
+            ? ""
+            : `
+        <div class="section-body">
+          <div class="eta-row">
+            <span class="eta-label">Due</span>
+            <input id="etaDate" type="date" class="eta-input" value="${state.etaDate || ""}" />
+            <span class="eta-sep">at</span>
+            <input id="etaTime" type="time" class="eta-input" value="${state.etaTime || ""}" />
+          </div>
+          <div id="syncPrompt" style="display:none;align-items:center;gap:6px;margin-top:6px;font-size:11px;color:#8c9bab;">
+            <span>📅 Connect Trello to sync due date</span>
+            <button id="syncAuthBtn" style="font-size:10px;padding:2px 8px;background:#579dff;color:#fff;border:none;border-radius:4px;cursor:pointer;">Connect</button>
+          </div>
+        </div>`
+        }
+      </div>
 
       <!-- Tasks -->
       <div class="section">
@@ -507,24 +503,24 @@ ${
 
           <!-- Timer controls -->
           <div class="timer-row">
-  <div class="timer-stats">
-    <div class="timer-stat">
-      <span class="timer-stat-label">Elapsed</span>
-      <span class="timer-display${state.running ? " running" : ""}" id="timerDisplay">${formatHM(elapsed)}</span>
-    </div>
-    ${
-      state.progressSource === "timer"
-        ? `
-    <div class="timer-stat">
-      <span class="timer-stat-label">Target</span>
-      <input id="estInput" class="est-input-inline" value="${formatHM(active.estimated)}" />
-    </div>`
-        : ""
-    }
-  </div>
+            <div class="timer-stats">
+              <div class="timer-stat">
+                <span class="timer-stat-label">Elapsed</span>
+                <span class="timer-display${state.running ? " running" : ""}" id="timerDisplay">${formatHM(elapsed)}</span>
+              </div>
+              ${
+                state.progressSource === "timer"
+                  ? `
+              <div class="timer-stat">
+                <span class="timer-stat-label">Target</span>
+                <input id="estInput" class="est-input-inline" value="${formatHM(active.estimated)}" />
+              </div>`
+                  : ""
+              }
+            </div>
             <div class="timer-meta">
-  <span class="timer-meta-pill">Target <input id="estInput" class="est-input" value="${formatHM(active.estimated)}" /></span>
-</div>
+              <span class="timer-meta-pill">Target <input id="estInput" class="est-input" value="${formatHM(active.estimated)}" /></span>
+            </div>
             <div class="timer-right">
               ${
                 state.running
@@ -790,14 +786,31 @@ function bindEvents() {
       });
     });
   });
+
+  /* ── FIX: Connect button for due date sync ── */
+  const syncAuthBtn = document.getElementById("syncAuthBtn");
+  if (syncAuthBtn)
+    syncAuthBtn.addEventListener("click", async function () {
+      try {
+        await t.getRestApi().authorize({ scope: "read,write", expiration: "never" });
+        const syncPrompt = document.getElementById("syncPrompt");
+        if (syncPrompt) syncPrompt.style.display = "none";
+        // Retry sync now that user is authorized
+        if (state.etaDate && state.etaTime) {
+          syncDueDate(new Date(`${state.etaDate}T${state.etaTime}`).toISOString());
+        }
+      } catch (e) {
+        console.error("Auth error:", e);
+      }
+    });
 }
 
 setInterval(async () => {
   const all = await t.getAll();
   const shared = all?.board?.shared || {};
 
-  boardSettings.hideEta = shared.hideEta ?? false;
-  boardSettings.hideSubtask = shared.hideSubtask ?? false;
+  boardSettings.hideEta = shared.hideEta ?? true;
+  boardSettings.hideSubtask = shared.hideSubtask ?? true;
 
-  render(); // 🔥 THIS is the missing piece
+  render();
 }, 2000);
