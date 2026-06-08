@@ -4,7 +4,7 @@
   "icon": {
     "url": "https://cdn-icons-png.flaticon.com/512/992/992651.png"
   },
-  "author": "Prabhjot",
+  "author": "samruddhi",
   "capabilities": [
     "authorization-status",
     "show-authorization",
@@ -13,7 +13,9 @@
     "card-badges",
     "card-detail-badges",
     "card-buttons",
-    "card-back-section"
+    "card-back-section",
+    "list-actions"
+    
   ],
   "connectorName": "Progress",
   "tags": ["productivity", "time-tracking"]
