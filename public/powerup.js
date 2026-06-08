@@ -242,8 +242,8 @@ TrelloPowerUp.initialize({
         t.get("board", "shared", "hideEta"),
         t.get("board", "shared", "hideSubtask"),
       ]);
-      const hideEta = rawHideEta ?? true;
-      const hideSubtask = rawHideSubtask ?? true;
+     const hideEta = rawHideEta ?? false;
+const hideSubtask = rawHideSubtask ?? false;
 
       if (hideBadges || !data || data.disabledProgress) return [];
 
@@ -408,8 +408,8 @@ TrelloPowerUp.initialize({
         t.get("board", "shared", "hideEta"),
         t.get("board", "shared", "hideSubtask"),
       ]);
-      const hideEta = rawHideEta ?? true;
-      const hideSubtask = rawHideSubtask ?? true;
+      const hideEta = rawHideEta ?? false;
+const hideSubtask = rawHideSubtask ?? false;
 
       if (hideDetail || !data || data.disabledProgress) return [];
 
