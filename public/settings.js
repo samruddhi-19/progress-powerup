@@ -8,6 +8,8 @@ const DEFAULTS = {
   hideProgressBars: false,
   autoFocus: false,
   autoTrackMode: "off",
+  hideEta: true,
+  hideSubtask: true,
 };
 
 function qs(id) {
@@ -32,11 +34,22 @@ async function loadUI() {
   qs("focusMode").checked = board.autoFocus ?? DEFAULTS.autoFocus;
   qs("autoTrackMode").value = board.autoTrackMode ?? DEFAULTS.autoTrackMode;
 
-  setTimeout(() => t.sizeTo(document.body).done(), 40);
+  qs("hideEta").checked = board.hideEta ?? DEFAULTS.hideEta;
+  qs("hideSubtask").checked = board.hideSubtask ?? DEFAULTS.hideSubtask;
+
+  // REPLACE BOTH WITH
+  setTimeout(() => {
+    try {
+      t.sizeTo(document.body);
+    } catch (e) {}
+  }, 40);
 }
 
 async function setBoard(key, value) {
   await t.set("board", "shared", key, value);
+
+  // 🔥 Force UI awareness (temporary fix)
+  t.alert({ message: "Setting updated" });
 }
 
 function bind() {
@@ -63,6 +76,14 @@ function bind() {
   qs("autoTrackMode").addEventListener("change", (e) =>
     setBoard("autoTrackMode", e.target.value),
   );
+
+  qs("hideEta").addEventListener("change", (e) =>
+    setBoard("hideEta", e.target.checked),
+  );
+
+  qs("hideSubtask").addEventListener("change", (e) =>
+    setBoard("hideSubtask", e.target.checked),
+  );
 }
 
 function showPanel(which) {
@@ -77,7 +98,12 @@ function showPanel(which) {
     if (settingsPanel) settingsPanel.style.display = "block";
   }
 
-  setTimeout(() => t.sizeTo(document.body).done(), 40);
+  // REPLACE BOTH WITH
+  setTimeout(() => {
+    try {
+      t.sizeTo(document.body);
+    } catch (e) {}
+  }, 40);
 }
 
 async function bindAuthButton() {
@@ -118,6 +144,8 @@ async function bindDisableButton() {
       "autoFocus",
       "autoTrackMode",
       "autoTrackLists",
+      "hideEta",
+      "hideSubtask",
     ];
 
     for (const k of keys) {
