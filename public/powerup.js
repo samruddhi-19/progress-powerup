@@ -578,16 +578,18 @@ TrelloPowerUp.initialize({
 
   /* ── List actions ── */
   "list-actions": function(t) {
-    return [{
-      text: "Progress",
-      callback: function(t) {
+  return [{
+    text: "Progress",
+    callback: function(t) {
+      return t.closePopup().then(() => {
         return t.popup({
           title: "Progress Cards",
           url: "./progress-cards.html",
           height: 560,
         });
-      }
-    }];
-  },
+      });
+    }
+  }];
+},
 
 });
