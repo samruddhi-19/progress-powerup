@@ -285,11 +285,7 @@ input[type="time"]::-webkit-calendar-picker-indicator {
   font-size: 9.5px; font-weight: 600;
   text-transform: uppercase; letter-spacing: 0.08em; color: #596773;
 }
-.timer-display {
-  font-family: 'DM Mono', monospace;
-  font-size: 26px; font-weight: 500;
-  color: #9fadbc; letter-spacing: -0.02em; line-height: 1;
-}
+
 .timer-display.running { color: #4bce97; }
 .timer-right { display: flex; gap: 6px; align-items: center; }
 .btn-timer-start {
@@ -445,3 +441,41 @@ input[type="time"]::-webkit-calendar-picker-indicator {
   padding: 2px 7px; border-radius: 99px;
   margin-left: 6px;
 }
+
+/* ── Timer stats (Elapsed + Target side by side) ── */
+.timer-stats {
+  display: flex;
+  gap: 16px;
+  align-items: flex-end;
+}
+
+.timer-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.timer-stat-label {
+  font-size: 9.5px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  color: #596773;
+}
+
+.timer-display {
+  font-family: 'DM Mono', monospace;
+  font-size: 18px; font-weight: 500;
+  color: #9fadbc; letter-spacing: -0.02em; line-height: 1;
+}
+
+.timer-display.running { color: #4bce97; }
+
+.est-input-inline {
+  font-family: 'DM Mono', monospace;
+  font-size: 18px; font-weight: 500;
+  color: #9fadbc;
+  background: none; border: none; outline: none;
+  width: 52px; padding: 0; cursor: text;
+  letter-spacing: -0.02em; line-height: 1;
+}
+
+.est-input-inline:focus { color: #579dff; }
