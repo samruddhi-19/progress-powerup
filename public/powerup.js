@@ -66,7 +66,6 @@ function formatETA(etaDate, etaTime) {
   if (!etaDate) return null;
   try {
     let iso = etaDate;
-    // Handle DD-MM-YYYY format from some locales
     if (/^\d{2}-\d{2}-\d{4}$/.test(etaDate)) {
       const [d, m, y] = etaDate.split("-");
       iso = `${y}-${m}-${d}`;
@@ -101,7 +100,6 @@ async function getCardData(t) {
     return defaults;
   }
 
-  // Mapped but no data yet — initialise fresh
   const mappedCards = await t.get("board", "shared", "mappedCards");
   if (mappedCards && mappedCards.includes(card.id)) {
     const fresh = {
@@ -213,11 +211,10 @@ TrelloPowerUp.initialize({
 
   /* ══════════════════════════════════════════
      CARD BADGES
-     Shows on mapped cards only.
      Badge 1: progress bar + %
      Badge 2: ⏱ elapsed time
-     Badge 3: 📅 ETA (if set)
-     Badge 4: ✦ first incomplete subtask (if any)
+     Badge 3: 📅 ETA (if set and not hidden)
+     Badge 4: ✦ first incomplete subtask (if any and not hidden)
   ══════════════════════════════════════════ */
   "card-badges": async function (t) {
     try {
@@ -314,7 +311,7 @@ TrelloPowerUp.initialize({
         });
       }
 
-      /* ── Badge 3: ETA (only if user has set it) ── */
+      /* ── Badge 3: ETA ── */
       const etaStr = formatETA(data.etaDate, data.etaTime);
       if (!hideEta && etaStr) {
         badges.push({
@@ -324,18 +321,15 @@ TrelloPowerUp.initialize({
           dynamic: function (t) {
             return Promise.all([
               getCardData(t),
-              t.get("board", "shared", "hideSubtask"),
+              t.get("board", "shared", "hideEta"),
             ])
-              .then(function ([d, rawHideSubtaskFresh]) {
+              .then(function ([d, rawHideEtaFresh]) {
                 if (!d) return { text: "" };
-                const hideSubtaskFresh = rawHideSubtaskFresh ?? true;
-                const pending = (d.tasks || []).find((tk) => !tk.done);
-                if (!pending || hideSubtaskFresh) return { text: "" };
-                const name =
-                  pending.name.length > 24
-                    ? pending.name.slice(0, 24) + "…"
-                    : pending.name;
-                return { text: `✦ ${name}`, color: "purple" };
+                const hideEtaFresh = rawHideEtaFresh ?? true;
+                const s = formatETA(d.etaDate, d.etaTime);
+                return !hideEtaFresh && s
+                  ? { text: `📅 ${s}`, color: "yellow" }
+                  : { text: "" };
               })
               .catch(() => ({ text: "" }));
           },
@@ -343,7 +337,7 @@ TrelloPowerUp.initialize({
         });
       }
 
-      /* ── Badge 4: First incomplete subtask (only if tasks exist) ── */
+      /* ── Badge 4: First incomplete subtask ── */
       const tasks = data.tasks || [];
       const firstPending = tasks.find((tk) => !tk.done);
       if (!hideSubtask && firstPending) {
@@ -355,7 +349,6 @@ TrelloPowerUp.initialize({
           title: "Sub Task",
           text: `✦ ${taskText}`,
           color: "purple",
-
           dynamic: function (t) {
             return Promise.all([
               getCardData(t),
@@ -374,7 +367,6 @@ TrelloPowerUp.initialize({
               })
               .catch(() => ({ text: "" }));
           },
-
           refresh: 30,
         });
       }
@@ -416,9 +408,11 @@ TrelloPowerUp.initialize({
       if (hideDetail || !data || data.disabledProgress) return [];
 
       const badges = [];
+
       if (data.focusMode)
         badges.push({ title: "Focus", text: "🎯 Focus ON", color: "red" });
 
+      /* ── Progress ── */
       badges.push({
         title: "Progress",
         dynamic: function (t) {
@@ -445,6 +439,7 @@ TrelloPowerUp.initialize({
         refresh: 30,
       });
 
+      /* ── Timer ── */
       if (!hideTimer) {
         badges.push({
           title: "Time",
@@ -463,8 +458,9 @@ TrelloPowerUp.initialize({
         });
       }
 
+      /* ── ETA ── */
       const etaStr = formatETA(data.etaDate, data.etaTime);
-      if (etaStr) {
+      if (!hideEta && etaStr) {
         badges.push({
           title: "ETA",
           dynamic: function (t) {
@@ -486,23 +482,27 @@ TrelloPowerUp.initialize({
         });
       }
 
+      /* ── Sub Task ── */
       const tasks = data.tasks || [];
       const firstPending = tasks.find((tk) => !tk.done);
-      if (firstPending) {
+      if (!hideSubtask && firstPending) {
         badges.push({
           title: "Sub Task",
           dynamic: function (t) {
             return Promise.all([
               getCardData(t),
-              t.get("board", "shared", "hideEta"),
+              t.get("board", "shared", "hideSubtask"),
             ])
-              .then(function ([d, rawHideEtaFresh]) {
+              .then(function ([d, rawHideSubtaskFresh]) {
                 if (!d) return { text: "" };
-                const hideEtaFresh = rawHideEtaFresh ?? true;
-                const s = formatETA(d.etaDate, d.etaTime);
-                return !hideEtaFresh && s
-                  ? { text: `📅 ${s}`, color: "yellow" }
-                  : { text: "" };
+                const hideSubtaskFresh = rawHideSubtaskFresh ?? true;
+                const pending = (d.tasks || []).find((tk) => !tk.done);
+                if (!pending || hideSubtaskFresh) return { text: "" };
+                const name =
+                  pending.name.length > 24
+                    ? pending.name.slice(0, 24) + "…"
+                    : pending.name;
+                return { text: `✦ ${name}`, color: "purple" };
               })
               .catch(() => ({ text: "" }));
           },
@@ -603,21 +603,6 @@ TrelloPowerUp.initialize({
             title: "Progress Cards",
             url: "./progress-cards.html",
             height: 560,
-            mouseEvent: opts.mouseEvent,
-          });
-        },
-      },
-    ];
-  },
-  "list-actions": function (t, opts) {
-    return [
-      {
-        text: "Progress",
-        callback: function (t, opts) {
-          return t.popup({
-            title: "Progress Cards",
-            url: "./progress-cards.html",
-            height: 1000,
             mouseEvent: opts.mouseEvent,
           });
         },
