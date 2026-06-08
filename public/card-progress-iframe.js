@@ -475,63 +475,93 @@ function render() {
           c.timer
             ? ""
             : `
-<div class="section-body">
-  <div class="timer-row">
-    <div class="timer-stats">
-      <div class="timer-stat">
-        <span class="timer-stat-label">Elapsed</span>
-        <span class="timer-display${state.running ? " running" : ""}" id="timerDisplay">${formatHM(elapsed)}</span>
-      </div>
-      ${state.progressSource === "timer" ? `
-      <div class="timer-stat">
-        <span class="timer-stat-label">Target</span>
-        <input id="estInput" class="est-input-inline" value="${formatHM(active.estimated)}" />
-      </div>` : ""}
-    </div>
-    <div class="timer-right">
-      ${state.running
-        ? `<button id="timerBtn" class="btn-timer-stop">${stopIcon} Stop</button>`
-        : `<button id="timerBtn" class="btn-timer-start">${playIcon} ${elapsed > 0 ? "Resume" : "Start"}</button>`}
-      <button id="resetBtn" class="btn-reset" title="Reset">${resetIcon}</button>
-    </div>
-  </div>
-  ${state.running && state.trackingUnit !== "hours"
-    ? `<div id="sessionTicker" class="session-ticker">00:00:00</div>` : ""}
+        <div class="section-body">
 
-  ${state.history && state.history.length > 0 ? `
-  <div class="log-divider"></div>
-  <div class="log-sub-header">
-    <span class="log-sub-title">Activity Log</span>
-    <div class="view-toggle">
-      <button data-view="list" class="view-btn${state.logView === "list" ? " active" : ""}">LIST</button>
-      <button data-view="line" class="view-btn${state.logView === "line" ? " active" : ""}">LINE</button>
-      <button data-view="bar"  class="view-btn${state.logView === "bar"  ? " active" : ""}">BAR</button>
+          <!-- Timer controls -->
+          <div class="timer-row">
+  <div class="timer-stats">
+    <div class="timer-stat">
+      <span class="timer-stat-label">Elapsed</span>
+      <span class="timer-display${state.running ? " running" : ""}" id="timerDisplay">${formatHM(elapsed)}</span>
     </div>
+    ${
+      state.progressSource === "timer"
+        ? `
+    <div class="timer-stat">
+      <span class="timer-stat-label">Target</span>
+      <input id="estInput" class="est-input-inline" value="${formatHM(active.estimated)}" />
+    </div>`
+        : ""
+    }
   </div>
-  ${state.logView === "list" ? `
-    <div class="history-list">
-      ${logsToShow.map((h, i) => {
-        const actualIdx = state.history.length - 1 - i;
-        const sessionLabel = h.label || `Session ${actualIdx + 1}`;
-        return `<div class="history-item">
-          <span class="meta">${h.date} · ${h.time}</span>
-          <span class="session-label-wrap">
-            <span class="session-label">${sessionLabel}</span>
-            <button class="session-edit-btn" data-idx="${actualIdx}" title="Rename">
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zm2.92 1.42L14.06 10.5l1.44 1.44-8.14 8.17H5.92v-1.42zM20.71 5.63l-2.34-2.34a1 1 0 00-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83a1 1 0 000-1.41z"/></svg>
-            </button>
-          </span>
-          <span class="val">+${formatHM(h.seconds)}</span>
-        </div>`;
-      }).join("")}
-      ${state.history.length > 3 ? `
-        <button id="showMoreBtn" class="show-more-btn">
-          ${state.showAllLogs ? "↑ Show less" : "↓ Show more"}
-        </button>` : ""}
-    </div>
-  ` : generateChartSVG(state.logView)}
-  ` : ""}
+            <div class="timer-meta">
+  <span class="timer-meta-pill">Target <input id="estInput" class="est-input" value="${formatHM(active.estimated)}" /></span>
 </div>
+            <div class="timer-right">
+              ${
+                state.running
+                  ? `<button id="timerBtn" class="btn-timer-stop">${stopIcon} Stop</button>`
+                  : `<button id="timerBtn" class="btn-timer-start">${playIcon} ${elapsed > 0 ? "Resume" : "Start"}</button>`
+              }
+              <button id="resetBtn" class="btn-reset" title="Reset">${resetIcon}</button>
+            </div>
+          </div>
+          ${
+            state.running && state.trackingUnit !== "hours"
+              ? `<div id="sessionTicker" class="session-ticker">00:00:00</div>`
+              : ""
+          }
+
+          <!-- Activity Log (inside same dropdown) -->
+          ${
+            state.history && state.history.length > 0
+              ? `
+          <div class="log-divider"></div>
+          <div class="log-sub-header">
+            <span class="log-sub-title">Activity Log</span>
+            <div class="view-toggle">
+              <button data-view="list" class="view-btn${state.logView === "list" ? " active" : ""}">LIST</button>
+              <button data-view="line" class="view-btn${state.logView === "line" ? " active" : ""}">LINE</button>
+              <button data-view="bar"  class="view-btn${state.logView === "bar" ? " active" : ""}">BAR</button>
+            </div>
+          </div>
+          ${
+            state.logView === "list"
+              ? `
+            <div class="history-list">
+              ${logsToShow
+                .map((h, i) => {
+                  const actualIdx = state.history.length - 1 - i;
+                  const sessionLabel = h.label || `Session ${actualIdx + 1}`;
+                  return `<div class="history-item">
+                  <span class="meta">${h.date} · ${h.time}</span>
+                  <span class="session-label-wrap">
+                    <span class="session-label" data-idx="${actualIdx}">${sessionLabel}</span>
+                    <button class="session-edit-btn" data-idx="${actualIdx}" title="Rename">
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zm2.92 1.42L14.06 10.5l1.44 1.44-8.14 8.17H5.92v-1.42zM20.71 5.63l-2.34-2.34a1 1 0 00-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83a1 1 0 000-1.41z"/></svg>
+                    </button>
+                  </span>
+                  <span class="val">+${formatHMS(h.seconds)}</span>
+                </div>`;
+                })
+                .join("")}
+              ${
+                state.history.length > 3
+                  ? `
+                <button id="showMoreBtn" class="show-more-btn">
+                  ${state.showAllLogs ? "↑ Show less" : "↓ Show more"}
+                </button>`
+                  : ""
+              }
+            </div>
+          `
+              : generateChartSVG(state.logView)
+          }
+          `
+              : ""
+          }
+
+        </div>`
         }
       </div>
 
