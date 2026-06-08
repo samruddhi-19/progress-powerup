@@ -47,6 +47,9 @@ async function loadUI() {
 
 async function setBoard(key, value) {
   await t.set("board", "shared", key, value);
+
+  // 🔥 Force UI awareness (temporary fix)
+  t.alert({ message: "Setting updated" });
 }
 
 function bind() {

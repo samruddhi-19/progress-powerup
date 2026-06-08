@@ -791,3 +791,13 @@ function bindEvents() {
     });
   });
 }
+
+setInterval(async () => {
+  const all = await t.getAll();
+  const shared = all?.board?.shared || {};
+
+  boardSettings.hideEta = shared.hideEta ?? false;
+  boardSettings.hideSubtask = shared.hideSubtask ?? false;
+
+  render(); // 🔥 THIS is the missing piece
+}, 2000);
