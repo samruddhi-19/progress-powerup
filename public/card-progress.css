@@ -418,3 +418,30 @@ input[type="time"]::-webkit-calendar-picker-indicator {
   justify-content: space-between; gap: 8px; margin-bottom: 8px;
 }
 
+/* ── Log divider (inside Time Tracking dropdown) ── */
+.log-divider {
+  height: 1px;
+  background: rgba(255,255,255,0.06);
+  margin: 10px 0 8px;
+}
+
+.log-sub-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.log-sub-title {
+  font-size: 10px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  color: #596773;
+}
+
+.log-count-inline {
+  font-size: 10px; font-weight: 600;
+  color: #579dff;
+  background: rgba(87,157,255,0.12);
+  padding: 2px 7px; border-radius: 99px;
+  margin-left: 6px;
+}
