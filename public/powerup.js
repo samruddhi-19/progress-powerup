@@ -321,13 +321,20 @@ TrelloPowerUp.initialize({
           text: `📅 ${etaStr}`,
           color: "yellow",
           dynamic: function (t) {
-            return getCardData(t)
-              .then(function (d) {
-                if (!d) return { text: "", color: "yellow" };
-                const s = formatETA(d.etaDate, d.etaTime);
-                return !hideEta && s
-                  ? { text: `📅 ${s}`, color: "yellow" }
-                  : { text: "" };
+            return Promise.all([
+              getCardData(t),
+              t.get("board", "shared", "hideSubtask"),
+            ])
+              .then(function ([d, rawHideSubtaskFresh]) {
+                if (!d) return { text: "" };
+                const hideSubtaskFresh = rawHideSubtaskFresh ?? true;
+                const pending = (d.tasks || []).find((tk) => !tk.done);
+                if (!pending || hideSubtaskFresh) return { text: "" };
+                const name =
+                  pending.name.length > 24
+                    ? pending.name.slice(0, 24) + "…"
+                    : pending.name;
+                return { text: `✦ ${name}`, color: "purple" };
               })
               .catch(() => ({ text: "" }));
           },
@@ -349,18 +356,19 @@ TrelloPowerUp.initialize({
           color: "purple",
 
           dynamic: function (t) {
-            return getCardData(t)
-              .then(function (d) {
+            return Promise.all([
+              getCardData(t),
+              t.get("board", "shared", "hideSubtask"),
+            ])
+              .then(function ([d, rawHideSubtaskFresh]) {
                 if (!d) return { text: "" };
-
+                const hideSubtaskFresh = rawHideSubtaskFresh ?? true;
                 const pending = (d.tasks || []).find((tk) => !tk.done);
-                if (!pending || hideSubtask) return { text: "" };
-
+                if (!pending || hideSubtaskFresh) return { text: "" };
                 const name =
                   pending.name.length > 24
                     ? pending.name.slice(0, 24) + "…"
                     : pending.name;
-
                 return { text: `✦ ${name}`, color: "purple" };
               })
               .catch(() => ({ text: "" }));
@@ -458,13 +466,17 @@ TrelloPowerUp.initialize({
         badges.push({
           title: "ETA",
           dynamic: function (t) {
-            return getCardData(t)
-              .then(function (d) {
-                if (!d) return { text: "" };
-                const s = formatETA(d.etaDate, d.etaTime);
-                return s ? { text: `📅 ${s}`, color: "yellow" } : { text: "" };
-              })
-              .catch(() => ({ text: "" }));
+            return Promise.all([
+              getCardData(t),
+              t.get("board", "shared", "hideEta"),
+            ]).then(function ([d, rawHideEtaFresh]) {
+              if (!d) return { text: "" };
+              const hideEtaFresh = rawHideEtaFresh ?? true;
+              const s = formatETA(d.etaDate, d.etaTime);
+              return !hideEtaFresh && s
+                ? { text: `📅 ${s}`, color: "yellow" }
+                : { text: "" };
+            }).catch(() => ({ text: "" }));
           },
           refresh: 60,
         });
@@ -476,18 +488,20 @@ TrelloPowerUp.initialize({
         badges.push({
           title: "Sub Task",
           dynamic: function (t) {
-            return getCardData(t)
-              .then(function (d) {
-                if (!d) return { text: "" };
-                const pending = (d.tasks || []).find((tk) => !tk.done);
-                if (!pending) return { text: "" };
-                const name =
-                  pending.name.length > 24
-                    ? pending.name.slice(0, 24) + "…"
-                    : pending.name;
-                return { text: `✦ ${name}`, color: "purple" };
-              })
-              .catch(() => ({ text: "" }));
+            return Promise.all([
+              getCardData(t),
+              t.get("board", "shared", "hideSubtask"),
+            ]).then(function ([d, rawHideSubtaskFresh]) {
+              if (!d) return { text: "" };
+              const hideSubtaskFresh = rawHideSubtaskFresh ?? true;
+              const pending = (d.tasks || []).find((tk) => !tk.done);
+              if (!pending || hideSubtaskFresh) return { text: "" };
+              const name =
+                pending.name.length > 24
+                  ? pending.name.slice(0, 24) + "…"
+                  : pending.name;
+              return { text: `✦ ${name}`, color: "purple" };
+            }).catch(() => ({ text: "" }));
           },
           refresh: 30,
         });
@@ -577,30 +591,34 @@ TrelloPowerUp.initialize({
   },
 
   /* ── List actions ── */
- "list-actions": function(t, opts) {
-  return [{
-    text: "Progress",
-    callback: function(t, opts) {
-      return t.popup({
-        title: "Progress Cards",
-        url: "./progress-cards.html",
-        height: 560,
-        mouseEvent: opts.mouseEvent,
-      });
-    }
-  }];
-},"list-actions": function(t, opts) {
-  return [{
-    text: "Progress",
-    callback: function(t, opts) {
-      return t.popup({
-        title: "Progress Cards",
-        url: "./progress-cards.html",
-        height: 1000,
-        mouseEvent: opts.mouseEvent,
-      });
-    }
-  }];
-},
-
+  "list-actions": function (t, opts) {
+    return [
+      {
+        text: "Progress",
+        callback: function (t, opts) {
+          return t.popup({
+            title: "Progress Cards",
+            url: "./progress-cards.html",
+            height: 560,
+            mouseEvent: opts.mouseEvent,
+          });
+        },
+      },
+    ];
+  },
+  "list-actions": function (t, opts) {
+    return [
+      {
+        text: "Progress",
+        callback: function (t, opts) {
+          return t.popup({
+            title: "Progress Cards",
+            url: "./progress-cards.html",
+            height: 1000,
+            mouseEvent: opts.mouseEvent,
+          });
+        },
+      },
+    ];
+  },
 });
