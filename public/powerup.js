@@ -596,7 +596,7 @@ TrelloPowerUp.initialize({
       return t.popup({
         title: "Progress Cards",
         url: "./progress-cards.html",
-        height: 900,
+        height: 1000,
         mouseEvent: opts.mouseEvent,
       });
     }
