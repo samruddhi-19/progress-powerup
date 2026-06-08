@@ -577,18 +577,28 @@ TrelloPowerUp.initialize({
   },
 
   /* ── List actions ── */
-  "list-actions": function(t) {
+ "list-actions": function(t, opts) {
   return [{
     text: "Progress",
-    callback: function(t) {
-      t.closePopup();
-      setTimeout(() => {
-        t.popup({
-          title: "Progress Cards",
-          url: "./progress-cards.html",
-          height: 560,
-        });
-      }, 100);
+    callback: function(t, opts) {
+      return t.popup({
+        title: "Progress Cards",
+        url: "./progress-cards.html",
+        height: 560,
+        mouseEvent: opts.mouseEvent,
+      });
+    }
+  }];
+},"list-actions": function(t, opts) {
+  return [{
+    text: "Progress",
+    callback: function(t, opts) {
+      return t.popup({
+        title: "Progress Cards",
+        url: "./progress-cards.html",
+        height: 560,
+        mouseEvent: opts.mouseEvent,
+      });
     }
   }];
 },
