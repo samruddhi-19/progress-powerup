@@ -12,6 +12,11 @@ const UNIT_LABELS = {
   months: "Monthly",
 };
 
+let boardSettings = {
+  hideEta: false,
+  hideSubtask: false,
+};
+
 let state = {
   trackingUnit: "hours",
   running: false,
@@ -140,6 +145,11 @@ async function load() {
   try {
     await fetchCardMeta();
     const saved = (await t.get("card", "shared")) || {};
+    const all = await t.getAll();
+    const shared = all?.board?.shared || {};
+
+    boardSettings.hideEta = shared.hideEta ?? false;
+    boardSettings.hideSubtask = shared.hideSubtask ?? false;
     if (saved.data) state.data = saved.data;
     if (saved.history) state.history = saved.history;
     if (saved.tasks) state.tasks = saved.tasks;
@@ -398,28 +408,46 @@ function render() {
       </div>
 
       <!-- ETA -->
-      <div class="section">
-        <div class="section-header collapsible" data-toggle="eta">
-          <div class="section-header-left">
-            ${chevron(c.eta)}
-            <span class="section-title">ETA</span>
-          </div>
-          ${state.etaDate ? `<span class="section-meta">${state.etaDate}${state.etaTime ? " · " + state.etaTime : ""}</span>` : ""}
-        </div>
-        ${
-          c.eta
-            ? ""
-            : `
-        <div class="section-body">
-          <div class="eta-row">
-            <span class="eta-label">Due</span>
-            <input id="etaDate" type="date" class="eta-input" value="${state.etaDate}" />
-            <span class="eta-sep">at</span>
-            <input id="etaTime" type="time" class="eta-input" value="${state.etaTime}" />
-          </div>
-        </div>`
-        }
-      </div>
+${
+  boardSettings.hideEta
+    ? ""
+    : `
+<div class="section">
+
+  <div class="section-header collapsible" data-toggle="eta">
+    <div class="section-header-left">
+      ${chevron(c.eta)}
+      <span class="section-title">ETA</span>
+    </div>
+    ${
+      state.etaDate
+        ? `
+      <span class="section-meta">
+        ${state.etaDate}${state.etaTime ? " • " + state.etaTime : ""}
+      </span>
+    `
+        : ""
+    }
+  </div>
+
+  ${
+    c.eta
+      ? ""
+      : `
+  <div class="section-body">
+    <div class="eta-row">
+      <span class="eta-label">Due</span>
+      <input id="etaDate" type="date" class="eta-input" value="${state.etaDate || ""}" />
+      <span class="eta-sep">at</span>
+      <input id="etaTime" type="time" class="eta-input" value="${state.etaTime || ""}" />
+    </div>
+  </div>
+  `
+  }
+
+</div>
+`
+}
 
       <!-- Tasks -->
       <div class="section">
