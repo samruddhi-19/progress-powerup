@@ -599,11 +599,14 @@ TrelloPowerUp.initialize({
       {
         text: "Progress",
         callback: function (t, opts) {
-          return t.popup({
-            title: "Progress Cards",
-            url: "./progress-cards.html",
-            height: 560,
-            mouseEvent: opts.mouseEvent,
+          return t.list("id", "name").then(function (list) {
+            return t.popup({
+              title: "Progress Cards",
+              url: "./progress-cards.html",
+              height: 560,
+              mouseEvent: opts.mouseEvent,
+              args: { listId: list.id, listName: list.name },
+            });
           });
         },
       },
