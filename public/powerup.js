@@ -66,7 +66,6 @@ function formatETA(etaDate, etaTime) {
   if (!etaDate) return null;
   try {
     let iso = etaDate;
-    // Handle DD-MM-YYYY format from some locales
     if (/^\d{2}-\d{2}-\d{4}$/.test(etaDate)) {
       const [d, m, y] = etaDate.split("-");
       iso = `${y}-${m}-${d}`;
@@ -101,7 +100,6 @@ async function getCardData(t) {
     return defaults;
   }
 
-  // Mapped but no data yet — initialise fresh
   const mappedCards = await t.get("board", "shared", "mappedCards");
   if (mappedCards && mappedCards.includes(card.id)) {
     const fresh = {
@@ -213,11 +211,10 @@ TrelloPowerUp.initialize({
 
   /* ══════════════════════════════════════════
      CARD BADGES
-     Shows on mapped cards only.
      Badge 1: progress bar + %
      Badge 2: ⏱ elapsed time
-     Badge 3: 📅 ETA (if set)
-     Badge 4: ✦ first incomplete subtask (if any)
+     Badge 3: 📅 ETA (if set and not hidden)
+     Badge 4: ✦ first incomplete subtask (if any and not hidden)
   ══════════════════════════════════════════ */
   "card-badges": async function (t) {
     try {
@@ -242,8 +239,9 @@ TrelloPowerUp.initialize({
         t.get("board", "shared", "hideEta"),
         t.get("board", "shared", "hideSubtask"),
       ]);
-     const hideEta = rawHideEta ?? false;
-const hideSubtask = rawHideSubtask ?? false;
+
+      const hideEta = rawHideEta ?? true;
+      const hideSubtask = rawHideSubtask ?? true;
 
       if (hideBadges || !data || data.disabledProgress) return [];
 
@@ -313,7 +311,7 @@ const hideSubtask = rawHideSubtask ?? false;
         });
       }
 
-      /* ── Badge 3: ETA (only if user has set it) ── */
+      /* ── Badge 3: ETA ── */
       const etaStr = formatETA(data.etaDate, data.etaTime);
       if (!hideEta && etaStr) {
         badges.push({
@@ -323,18 +321,15 @@ const hideSubtask = rawHideSubtask ?? false;
           dynamic: function (t) {
             return Promise.all([
               getCardData(t),
-              t.get("board", "shared", "hideSubtask"),
+              t.get("board", "shared", "hideEta"),
             ])
-              .then(function ([d, rawHideSubtaskFresh]) {
+              .then(function ([d, rawHideEtaFresh]) {
                 if (!d) return { text: "" };
-                const hideSubtaskFresh = rawHideSubtaskFresh ?? true;
-                const pending = (d.tasks || []).find((tk) => !tk.done);
-                if (!pending || hideSubtaskFresh) return { text: "" };
-                const name =
-                  pending.name.length > 24
-                    ? pending.name.slice(0, 24) + "…"
-                    : pending.name;
-                return { text: `✦ ${name}`, color: "purple" };
+                const hideEtaFresh = rawHideEtaFresh ?? true;
+                const s = formatETA(d.etaDate, d.etaTime);
+                return !hideEtaFresh && s
+                  ? { text: `📅 ${s}`, color: "yellow" }
+                  : { text: "" };
               })
               .catch(() => ({ text: "" }));
           },
@@ -342,7 +337,7 @@ const hideSubtask = rawHideSubtask ?? false;
         });
       }
 
-      /* ── Badge 4: First incomplete subtask (only if tasks exist) ── */
+      /* ── Badge 4: First incomplete subtask ── */
       const tasks = data.tasks || [];
       const firstPending = tasks.find((tk) => !tk.done);
       if (!hideSubtask && firstPending) {
@@ -354,7 +349,6 @@ const hideSubtask = rawHideSubtask ?? false;
           title: "Sub Task",
           text: `✦ ${taskText}`,
           color: "purple",
-
           dynamic: function (t) {
             return Promise.all([
               getCardData(t),
@@ -373,7 +367,6 @@ const hideSubtask = rawHideSubtask ?? false;
               })
               .catch(() => ({ text: "" }));
           },
-
           refresh: 30,
         });
       }
@@ -408,15 +401,18 @@ const hideSubtask = rawHideSubtask ?? false;
         t.get("board", "shared", "hideEta"),
         t.get("board", "shared", "hideSubtask"),
       ]);
-      const hideEta = rawHideEta ?? false;
-const hideSubtask = rawHideSubtask ?? false;
+
+      const hideEta = rawHideEta ?? true;
+      const hideSubtask = rawHideSubtask ?? true;
 
       if (hideDetail || !data || data.disabledProgress) return [];
 
       const badges = [];
+
       if (data.focusMode)
         badges.push({ title: "Focus", text: "🎯 Focus ON", color: "red" });
 
+      /* ── Progress ── */
       badges.push({
         title: "Progress",
         dynamic: function (t) {
@@ -443,6 +439,7 @@ const hideSubtask = rawHideSubtask ?? false;
         refresh: 30,
       });
 
+      /* ── Timer ── */
       if (!hideTimer) {
         badges.push({
           title: "Time",
@@ -461,47 +458,53 @@ const hideSubtask = rawHideSubtask ?? false;
         });
       }
 
+      /* ── ETA ── */
       const etaStr = formatETA(data.etaDate, data.etaTime);
-      if (etaStr) {
+      if (!hideEta && etaStr) {
         badges.push({
           title: "ETA",
           dynamic: function (t) {
             return Promise.all([
               getCardData(t),
               t.get("board", "shared", "hideEta"),
-            ]).then(function ([d, rawHideEtaFresh]) {
-              if (!d) return { text: "" };
-              const hideEtaFresh = rawHideEtaFresh ?? true;
-              const s = formatETA(d.etaDate, d.etaTime);
-              return !hideEtaFresh && s
-                ? { text: `📅 ${s}`, color: "yellow" }
-                : { text: "" };
-            }).catch(() => ({ text: "" }));
+            ])
+              .then(function ([d, rawHideEtaFresh]) {
+                if (!d) return { text: "" };
+                const hideEtaFresh = rawHideEtaFresh ?? true;
+                const s = formatETA(d.etaDate, d.etaTime);
+                return !hideEtaFresh && s
+                  ? { text: `📅 ${s}`, color: "yellow" }
+                  : { text: "" };
+              })
+              .catch(() => ({ text: "" }));
           },
           refresh: 60,
         });
       }
 
+      /* ── Sub Task ── */
       const tasks = data.tasks || [];
       const firstPending = tasks.find((tk) => !tk.done);
-      if (firstPending) {
+      if (!hideSubtask && firstPending) {
         badges.push({
           title: "Sub Task",
           dynamic: function (t) {
             return Promise.all([
               getCardData(t),
               t.get("board", "shared", "hideSubtask"),
-            ]).then(function ([d, rawHideSubtaskFresh]) {
-              if (!d) return { text: "" };
-              const hideSubtaskFresh = rawHideSubtaskFresh ?? true;
-              const pending = (d.tasks || []).find((tk) => !tk.done);
-              if (!pending || hideSubtaskFresh) return { text: "" };
-              const name =
-                pending.name.length > 24
-                  ? pending.name.slice(0, 24) + "…"
-                  : pending.name;
-              return { text: `✦ ${name}`, color: "purple" };
-            }).catch(() => ({ text: "" }));
+            ])
+              .then(function ([d, rawHideSubtaskFresh]) {
+                if (!d) return { text: "" };
+                const hideSubtaskFresh = rawHideSubtaskFresh ?? true;
+                const pending = (d.tasks || []).find((tk) => !tk.done);
+                if (!pending || hideSubtaskFresh) return { text: "" };
+                const name =
+                  pending.name.length > 24
+                    ? pending.name.slice(0, 24) + "…"
+                    : pending.name;
+                return { text: `✦ ${name}`, color: "purple" };
+              })
+              .catch(() => ({ text: "" }));
           },
           refresh: 30,
         });
@@ -592,33 +595,21 @@ const hideSubtask = rawHideSubtask ?? false;
 
   /* ── List actions ── */
   "list-actions": function (t, opts) {
-    return [
-      {
-        text: "Progress",
-        callback: function (t, opts) {
+  return [
+    {
+      text: "Progress",
+      callback: function (t, opts) {
+        return t.list("id", "name").then(function (list) {
           return t.popup({
             title: "Progress Cards",
             url: "./progress-cards.html",
             height: 560,
             mouseEvent: opts.mouseEvent,
+            args: { listId: list.id, listName: list.name },
           });
-        },
+        });
       },
-    ];
-  },
-  "list-actions": function (t, opts) {
-    return [
-      {
-        text: "Progress",
-        callback: function (t, opts) {
-          return t.popup({
-            title: "Progress Cards",
-            url: "./progress-cards.html",
-            height: 1000,
-            mouseEvent: opts.mouseEvent,
-          });
-        },
-      },
-    ];
-  },
+    },
+  ];
+},
 });
