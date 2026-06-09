@@ -809,8 +809,16 @@ setInterval(async () => {
   const all = await t.getAll();
   const shared = all?.board?.shared || {};
 
-  boardSettings.hideEta = shared.hideEta ?? true;
-  boardSettings.hideSubtask = shared.hideSubtask ?? true;
+  const newHideEta = shared.hideEta ?? true;
+  const newHideSubtask = shared.hideSubtask ?? true;
 
-  render();
+  // Only re-render if settings actually changed — prevents interrupting user input
+  if (
+    newHideEta !== boardSettings.hideEta ||
+    newHideSubtask !== boardSettings.hideSubtask
+  ) {
+    boardSettings.hideEta = newHideEta;
+    boardSettings.hideSubtask = newHideSubtask;
+    render();
+  }
 }, 2000);
