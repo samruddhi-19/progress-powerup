@@ -252,10 +252,17 @@ async function loadCards() {
     }));
 
     // Pre-check already-mapped cards so they show as selected on open
+    // Pre-check already-mapped cards so they show as selected on open
     const alreadyMapped = (await t.get("board", "shared", "mappedCards")) || [];
     alreadyMapped.forEach((id) => selectedIds.add(id));
 
-    renderListView();
+    // If opened from a list context menu, skip straight to that list's cards
+    const args = t.arg("listId") ? { listId: t.arg("listId"), listName: t.arg("listName") } : null;
+    if (args && args.listId) {
+      navigateToCards(args.listId, args.listName);
+    } else {
+      renderListView();
+    }
     updateFooter();
   } catch (err) {
     qs("viewContainer").innerHTML =

@@ -595,21 +595,21 @@ TrelloPowerUp.initialize({
 
   /* ── List actions ── */
   "list-actions": function (t, opts) {
-    return [
-      {
-        text: "Progress",
-        callback: function (t, opts) {
-          return t.list("id", "name").then(function (list) {
-            return t.popup({
-              title: "Progress Cards",
-              url: "./progress-cards.html",
-              height: 560,
-              mouseEvent: opts.mouseEvent,
-              args: { listId: list.id, listName: list.name },
-            });
+  return [
+    {
+      text: "Progress",
+      callback: function (t, opts) {
+        return t.list("id", "name").then(function (list) {
+          return t.popup({
+            title: "Progress Cards",
+            url: "./progress-cards.html",
+            height: 560,
+            mouseEvent: opts.mouseEvent,
+            args: { listId: list.id, listName: list.name },
           });
-        },
+        });
       },
-    ];
-  },
+    },
+  ];
+},
 });
