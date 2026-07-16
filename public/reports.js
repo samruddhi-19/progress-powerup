@@ -100,11 +100,14 @@
             <td><span class="badge" style="background:${bg};color:${fg}">${r.rating}</span></td></tr>`;
         }).join(""):`<tr><td colspan="5" class="empty-cell">No stored periods yet — this ${mode==="monthly"?"month":"week"} is being recorded now and history will build over time.</td></tr>`;
 
-        const metric=(chipBg,chipFg,iconKey,val,lbl)=>`
+        const metric=(chipBg,chipFg,iconKey,val,lbl,tip)=>`
           <div class="card metric">
             <div class="chip" style="background:${chipBg};color:${chipFg}">${icon(ICONS[iconKey])}</div>
-            <div class="val" style="color:${chipFg}">${val}</div>
-            <div class="lbl">${lbl}</div>
+            <div class="mtext">
+              <div class="val" style="color:${chipFg}">${val}</div>
+              <div class="lbl">${lbl}</div>
+            </div>
+            <div class="tip">${tip}</div>
           </div>`;
 
         app().innerHTML=`
@@ -112,10 +115,10 @@
             <div class="seg"><button data-mode="weekly" class="${mode==="weekly"?"on":""}">Weekly report</button><button data-mode="monthly" class="${mode==="monthly"?"on":""}">Monthly report</button></div>
           </div>
           <div class="metrics">
-            ${metric("var(--green-bg)","var(--green-fg)","check",m.active,"Total active cards")}
-            ${metric("var(--blue-bg)","var(--blue-fg)","target",m.achieved,"Completed cards")}
-            ${metric("var(--amber-bg)","var(--amber-fg)","clock",m.hours,"Total hours tracked")}
-            ${metric("var(--red-bg)","var(--red-fg)","warn",m.overtime,"Overtime warning")}
+            ${metric("var(--green-bg)","var(--green-fg)","check",m.active,"Total active cards","Total cards where work is ongoing")}
+            ${metric("var(--blue-bg)","var(--blue-fg)","target",m.achieved,"Completed cards","Cards that reached 100% progress")}
+            ${metric("var(--amber-bg)","var(--amber-fg)","clock",m.hours,"Total hours tracked","Total hours you worked across tracked cards")}
+            ${metric("var(--red-bg)","var(--red-fg)","warn",m.overtime,"Overtime warning","Cards where tracked time exceeded the estimate")}
           </div>
           <div class="charts">
             <div class="card" style="padding:12px 14px">
