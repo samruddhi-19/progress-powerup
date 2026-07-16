@@ -18,21 +18,62 @@
         dl:'<path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M4 21h16"/>',
       };
 
-      function barChart(values){
-        const w=280,h=130,pad=14,base=h-18,max=Math.max(...values,1);
-        const bw=20,gap=(w-pad*2-bw*values.length)/(values.length-1||1);
-        let bars="";
-        values.forEach((v,i)=>{const bh=Math.round(v/max*(base-12)),x=pad+i*(bw+gap),y=base-bh;
-          bars+=`<rect x="${x}" y="${y}" width="${bw}" height="${bh}" rx="4" fill="${SERIES[i%SERIES.length]}"/>`;});
-        return `<svg viewBox="0 0 ${w} ${h}" width="100%" role="img" aria-label="Deadline achievement bar chart"><line x1="${pad}" y1="${base}" x2="${w-pad}" y2="${base}" stroke="var(--border)"/>${bars}</svg>`;
+      /* ── charts: fixed 100-based scale for %, gridlines, labels, graceful sparse data ── */
+      const CH={w:320,h:132,l:34,r:10,t:16,b:22};
+      function gridlines(max,fmt){
+        const steps=[0,.5,1];const g=[];
+        steps.forEach(s=>{
+          const y=CH.h-CH.b-s*(CH.h-CH.t-CH.b);
+          g.push(`<line x1="${CH.l}" y1="${y.toFixed(1)}" x2="${CH.w-CH.r}" y2="${y.toFixed(1)}" stroke="var(--track)" stroke-width="1"/>`+
+                 `<text x="${CH.l-6}" y="${(y+3.5).toFixed(1)}" text-anchor="end" font-size="9" fill="var(--muted)">${fmt(s*max)}</text>`);
+        });
+        return g.join("");
       }
-      function lineChart(values){
-        const w=280,h=130,pad=16,base=h-18,top=14,max=Math.max(...values,1);
-        const step=(w-pad*2)/(values.length-1||1);
-        const pts=values.map((v,i)=>[pad+i*step,base-v/max*(base-top)]);
-        const poly=pts.map(p=>`${p[0]},${p[1].toFixed(1)}`).join(" ");
-        const dots=pts.map(p=>`<circle cx="${p[0]}" cy="${p[1].toFixed(1)}" r="3.5" fill="#1baf7a"/>`).join("");
-        return `<svg viewBox="0 0 ${w} ${h}" width="100%" role="img" aria-label="Hours tracked line chart"><line x1="${pad}" y1="${base}" x2="${w-pad}" y2="${base}" stroke="var(--border)"/><polyline points="${poly}" fill="none" stroke="#1baf7a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>${dots}</svg>`;
+      function emptyChart(msg){
+        return `<svg viewBox="0 0 ${CH.w} ${CH.h}" width="100%" role="img" aria-label="${msg}">
+          <text x="${CH.w/2}" y="${CH.h/2}" text-anchor="middle" font-size="11" fill="var(--muted)">${msg}</text></svg>`;
+      }
+      function barChart(values,labels){
+        if(!values.length||values.every(v=>v===0&&values.length<2))
+          return values.length?barChartDraw(values,labels):emptyChart("No periods recorded yet");
+        return barChartDraw(values,labels);
+      }
+      function barChartDraw(values,labels){
+        const max=100; /* deadline % — fixed scale so bars are comparable across periods */
+        const innerW=CH.w-CH.l-CH.r,innerH=CH.h-CH.t-CH.b,base=CH.h-CH.b;
+        const n=values.length;
+        const bw=Math.min(26,Math.max(10,innerW/n*0.5));
+        const step=innerW/n;
+        let bars="";
+        values.forEach((v,i)=>{
+          const bh=Math.max(2,v/max*innerH);
+          const x=CH.l+i*step+(step-bw)/2, y=base-bh;
+          bars+=`<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}" height="${bh.toFixed(1)}" rx="3" fill="var(--accent)" opacity="${0.55+0.45*(i+1)/n}"/>`+
+                `<text x="${(x+bw/2).toFixed(1)}" y="${(y-4).toFixed(1)}" text-anchor="middle" font-size="9" font-weight="600" fill="var(--dim)">${v}%</text>`+
+                (labels&&labels[i]?`<text x="${(x+bw/2).toFixed(1)}" y="${base+13}" text-anchor="middle" font-size="8.5" fill="var(--muted)">${labels[i]}</text>`:"");
+        });
+        return `<svg viewBox="0 0 ${CH.w} ${CH.h}" width="100%" role="img" aria-label="Deadline achievement bar chart">
+          ${gridlines(max,v=>v+"%")}${bars}</svg>`;
+      }
+      function lineChart(values,labels){
+        if(!values.length||(values.length===1&&values[0]===0))
+          return emptyChart("No tracked sessions yet");
+        const max=Math.max(...values,1)*1.15;
+        const innerW=CH.w-CH.l-CH.r,innerH=CH.h-CH.t-CH.b,base=CH.h-CH.b;
+        const step=values.length>1?innerW/(values.length-1):0;
+        const pts=values.map((v,i)=>[CH.l+(values.length>1?i*step:innerW/2),base-(v/max)*innerH]);
+        const poly=pts.map(p=>`${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(" ");
+        const area=`${CH.l},${base} ${poly} ${pts[pts.length-1][0].toFixed(1)},${base}`;
+        const dots=pts.map((p,i)=>
+          `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="3" fill="var(--card)" stroke="#1baf7a" stroke-width="2"/>`+
+          `<text x="${p[0].toFixed(1)}" y="${(p[1]-7).toFixed(1)}" text-anchor="middle" font-size="9" font-weight="600" fill="var(--dim)">${values[i]}</text>`+
+          (labels&&labels[i]?`<text x="${p[0].toFixed(1)}" y="${base+13}" text-anchor="middle" font-size="8.5" fill="var(--muted)">${labels[i]}</text>`:"")
+        ).join("");
+        return `<svg viewBox="0 0 ${CH.w} ${CH.h}" width="100%" role="img" aria-label="Hours tracked line chart">
+          ${gridlines(max,v=>v.toFixed(v>=10?0:1)+"h")}
+          <polygon points="${area}" fill="#1baf7a" opacity="0.09"/>
+          ${values.length>1?`<polyline points="${poly}" fill="none" stroke="#1baf7a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`:""}
+          ${dots}</svg>`;
       }
       function ratingColors(r){
         if(r==="Excellent")return["var(--green-bg)","var(--green-fg)","#22a06b"];
@@ -70,8 +111,8 @@
             <div class="card metric"><div class="chip" style="background:var(--red-bg);color:var(--red-fg)">${icon(ICONS.warn)}</div><div class="val" style="color:var(--red-fg)">${m.overtime}</div><div class="lbl">Overtime warning</div></div>
           </div>
           <div class="charts">
-            <div class="card" style="padding:15px"><div class="chart-h" style="color:var(--blue-fg)">${icon('<path d="M3 3v18h18"/><path d="M7 14v3M12 9v8M17 12v5"/>')}<span style="color:var(--text)">Deadline achievement trend</span></div>${barChart(d.deadlineTrend)}</div>
-            <div class="card" style="padding:15px"><div class="chart-h" style="color:var(--green-fg)">${icon('<path d="M3 3v18h18"/><path d="m6 15 4-4 3 3 5-6"/>')}<span style="color:var(--text)">Total hours tracked</span></div>${lineChart(d.hoursTracked)}</div>
+            <div class="card" style="padding:15px"><div class="chart-h" style="color:var(--blue-fg)">${icon('<path d="M3 3v18h18"/><path d="M7 14v3M12 9v8M17 12v5"/>')}<span style="color:var(--text)">Deadline achievement trend</span></div>${barChart(d.deadlineTrend,d.trendLabels)}</div>
+            <div class="card" style="padding:15px"><div class="chart-h" style="color:var(--green-fg)">${icon('<path d="M3 3v18h18"/><path d="m6 15 4-4 3 3 5-6"/>')}<span style="color:var(--text)">Total hours tracked</span></div>${lineChart(d.hoursTracked,d.hoursLabels)}</div>
           </div>
           <div class="card prod"><div class="chip" style="background:var(--blue-bg);color:var(--blue-fg);margin:0">${icon(ICONS.cal)}</div>
             <div><div class="cap">Most productivity day</div><div class="day">${d.productivityDay}</div></div>

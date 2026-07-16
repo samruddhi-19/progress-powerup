@@ -142,6 +142,7 @@ window.ProgressReport = (function () {
     const span = mode === "monthly" ? 12 : 7;
     const recent = dayKeys.slice(-span);
     const hoursTracked = recent.map((k) => +(byDay[k] / 3600).toFixed(1));
+    const hoursLabels = recent; // "Jul 15" style day keys
 
     /* most productivity day — weekday with most tracked time */
     const byWd = [0, 0, 0, 0, 0, 0, 0];
@@ -160,11 +161,18 @@ window.ProgressReport = (function () {
       overtime: h.overtime, deadline: h.deadline, rating: h.rating,
     }));
     const deadlineTrend = hist.map((h) => h.deadline);
+    const trendLabels = hist.map((h) => {
+      // short label: "Jul 12" from "Jul 12 – Jul 18, 2026" or "Jun 2026"
+      const r = String(h.range || "");
+      return r.split("–")[0].replace(/,.*$/, "").trim().slice(0, 8);
+    });
 
     return {
       metrics: { active, achieved: completed, hours: +(hoursSec / 3600).toFixed(1), overtime },
-      deadlineTrend: deadlineTrend.length ? deadlineTrend : [0],
-      hoursTracked: hoursTracked.length ? hoursTracked : [0],
+      deadlineTrend: deadlineTrend.length ? deadlineTrend : [],
+      trendLabels,
+      hoursTracked: hoursTracked.length ? hoursTracked : [],
+      hoursLabels,
       productivityDay,
       history,
     };
