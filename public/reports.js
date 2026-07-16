@@ -113,10 +113,8 @@
       function detectTheme(ctx){
         const url=new URLSearchParams(location.search).get("theme");
         const th=(ctx&&ctx.theme)||url;
-        if(th==="light"||th==="dark")return th;
-        // Unknown → match the rest of the Power-Up (dark) unless the OS explicitly prefers light
-        if(matchMedia&&matchMedia("(prefers-color-scheme: light)").matches)return "light";
-        return "dark";
+        // Default dark (matches the board + rest of the Power-Up); light only if Trello explicitly says so
+        return th==="light"?"light":"dark";
       }
       Promise.resolve(t.getContext?t.getContext():null)
         .then(ctx=>{document.documentElement.dataset.theme=detectTheme(ctx);})

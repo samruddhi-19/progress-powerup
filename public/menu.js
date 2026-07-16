@@ -73,10 +73,7 @@
       function detectTheme(ctx) {
         const url = new URLSearchParams(location.search).get("theme");
         const th = (ctx && ctx.theme) || url;
-        if (th === "light" || th === "dark") return th;
-        if (window.matchMedia && matchMedia("(prefers-color-scheme: light)").matches)
-          return "light";
-        return "dark";
+        return th === "light" ? "light" : "dark";
       }
       Promise.resolve(t.getContext ? t.getContext() : null)
         .then((ctx) => {
