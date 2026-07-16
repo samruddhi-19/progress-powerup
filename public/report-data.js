@@ -1,0 +1,174 @@
+/* global TrelloPowerUp */
+/*
+  Reports data layer.
+  window.ProgressReport.build(t, mode) -> {
+    metrics: { active, achieved, hours, overtime },
+    deadlineTrend: [%...],      // bar chart, per stored period (oldest -> newest)
+    hoursTracked: [hrs...],     // line chart, per day (from session logs)
+    productivityDay: "Tuesday",
+    history: [ { range,total,completed,overtime,deadline,rating } ]  // newest first
+  }
+  or { needsAuth: true } / { error: "..." }
+
+  NOTE: shares the Trello API key with card-progress-iframe.js. Centralise both
+  into one config when you do the personal/company key split.
+*/
+window.ProgressReport = (function () {
+  const API_KEY = "58a903ef47a68cf462fd91ad5101444e";
+  const WD = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  const MO = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+  /* ── per-card derivations (mirror card-progress-iframe.js) ── */
+  function computeProgress(s) {
+    if (!s) return 0;
+    if (s.progressSource === "manual") return Number(s.manualProgress) || 0;
+    if (s.progressSource === "tasks") {
+      if (!s.tasks || !s.tasks.length) return 0;
+      const done = s.tasks.filter((tk) => tk.done).length;
+      return Math.round((done / s.tasks.length) * 100);
+    }
+    const u = s.trackingUnit || "hours";
+    const a = (s.data && s.data[u]) || { elapsed: 0, estimated: 1 };
+    let el = Number(a.elapsed) || 0;
+    if (s.running && s.startTime) el += Math.floor((Date.now() - s.startTime) / 1000);
+    return Math.min(100, Math.round((el / (a.estimated || 1)) * 100));
+  }
+  function elapsedOf(s) {
+    const u = (s && s.trackingUnit) || "hours";
+    const a = (s && s.data && s.data[u]) || { elapsed: 0 };
+    let el = Number(a.elapsed) || 0;
+    if (s && s.running && s.startTime) el += Math.floor((Date.now() - s.startTime) / 1000);
+    return el;
+  }
+  function estimatedOf(s) {
+    const u = (s && s.trackingUnit) || "hours";
+    const a = (s && s.data && s.data[u]) || { estimated: 0 };
+    return Number(a.estimated) || 0;
+  }
+
+  /* ── fetch every card on the board + its plugin state via REST ── */
+  async function fetchCards(t, token) {
+    const ctx = t.getContext();
+    const boardId = ctx.board;
+    const url =
+      `https://api.trello.com/1/boards/${boardId}/cards` +
+      `?fields=name,idList,due,dueComplete&pluginData=true&key=${API_KEY}&token=${token}`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error("REST " + res.status);
+    const cards = await res.json();
+    const map = {};
+    cards.forEach((c) => {
+      let state = null;
+      (c.pluginData || []).forEach((pd) => {
+        try {
+          const v = JSON.parse(pd.value);
+          if (v && (v.data || v.tasks || v.progressSource)) state = v;
+        } catch (e) {}
+      });
+      map[c.id] = { meta: c, state };
+    });
+    return map;
+  }
+
+  /* ── period helpers ── */
+  function fmtDay(d) { return `${MO[d.getMonth()]} ${d.getDate()}`; }
+  function weekStart(d) { const x = new Date(d); x.setHours(0, 0, 0, 0); x.setDate(x.getDate() - x.getDay()); return x; }
+  function periodInfo(mode, now) {
+    if (mode === "monthly") {
+      const y = now.getFullYear();
+      return { key: `${y}-${String(now.getMonth() + 1).padStart(2, "0")}`, range: `${MO[now.getMonth()]} ${y}` };
+    }
+    const s = weekStart(now);
+    const e = new Date(s); e.setDate(s.getDate() + 6);
+    return { key: `${s.getFullYear()}-${s.getMonth()}-${s.getDate()}`, range: `${fmtDay(s)} – ${fmtDay(e)}, ${e.getFullYear()}` };
+  }
+  function rating(pct) { return pct >= 90 ? "Excellent" : pct >= 80 ? "Good" : "Need attention"; }
+
+  /* ── snapshot current period, then return full stored history (newest first) ── */
+  async function snapshot(t, mode, agg) {
+    const storeKey = mode === "monthly" ? "reportHistoryMonthly" : "reportHistoryWeekly";
+    let hist = (await t.get("board", "shared", storeKey)) || [];
+    const p = periodInfo(mode, new Date());
+    const deadline = agg.total ? Math.round((agg.completed / agg.total) * 100) : 0;
+    const snap = {
+      period: p.key, range: p.range, total: agg.total, completed: agg.completed,
+      overtime: agg.overtime, deadline, rating: rating(deadline),
+    };
+    const idx = hist.findIndex((h) => h.period === p.key);
+    if (idx >= 0) hist[idx] = snap; else hist.push(snap);
+    if (hist.length > 26) hist = hist.slice(-26);
+    try { await t.set("board", "shared", storeKey, hist); } catch (e) {}
+    return hist;
+  }
+
+  /* ── main ── */
+  async function build(t, mode) {
+    let token;
+    try {
+      if (!(await t.getRestApi().isAuthorized())) return { needsAuth: true };
+      token = await t.getRestApi().getToken();
+      if (!token) return { needsAuth: true };
+    } catch (e) { return { needsAuth: true }; }
+
+    let cardMap, mapped;
+    try {
+      cardMap = await fetchCards(t, token);
+      mapped = (await t.get("board", "shared", "mappedCards")) || [];
+    } catch (e) { return { error: e.message || "Could not load board data" }; }
+
+    let active = 0, completed = 0, hoursSec = 0, overtime = 0;
+    const sessions = [];
+    mapped.forEach((id) => {
+      const entry = cardMap[id];
+      if (!entry) return;
+      active++;
+      const s = entry.state;
+      if (computeProgress(s) >= 100) completed++;
+      const el = elapsedOf(s), est = estimatedOf(s);
+      hoursSec += el;
+      if (est > 0 && el > est) overtime++;
+      if (s && Array.isArray(s.history)) {
+        s.history.forEach((h) => sessions.push({ date: h.date, seconds: Number(h.seconds) || 0 }));
+      }
+    });
+
+    /* line chart — hours per day from session logs (dates have no year → assume current) */
+    const year = new Date().getFullYear();
+    const byDay = {};
+    sessions.forEach((x) => { byDay[x.date] = (byDay[x.date] || 0) + x.seconds; });
+    const dayKeys = Object.keys(byDay).sort(
+      (a, b) => new Date(`${a} ${year}`) - new Date(`${b} ${year}`),
+    );
+    const span = mode === "monthly" ? 12 : 7;
+    const recent = dayKeys.slice(-span);
+    const hoursTracked = recent.map((k) => +(byDay[k] / 3600).toFixed(1));
+
+    /* most productivity day — weekday with most tracked time */
+    const byWd = [0, 0, 0, 0, 0, 0, 0];
+    sessions.forEach((x) => {
+      const d = new Date(`${x.date} ${year}`);
+      if (!isNaN(d)) byWd[d.getDay()] += x.seconds;
+    });
+    let best = 0;
+    byWd.forEach((v, i) => { if (v > byWd[best]) best = i; });
+    const productivityDay = sessions.length ? WD[best] : "—";
+
+    /* snapshot + history-derived table & bar chart */
+    const hist = await snapshot(t, mode, { total: active, completed, overtime });
+    const history = hist.slice().reverse().map((h) => ({
+      range: h.range, total: h.total, completed: h.completed,
+      overtime: h.overtime, deadline: h.deadline, rating: h.rating,
+    }));
+    const deadlineTrend = hist.map((h) => h.deadline);
+
+    return {
+      metrics: { active, achieved: completed, hours: +(hoursSec / 3600).toFixed(1), overtime },
+      deadlineTrend: deadlineTrend.length ? deadlineTrend : [0],
+      hoursTracked: hoursTracked.length ? hoursTracked : [0],
+      productivityDay,
+      history,
+    };
+  }
+
+  return { build };
+})();
