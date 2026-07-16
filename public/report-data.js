@@ -50,6 +50,7 @@ window.ProgressReport = (function () {
   async function fetchCards(t, token) {
     const ctx = t.getContext();
     const boardId = ctx.board;
+    const ourPluginId = ctx.plugin || null;
     const url =
       `https://api.trello.com/1/boards/${boardId}/cards` +
       `?fields=name,idList,due,dueComplete&pluginData=true&key=${API_KEY}&token=${token}`;
@@ -60,6 +61,8 @@ window.ProgressReport = (function () {
     cards.forEach((c) => {
       let state = null;
       (c.pluginData || []).forEach((pd) => {
+        // Only our own Power-Up's data — other plugins store pluginData on the same cards
+        if (ourPluginId && pd.idPlugin && pd.idPlugin !== ourPluginId) return;
         try {
           const v = JSON.parse(pd.value);
           if (v && (v.data || v.tasks || v.progressSource)) state = v;
@@ -118,6 +121,7 @@ window.ProgressReport = (function () {
 
     let active = 0, completed = 0, hoursSec = 0, overtime = 0;
     const sessions = [];
+    const debug = [];
     mapped.forEach((id) => {
       const entry = cardMap[id];
       if (!entry) return;
@@ -130,7 +134,15 @@ window.ProgressReport = (function () {
       if (s && Array.isArray(s.history)) {
         s.history.forEach((h) => sessions.push({ date: h.date, seconds: Number(h.seconds) || 0 }));
       }
+      debug.push({
+        card: (entry.meta.name || id).slice(0, 30),
+        hasState: !!s,
+        elapsedSec: el,
+        running: !!(s && s.running),
+        sessions: s && Array.isArray(s.history) ? s.history.length : 0,
+      });
     });
+    console.log("[ProgressReport] mapped cards:", debug, "| total sessions:", sessions.length);
 
     /* line chart — hours per day from session logs (dates have no year → assume current) */
     const year = new Date().getFullYear();
