@@ -14,7 +14,7 @@
   into one config when you do the personal/company key split.
 */
 window.ProgressReport = (function () {
-  const API_KEY = "58a903ef47a68cf462fd91ad5101444e";
+  const API_KEY = "93b1fabac6fe3f9a688c9b4cc836f97d";
   const WD = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
   const MO = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
