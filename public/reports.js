@@ -7,7 +7,7 @@
       let mode = "weekly";
       let report = null;
 
-      const SERIES = ["#22a06b","#4c6ef5","#e9a23b","#7c6ff0","#1baf7a","#e5684a"];
+      const SERIES = ["#22a06b","#4c6ef5","#e9a23b","#7c6ff0","#4bce97","#e5684a"];
       const icon = (p) => `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
       const ICONS = {
         check:'<rect x="3" y="3" width="18" height="18" rx="4"/><path d="m8 12 3 3 5-6"/>',
@@ -65,14 +65,14 @@
         const poly=pts.map(p=>`${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(" ");
         const area=`${CH.l},${base} ${poly} ${pts[pts.length-1][0].toFixed(1)},${base}`;
         const dots=pts.map((p,i)=>
-          `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="3" fill="var(--card)" stroke="#1baf7a" stroke-width="2"/>`+
+          `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="3" fill="var(--card)" stroke="#4bce97" stroke-width="2"/>`+
           `<text x="${p[0].toFixed(1)}" y="${(p[1]-7).toFixed(1)}" text-anchor="middle" font-size="9" font-weight="600" fill="var(--dim)">${values[i]}</text>`+
           (labels&&labels[i]?`<text x="${p[0].toFixed(1)}" y="${base+13}" text-anchor="middle" font-size="8.5" fill="var(--muted)">${labels[i]}</text>`:"")
         ).join("");
         return `<svg viewBox="0 0 ${CH.w} ${CH.h}" width="100%" role="img" aria-label="Hours tracked line chart">
           ${gridlines(max,v=>v.toFixed(v>=10?0:1)+"h")}
-          <polygon points="${area}" fill="#1baf7a" opacity="0.09"/>
-          ${values.length>1?`<polyline points="${poly}" fill="none" stroke="#1baf7a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`:""}
+          <polygon points="${area}" fill="#4bce97" opacity="0.09"/>
+          ${values.length>1?`<polyline points="${poly}" fill="none" stroke="#4bce97" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`:""}
           ${dots}</svg>`;
       }
       function ratingColors(r){
@@ -95,31 +95,46 @@
         const d=report,m=d.metrics;
         const rows=d.history.length?d.history.map(r=>{
           const[bg,fg,bar]=ratingColors(r.rating);
-          return `<tr><td style="color:var(--dim)">${r.range}</td><td>${r.total}</td><td>${r.completed}</td><td>${r.overtime}</td>
-            <td><div style="display:flex;align-items:center;gap:7px"><div class="track"><div style="width:${r.deadline}%;height:100%;background:${bar}"></div></div><span style="font-size:11px;color:var(--dim)">${r.deadline}%</span></div></td>
+          return `<tr><td style="color:var(--dim)">${r.range}</td><td>${r.total}</td><td>${r.completed}</td>
+            <td><div style="display:flex;align-items:center;gap:6px"><div class="track"><div style="width:${r.deadline}%;height:100%;background:${bar}"></div></div><span style="font-size:10.5px;color:var(--dim)">${r.deadline}%</span></div></td>
             <td><span class="badge" style="background:${bg};color:${fg}">${r.rating}</span></td></tr>`;
-        }).join(""):`<tr><td colspan="6" class="empty-cell">No stored periods yet — this ${mode==="monthly"?"month":"week"} is being recorded now and history will build over time.</td></tr>`;
+        }).join(""):`<tr><td colspan="5" class="empty-cell">No stored periods yet — this ${mode==="monthly"?"month":"week"} is being recorded now and history will build over time.</td></tr>`;
+
+        const metric=(chipBg,chipFg,iconKey,val,lbl)=>`
+          <div class="card metric">
+            <div class="chip" style="background:${chipBg};color:${chipFg}">${icon(ICONS[iconKey])}</div>
+            <div class="mtext"><div class="val">${val}</div><div class="lbl">${lbl}</div></div>
+          </div>`;
 
         app().innerHTML=`
           <div class="topbar"><h1>History reports &amp; export</h1>
-            <div class="seg"><button data-mode="weekly" class="${mode==="weekly"?"on":""}">Weekly report</button><button data-mode="monthly" class="${mode==="monthly"?"on":""}">Monthly report</button></div>
+            <div class="seg"><button data-mode="weekly" class="${mode==="weekly"?"on":""}">Weekly</button><button data-mode="monthly" class="${mode==="monthly"?"on":""}">Monthly</button></div>
           </div>
           <div class="metrics">
-            <div class="card metric"><div class="chip" style="background:var(--green-bg);color:var(--green-fg)">${icon(ICONS.check)}</div><div class="val" style="color:var(--green-fg)">${m.active}</div><div class="lbl">Total active cards</div></div>
-            <div class="card metric"><div class="chip" style="background:var(--blue-bg);color:var(--blue-fg)">${icon(ICONS.target)}</div><div class="val" style="color:var(--blue-fg)">${m.achieved}</div><div class="lbl">Completed cards</div></div>
-            <div class="card metric"><div class="chip" style="background:var(--amber-bg);color:var(--amber-fg)">${icon(ICONS.clock)}</div><div class="val" style="color:var(--amber-fg)">${m.hours}</div><div class="lbl">Total hours tracked</div></div>
-            <div class="card metric"><div class="chip" style="background:var(--red-bg);color:var(--red-fg)">${icon(ICONS.warn)}</div><div class="val" style="color:var(--red-fg)">${m.overtime}</div><div class="lbl">Overtime warning</div></div>
+            ${metric("var(--green-bg)","var(--green-fg)","check",m.active,"Active cards")}
+            ${metric("var(--blue-bg)","var(--blue-fg)","target",m.achieved,"Completed")}
+            ${metric("var(--amber-bg)","var(--amber-fg)","clock",`${m.hours}<small> h</small>`,"Hours tracked")}
+            ${metric("var(--red-bg)","var(--red-fg)","warn",m.overtime,"Overtime")}
           </div>
           <div class="charts">
-            <div class="card" style="padding:15px"><div class="chart-h" style="color:var(--blue-fg)">${icon('<path d="M3 3v18h18"/><path d="M7 14v3M12 9v8M17 12v5"/>')}<span style="color:var(--text)">Deadline achievement trend</span></div>${barChart(d.deadlineTrend,d.trendLabels)}</div>
-            <div class="card" style="padding:15px"><div class="chart-h" style="color:var(--green-fg)">${icon('<path d="M3 3v18h18"/><path d="m6 15 4-4 3 3 5-6"/>')}<span style="color:var(--text)">Total hours tracked</span></div>${lineChart(d.hoursTracked,d.hoursLabels)}</div>
+            <div class="card" style="padding:12px 14px">
+              <div class="chart-head"><span class="ct">Deadline achievement</span><span class="ch">last ${d.deadlineTrend.length||0} ${mode==="monthly"?"months":"weeks"}</span></div>
+              ${barChart(d.deadlineTrend,d.trendLabels)}
+            </div>
+            <div class="card" style="padding:12px 14px">
+              <div class="chart-head"><span class="ct">Hours tracked</span><span class="ch">per day</span></div>
+              ${lineChart(d.hoursTracked,d.hoursLabels)}
+            </div>
           </div>
-          <div class="card prod"><div class="chip" style="background:var(--blue-bg);color:var(--blue-fg);margin:0">${icon(ICONS.cal)}</div>
-            <div><div class="cap">Most productivity day</div><div class="day">${d.productivityDay}</div></div>
-            <div class="note">Highest concentration of tasks completed on the board</div></div>
+          <div class="card prod">
+            <div class="chip" style="background:var(--blue-bg);color:var(--blue-fg)">${icon(ICONS.cal)}</div>
+            <span class="cap">Most productive day</span>
+            <span class="day">${d.productivityDay}</span>
+            <span class="note">Most tasks completed on the board</span>
+          </div>
           <div class="sec-h">Stored history reports</div>
-          <div class="card" style="padding:4px 12px"><table><thead><tr>
-            <th style="width:26%">Period / date range</th><th style="width:11%">Total</th><th style="width:13%">Completed</th><th style="width:11%">Overtime</th><th style="width:20%">Deadline</th><th style="width:19%">Rating</th>
+          <div class="card" style="padding:2px 12px"><table><thead><tr>
+            <th style="width:27%">Period</th><th style="width:10%">Total</th><th style="width:13%">Done</th><th style="width:26%">Deadline</th><th style="width:24%">Rating</th>
           </tr></thead><tbody>${rows}</tbody></table></div>
           <button class="export" id="export">${icon(ICONS.dl)}Export ${mode} CSV</button>`;
 

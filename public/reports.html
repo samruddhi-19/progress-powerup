@@ -23,29 +23,34 @@
       .seg{display:flex;border:1px solid var(--border);border-radius:8px;overflow:hidden}
       .seg button{padding:7px 14px;font-family:inherit;font-size:12px;background:transparent;color:var(--dim);border:none;cursor:pointer}
       .seg button.on{background:var(--card);color:var(--text);font-weight:600}
-      .card{background:var(--card);border:1px solid var(--border);border-radius:10px}
-      .metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:10px}
-      .metric{padding:12px}
-      .chip{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;margin-bottom:8px}
+      .card{background:var(--card);border:1px solid var(--border);border-radius:11px}
+      .metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:10px}
+      .metric{padding:11px 12px;display:flex;align-items:center;gap:10px}
+      .chip{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
       .chip svg{width:17px;height:17px}
-      .metric .val{font-size:22px;font-weight:700;line-height:1}
-      .metric .lbl{font-size:10px;letter-spacing:.04em;text-transform:uppercase;color:var(--dim);margin-top:5px}
-      .charts{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
-      .chart-h{font-size:12.5px;font-weight:600;margin-bottom:8px;display:flex;align-items:center;gap:7px}
-      .chart-h svg{width:17px;height:17px;flex-shrink:0}
-      .charts .card > svg{display:block;width:100%;height:130px}
-      .prod{display:flex;align-items:center;gap:12px;padding:11px 14px;margin-bottom:12px}
-      .prod .cap{font-size:10px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
-      .prod .day{font-size:16px;font-weight:700;margin-top:2px}
-      .prod .note{margin-left:auto;font-size:11.5px;color:var(--dim);max-width:230px;text-align:right}
-      .sec-h{font-size:12.5px;font-weight:600;margin-bottom:6px}
-      table{width:100%;border-collapse:collapse}
-      th{font-size:10px;letter-spacing:.03em;text-transform:uppercase;color:var(--muted);text-align:left;padding:7px 8px;font-weight:600}
-      td{padding:9px 8px;font-size:12px;border-top:1px solid var(--border)}
-      .track{height:6px;border-radius:4px;background:var(--track);overflow:hidden;flex:1}
-      .badge{font-size:10.5px;padding:3px 9px;border-radius:20px;font-weight:600;white-space:nowrap}
-      .export{width:100%;margin-top:12px;padding:11px;background:var(--export-bg);color:var(--export-fg);border:none;border-radius:9px;font-family:inherit;font-size:12.5px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px}
-      .export svg{width:17px;height:17px}
+      .metric .mtext{min-width:0}
+      .metric .val{font-size:20px;font-weight:600;line-height:1.1;color:var(--text)}
+      .metric .val small{font-size:11px;color:var(--dim);font-weight:400}
+      .metric .lbl{font-size:10px;letter-spacing:.03em;text-transform:uppercase;color:var(--dim);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+      .charts{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:10px}
+      .chart-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+      .chart-head .ct{font-size:12px;font-weight:600;color:var(--text)}
+      .chart-head .ch{font-size:10px;color:var(--dim)}
+      .charts .card > svg{display:block;width:100%;height:118px}
+      .prod{display:flex;align-items:center;gap:11px;padding:10px 14px;margin-bottom:12px}
+      .prod .chip{width:30px;height:30px;border-radius:8px}
+      .prod .chip svg{width:15px;height:15px}
+      .prod .cap{font-size:10px;letter-spacing:.03em;text-transform:uppercase;color:var(--muted)}
+      .prod .day{font-size:14px;font-weight:600;color:var(--text)}
+      .prod .note{margin-left:auto;font-size:11px;color:var(--dim);text-align:right}
+      .sec-h{font-size:12px;font-weight:600;margin-bottom:6px}
+      table{width:100%;border-collapse:collapse;table-layout:fixed}
+      th{font-size:9.5px;letter-spacing:.03em;text-transform:uppercase;color:var(--muted);text-align:left;padding:8px 6px;font-weight:600}
+      td{padding:9px 6px;font-size:11.5px;border-top:1px solid var(--border)}
+      .track{height:5px;border-radius:4px;background:var(--track);overflow:hidden;flex:1}
+      .badge{font-size:10px;padding:3px 9px;border-radius:20px;font-weight:600;white-space:nowrap}
+      .export{width:100%;margin-top:12px;padding:10px;background:var(--export-bg);color:var(--export-fg);border:none;border-radius:9px;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px}
+      .export svg{width:15px;height:15px}
       .export:hover{filter:brightness(1.08)}
       .state{padding:40px 24px;text-align:center;color:var(--dim)}
       .state h2{font-size:15px;color:var(--text);margin-bottom:6px}
