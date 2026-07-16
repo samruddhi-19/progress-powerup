@@ -110,7 +110,15 @@
         report=res;renderDashboard();
       }
 
+      function detectTheme(ctx){
+        const url=new URLSearchParams(location.search).get("theme");
+        const th=(ctx&&ctx.theme)||url;
+        if(th==="light"||th==="dark")return th;
+        // Unknown → match the rest of the Power-Up (dark) unless the OS explicitly prefers light
+        if(matchMedia&&matchMedia("(prefers-color-scheme: light)").matches)return "light";
+        return "dark";
+      }
       Promise.resolve(t.getContext?t.getContext():null)
-        .then(ctx=>{const theme=(ctx&&ctx.theme)||(matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");
-          document.documentElement.dataset.theme=theme;})
-        .catch(()=>{}).finally(load);
+        .then(ctx=>{document.documentElement.dataset.theme=detectTheme(ctx);})
+        .catch(()=>{document.documentElement.dataset.theme="dark";})
+        .finally(load);

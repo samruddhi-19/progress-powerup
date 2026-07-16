@@ -69,17 +69,20 @@
         t.sizeTo("body").catch(() => {});
       }
 
-      /* Match Trello's current light/dark theme */
-      t.getContext &&
-        Promise.resolve(t.getContext())
-          .then((ctx) => {
-            const theme =
-              (ctx && ctx.theme) ||
-              (window.matchMedia &&
-              window.matchMedia("(prefers-color-scheme: dark)").matches
-                ? "dark"
-                : "light");
-            document.documentElement.dataset.theme = theme;
-          })
-          .catch(() => {})
-          .finally(render);
+      /* Match Trello's theme; default dark like the rest of the Power-Up */
+      function detectTheme(ctx) {
+        const url = new URLSearchParams(location.search).get("theme");
+        const th = (ctx && ctx.theme) || url;
+        if (th === "light" || th === "dark") return th;
+        if (window.matchMedia && matchMedia("(prefers-color-scheme: light)").matches)
+          return "light";
+        return "dark";
+      }
+      Promise.resolve(t.getContext ? t.getContext() : null)
+        .then((ctx) => {
+          document.documentElement.dataset.theme = detectTheme(ctx);
+        })
+        .catch(() => {
+          document.documentElement.dataset.theme = "dark";
+        })
+        .finally(render);
