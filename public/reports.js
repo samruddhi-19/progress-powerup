@@ -103,18 +103,19 @@
         const metric=(chipBg,chipFg,iconKey,val,lbl)=>`
           <div class="card metric">
             <div class="chip" style="background:${chipBg};color:${chipFg}">${icon(ICONS[iconKey])}</div>
-            <div class="mtext"><div class="val">${val}</div><div class="lbl">${lbl}</div></div>
+            <div class="val" style="color:${chipFg}">${val}</div>
+            <div class="lbl">${lbl}</div>
           </div>`;
 
         app().innerHTML=`
           <div class="topbar"><h1>History reports &amp; export</h1>
-            <div class="seg"><button data-mode="weekly" class="${mode==="weekly"?"on":""}">Weekly</button><button data-mode="monthly" class="${mode==="monthly"?"on":""}">Monthly</button></div>
+            <div class="seg"><button data-mode="weekly" class="${mode==="weekly"?"on":""}">Weekly report</button><button data-mode="monthly" class="${mode==="monthly"?"on":""}">Monthly report</button></div>
           </div>
           <div class="metrics">
-            ${metric("var(--green-bg)","var(--green-fg)","check",m.active,"Active cards")}
-            ${metric("var(--blue-bg)","var(--blue-fg)","target",m.achieved,"Completed")}
-            ${metric("var(--amber-bg)","var(--amber-fg)","clock",`${m.hours}<small> h</small>`,"Hours tracked")}
-            ${metric("var(--red-bg)","var(--red-fg)","warn",m.overtime,"Overtime")}
+            ${metric("var(--green-bg)","var(--green-fg)","check",m.active,"Total active cards")}
+            ${metric("var(--blue-bg)","var(--blue-fg)","target",m.achieved,"Completed cards")}
+            ${metric("var(--amber-bg)","var(--amber-fg)","clock",m.hours,"Total hours tracked")}
+            ${metric("var(--red-bg)","var(--red-fg)","warn",m.overtime,"Overtime warning")}
           </div>
           <div class="charts">
             <div class="card" style="padding:12px 14px">
