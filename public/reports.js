@@ -95,10 +95,13 @@
         const d=report,m=d.metrics;
         const rows=d.history.length?d.history.map(r=>{
           const[bg,fg,bar]=ratingColors(r.rating);
-          return `<tr><td style="color:var(--dim)">${r.range}</td><td>${r.total}</td><td>${r.completed}</td>
+          const otCell=r.overtime>0
+            ? `<span class="badge" style="background:var(--red-bg);color:var(--red-fg)">${r.overtime}</span>`
+            : `<span style="color:var(--muted)">0</span>`;
+          return `<tr><td style="color:var(--dim)">${r.range}</td><td>${r.total}</td><td>${r.completed}</td><td>${otCell}</td>
             <td><div style="display:flex;align-items:center;gap:6px"><div class="track"><div style="width:${r.deadline}%;height:100%;background:${bar}"></div></div><span style="font-size:10.5px;color:var(--dim)">${r.deadline}%</span></div></td>
             <td><span class="badge" style="background:${bg};color:${fg}">${r.rating}</span></td></tr>`;
-        }).join(""):`<tr><td colspan="5" class="empty-cell">No stored periods yet — this ${mode==="monthly"?"month":"week"} is being recorded now and history will build over time.</td></tr>`;
+        }).join(""):`<tr><td colspan="6" class="empty-cell">No stored periods yet — this ${mode==="monthly"?"month":"week"} is being recorded now and history will build over time.</td></tr>`;
 
         const metric=(key,chipBg,chipFg,iconKey,val,lbl,tip)=>`
           <div class="card metric" data-key="${key}" data-fg="${chipFg}" data-bg="${chipBg}">
@@ -138,12 +141,24 @@
           </div>
           <div class="sec-h">Stored history reports</div>
           <div class="card" style="padding:2px 12px"><table><thead><tr>
-            <th style="width:27%">Period</th><th style="width:10%">Total</th><th style="width:13%">Done</th><th style="width:26%">Deadline</th><th style="width:24%">Rating</th>
+            <th style="width:24%">Period</th><th style="width:9%">Total</th><th style="width:11%">Done</th><th style="width:12%">Overtime</th><th style="width:22%">Deadline</th><th style="width:22%">Rating</th>
           </tr></thead><tbody>${rows}</tbody></table></div>
-          <button class="export" id="export">${icon(ICONS.dl)}Export ${mode} CSV</button>`;
+          <div class="export-row">
+            <button class="export" id="export">${icon(ICONS.dl)}Export ${mode} report</button>
+            <button class="export-more" id="exportMore" aria-label="More export options">${icon('<circle cx="12" cy="6" r="1.4" fill="currentColor"/><circle cx="12" cy="12" r="1.4" fill="currentColor"/><circle cx="12" cy="18" r="1.4" fill="currentColor"/>')}</button>
+            <div class="export-menu" id="exportMenu" hidden>
+              <button data-fmt="csv">${icon('<path d="M14 3v5h5"/><path d="M7 3h7l5 5v13H7z"/>')}Download as CSV<span class="hint">Spreadsheet</span></button>
+              <button data-fmt="json">${icon('<path d="M14 3v5h5"/><path d="M7 3h7l5 5v13H7z"/><path d="M10 13c-1 0-1 1-1 1v2c0 0 0 1 -1 1M14 13c1 0 1 1 1 1v2c0 0 0 1 1 1"/>')}Download as JSON<span class="hint">Raw data</span></button>
+              <button data-fmt="print">${icon('<path d="M6 9V3h12v6"/><rect x="3" y="9" width="18" height="8" rx="2"/><rect x="7" y="15" width="10" height="6" rx="1"/>')}Print / Save as PDF<span class="hint">Full dashboard</span></button>
+            </div>
+          </div>`;
 
         document.querySelectorAll(".seg button").forEach(b=>b.onclick=()=>{mode=b.dataset.mode;load();});
-        document.getElementById("export").onclick=exportCSV;
+        document.getElementById("export").onclick=()=>exportAs("csv");
+        const menu=document.getElementById("exportMenu");
+        document.getElementById("exportMore").onclick=(e)=>{e.stopPropagation();menu.hidden=!menu.hidden;};
+        menu.querySelectorAll("button").forEach(b=>b.onclick=()=>{menu.hidden=true;exportAs(b.dataset.fmt);});
+        document.addEventListener("click",(e)=>{if(!e.target.closest(".export-row"))menu.hidden=true;},{once:false});
         document.querySelectorAll(".metric").forEach(el=>{
           el.onclick=()=>togglePopover(el);
         });
@@ -171,11 +186,17 @@
             ${it.badge?`<span class="pbadge" style="background:${bg};color:${fg}">${it.badge}</span>`:""}
           </div>`).join("")
           :`<div class="pempty">No cards here yet</div>`;
+        const POP_ICONS={active:ICONS.check,achieved:ICONS.target,hours:ICONS.clock,overtime:ICONS.warn};
         const pop=document.createElement("div");
         pop.className="popover";
         pop.innerHTML=`<span class="arrow"></span>
-          <div class="ph"><span style="color:${fg}">${POP_TITLES[key]} · ${items.length}</span>
-          <button class="pclose" aria-label="Close">✕</button></div>
+          <div class="ph">
+            <span class="ptitle" style="color:${fg}">${icon(POP_ICONS[key])}${POP_TITLES[key]}</span>
+            <span style="display:flex;align-items:center;gap:8px">
+              <span class="pcount">${items.length}</span>
+              <button class="pclose" aria-label="Close">✕</button>
+            </span>
+          </div>
           <div class="plist">${rows}</div>`;
         const grid=document.getElementById("metrics");
         grid.appendChild(pop);
@@ -191,14 +212,29 @@
       document.addEventListener("click",(e)=>{if(!e.target.closest(".metric")&&!e.target.closest(".popover"))closePopover();});
       document.addEventListener("keydown",(e)=>{if(e.key==="Escape")closePopover();});
 
-      function exportCSV(){
-        if(!report||!report.history.length)return;
-        const header=["Period / date range","Total cards","Completed","Overtime","Deadline achieved (%)","Performance rating"];
-        const lines=report.history.map(r=>[r.range,r.total,r.completed,r.overtime,r.deadline,r.rating].map(c=>`"${String(c).replace(/"/g,'""')}"`).join(","));
-        const csv=[header.join(","),...lines].join("\n");
-        const blob=new Blob([csv],{type:"text/csv;charset=utf-8"});
+      function download(name,blob){
         const url=URL.createObjectURL(blob),a=document.createElement("a");
-        a.href=url;a.download=`progress-${mode}-report.csv`;a.click();URL.revokeObjectURL(url);
+        a.href=url;a.download=name;a.click();URL.revokeObjectURL(url);
+      }
+      function exportAs(fmt){
+        if(!report||!report.history.length)return;
+        const stamp=new Date().toISOString().slice(0,10);
+        const base=`progress-${mode}-report-${stamp}`;
+        if(fmt==="csv"){
+          const header=["Period","Total cards","Completed","Overtime","Deadline achieved (%)","Performance rating"];
+          const lines=report.history.map(r=>[r.range,r.total,r.completed,r.overtime,r.deadline,r.rating].map(c=>`"${String(c).replace(/"/g,'""')}"`).join(","));
+          download(base+".csv",new Blob([[header.join(","),...lines].join("\n")],{type:"text/csv;charset=utf-8"}));
+        } else if(fmt==="json"){
+          const payload={
+            mode,generatedAt:new Date().toISOString(),
+            metrics:report.metrics,
+            productivityDay:report.productivityDay,
+            history:report.history,
+          };
+          download(base+".json",new Blob([JSON.stringify(payload,null,2)],{type:"application/json"}));
+        } else if(fmt==="print"){
+          window.print(); // uses browser's Save as PDF — no libs, no CSP issues
+        }
       }
 
       async function load(){
