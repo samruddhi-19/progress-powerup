@@ -180,9 +180,9 @@ TrelloPowerUp.initialize({
         text: disabled ? "Authorize" : "Progress",
         callback: function (t) {
           return t.popup({
-            title: disabled ? "Authorize Progress" : "Progress",
-            url: disabled ? "./settings.html" : "./menu.html",
-            height: disabled ? 260 : 300,
+            title: "Progress",
+            url: "./menu.html",
+            height: 300,
             mouseEvent: opts.mouseEvent,
           });
         },
@@ -595,21 +595,21 @@ TrelloPowerUp.initialize({
 
   /* ── List actions ── */
   "list-actions": function (t, opts) {
-    return [
-      {
-        text: "Progress",
-        callback: function (t, opts) {
-          return t.list("id", "name").then(function (list) {
-            return t.popup({
-              title: "Progress Cards",
-              url: "./progress-cards.html",
-              height: 560,
-              mouseEvent: opts.mouseEvent,
-              args: { listId: list.id, listName: list.name },
-            });
+  return [
+    {
+      text: "Progress",
+      callback: function (t, opts) {
+        return t.list("id", "name").then(function (list) {
+          return t.popup({
+            title: "Progress Cards",
+            url: "./progress-cards.html",
+            height: 560,
+            mouseEvent: opts.mouseEvent,
+            args: { listId: list.id, listName: list.name },
           });
-        },
+        });
       },
-    ];
-  },
+    },
+  ];
+},
 });

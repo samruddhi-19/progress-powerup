@@ -1,5 +1,8 @@
 /* global TrelloPowerUp */
-      const t = TrelloPowerUp.iframe();
+      const t = TrelloPowerUp.iframe({
+        appKey: "93b1fabac6fe3f9a688c9b4cc836f97d",
+        appName: "Progress Tracker",
+      });
 
       const ITEMS = [
         {
@@ -69,6 +72,68 @@
         t.sizeTo("body").catch(() => {});
       }
 
+      /* ── one-time authorization gate ──
+         Two legacy systems must both be satisfied:
+         1) real Trello OAuth token  (getRestApi — used by reports + due-date sync)
+         2) enable flags             (member/private authorized + board not disabled — gates mapping)
+         This screen satisfies both with a single click, so no downstream page asks again. */
+      async function authState() {
+        try {
+          const [all, restOk] = await Promise.all([
+            t.getAll(),
+            t.getRestApi().isAuthorized(),
+          ]);
+          const flagOk =
+            all && all.member && all.member.private && all.member.private.authorized === true &&
+            !(all.board && all.board.shared && all.board.shared.disabled === true);
+          return { restOk: !!restOk, flagOk: !!flagOk };
+        } catch (e) {
+          return { restOk: false, flagOk: false };
+        }
+      }
+
+      function renderAuth(errMsg) {
+        const root = document.getElementById("menu");
+        root.innerHTML = `
+          <div class="auth">
+            <div class="auth-chip">${svg('<rect x="4" y="10" width="16" height="11" rx="3"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>')}</div>
+            <div class="auth-title">Connect Trello to get started</div>
+            <div class="auth-sub">One-time authorization enables card tracking, mapping, and reports on this board.</div>
+            ${errMsg ? `<div class="auth-err">${errMsg}</div>` : ""}
+            <button class="auth-btn" id="authBtn">Connect Trello</button>
+          </div>`;
+        document.getElementById("authBtn").addEventListener("click", connect);
+        t.sizeTo("body").catch(() => {});
+      }
+
+      async function connect() {
+        const btn = document.getElementById("authBtn");
+        btn.disabled = true;
+        btn.textContent = "Connecting…";
+        try {
+          await t.getRestApi().authorize({ scope: "read,write", expiration: "never" });
+          await t.set("member", "private", "authorized", true);
+          await t.set("board", "shared", "disabled", false);
+          render();
+        } catch (e) {
+          renderAuth("Authorization was cancelled or failed — please try again.");
+        }
+      }
+
+      async function boot() {
+        const s = await authState();
+        if (s.restOk && s.flagOk) return render();
+        // If OAuth already done but flags unset (or vice versa), silently repair what we can
+        if (s.restOk && !s.flagOk) {
+          try {
+            await t.set("member", "private", "authorized", true);
+            await t.set("board", "shared", "disabled", false);
+            return render();
+          } catch (e) {}
+        }
+        renderAuth();
+      }
+
       /* Match Trello's theme; default dark like the rest of the Power-Up */
       function detectTheme(ctx) {
         const url = new URLSearchParams(location.search).get("theme");
@@ -82,4 +147,4 @@
         .catch(() => {
           document.documentElement.dataset.theme = "dark";
         })
-        .finally(render);
+        .finally(boot);
