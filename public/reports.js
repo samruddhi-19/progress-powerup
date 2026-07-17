@@ -100,8 +100,8 @@
             <td><span class="badge" style="background:${bg};color:${fg}">${r.rating}</span></td></tr>`;
         }).join(""):`<tr><td colspan="5" class="empty-cell">No stored periods yet — this ${mode==="monthly"?"month":"week"} is being recorded now and history will build over time.</td></tr>`;
 
-        const metric=(chipBg,chipFg,iconKey,val,lbl,tip)=>`
-          <div class="card metric">
+        const metric=(key,chipBg,chipFg,iconKey,val,lbl,tip)=>`
+          <div class="card metric" data-key="${key}" data-fg="${chipFg}" data-bg="${chipBg}">
             <div class="chip" style="background:${chipBg};color:${chipFg}">${icon(ICONS[iconKey])}</div>
             <div class="mtext">
               <div class="val" style="color:${chipFg}">${val}</div>
@@ -114,11 +114,11 @@
           <div class="topbar"><h1>History reports &amp; export</h1>
             <div class="seg"><button data-mode="weekly" class="${mode==="weekly"?"on":""}">Weekly report</button><button data-mode="monthly" class="${mode==="monthly"?"on":""}">Monthly report</button></div>
           </div>
-          <div class="metrics">
-            ${metric("var(--green-bg)","var(--green-fg)","check",m.active,"Total active cards","Total cards where work is ongoing")}
-            ${metric("var(--blue-bg)","var(--blue-fg)","target",m.achieved,"Completed cards","Cards that reached 100% progress")}
-            ${metric("var(--amber-bg)","var(--amber-fg)","clock",m.hours,"Total hours tracked","Total hours you worked across tracked cards")}
-            ${metric("var(--red-bg)","var(--red-fg)","warn",m.overtime,"Overtime warning","Cards where tracked time exceeded the estimate")}
+          <div class="metrics" id="metrics">
+            ${metric("active","var(--green-bg)","var(--green-fg)","check",m.active,"Total active cards","Total cards where work is ongoing")}
+            ${metric("achieved","var(--blue-bg)","var(--blue-fg)","target",m.achieved,"Completed cards","Cards that reached 100% progress")}
+            ${metric("hours","var(--amber-bg)","var(--amber-fg)","clock",m.hours,"Total hours tracked","Total hours you worked across tracked cards")}
+            ${metric("overtime","var(--red-bg)","var(--red-fg)","warn",m.overtime,"Overtime warning","Cards where tracked time exceeded the estimate")}
           </div>
           <div class="charts">
             <div class="card" style="padding:12px 14px">
@@ -144,8 +144,52 @@
 
         document.querySelectorAll(".seg button").forEach(b=>b.onclick=()=>{mode=b.dataset.mode;load();});
         document.getElementById("export").onclick=exportCSV;
+        document.querySelectorAll(".metric").forEach(el=>{
+          el.onclick=()=>togglePopover(el);
+        });
         fit();
       }
+
+      /* ── metric drill-down popover ── */
+      const POP_TITLES={active:"Active cards",achieved:"Completed cards",hours:"Hours tracked",overtime:"Cards over estimate"};
+      function closePopover(){
+        const p=document.querySelector(".popover");if(p)p.remove();
+        document.querySelectorAll(".metric.open").forEach(x=>x.classList.remove("open"));
+      }
+      function togglePopover(el){
+        const key=el.dataset.key;
+        const wasOpen=el.classList.contains("open");
+        closePopover();
+        if(wasOpen)return; // second click on same metric = close
+        const items=(report&&report.breakdown&&report.breakdown[key])||[];
+        const fg=el.dataset.fg,bg=el.dataset.bg;
+        const rows=items.length?items.map(it=>`
+          <div class="prow">
+            <span class="pdot" style="background:${fg}"></span>
+            <span class="pmain"><span class="pname">${esc(it.name)}</span>${it.list?`<span class="plst">${esc(it.list)}</span>`:""}</span>
+            <span class="pval">${it.value||""}</span>
+            ${it.badge?`<span class="pbadge" style="background:${bg};color:${fg}">${it.badge}</span>`:""}
+          </div>`).join("")
+          :`<div class="pempty">No cards here yet</div>`;
+        const pop=document.createElement("div");
+        pop.className="popover";
+        pop.innerHTML=`<span class="arrow"></span>
+          <div class="ph"><span style="color:${fg}">${POP_TITLES[key]} · ${items.length}</span>
+          <button class="pclose" aria-label="Close">✕</button></div>
+          <div class="plist">${rows}</div>`;
+        const grid=document.getElementById("metrics");
+        grid.appendChild(pop);
+        // center under the clicked card, clamped inside the grid
+        const half=pop.offsetWidth/2||125;
+        const center=el.offsetLeft+el.offsetWidth/2;
+        pop.style.left=Math.max(half,Math.min(center,grid.clientWidth-half))+"px";
+        el.classList.add("open");
+        pop.querySelector(".pclose").onclick=(e)=>{e.stopPropagation();closePopover();};
+        pop.onclick=(e)=>e.stopPropagation();
+      }
+      function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
+      document.addEventListener("click",(e)=>{if(!e.target.closest(".metric")&&!e.target.closest(".popover"))closePopover();});
+      document.addEventListener("keydown",(e)=>{if(e.key==="Escape")closePopover();});
 
       function exportCSV(){
         if(!report||!report.history.length)return;

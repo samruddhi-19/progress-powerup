@@ -51,12 +51,17 @@ window.ProgressReport = (function () {
     const ctx = t.getContext();
     const boardId = ctx.board;
     const ourPluginId = ctx.plugin || null;
-    const url =
-      `https://api.trello.com/1/boards/${boardId}/cards` +
-      `?fields=name,idList,due,dueComplete&pluginData=true&key=${API_KEY}&token=${token}`;
-    const res = await fetch(url);
-    if (!res.ok) throw new Error("REST " + res.status);
-    const cards = await res.json();
+    const base = `key=${API_KEY}&token=${token}`;
+    const [cardsRes, listsRes] = await Promise.all([
+      fetch(`https://api.trello.com/1/boards/${boardId}/cards?fields=name,idList,due,dueComplete&pluginData=true&${base}`),
+      fetch(`https://api.trello.com/1/boards/${boardId}/lists?fields=name&${base}`),
+    ]);
+    if (!cardsRes.ok) throw new Error("REST " + cardsRes.status);
+    const cards = await cardsRes.json();
+    const listName = {};
+    if (listsRes.ok) {
+      (await listsRes.json()).forEach((l) => { listName[l.id] = l.name; });
+    }
     const map = {};
     cards.forEach((c) => {
       let state = null;
@@ -68,7 +73,7 @@ window.ProgressReport = (function () {
           if (v && (v.data || v.tasks || v.progressSource)) state = v;
         } catch (e) {}
       });
-      map[c.id] = { meta: c, state };
+      map[c.id] = { meta: c, state, list: listName[c.idList] || "" };
     });
     return map;
   }
@@ -122,26 +127,38 @@ window.ProgressReport = (function () {
     let active = 0, completed = 0, hoursSec = 0, overtime = 0;
     const sessions = [];
     const debug = [];
+    const breakdown = { active: [], achieved: [], hours: [], overtime: [] };
     mapped.forEach((id) => {
       const entry = cardMap[id];
       if (!entry) return;
       active++;
       const s = entry.state;
-      if (computeProgress(s) >= 100) completed++;
+      const name = entry.meta.name || "(unnamed card)";
+      const list = entry.list || "";
+      const prog = computeProgress(s);
       const el = elapsedOf(s), est = estimatedOf(s);
+      const elH = +(el / 3600).toFixed(1), estH = +(est / 3600).toFixed(1);
+
+      breakdown.active.push({ name, list, value: prog + "%" });
+      if (prog >= 100) { completed++; breakdown.achieved.push({ name, list, value: "100%" }); }
       hoursSec += el;
-      if (est > 0 && el > est) overtime++;
+      if (el > 0) breakdown.hours.push({ name, list, value: elH + "h", sort: el });
+      if (est > 0 && el > est) {
+        overtime++;
+        breakdown.overtime.push({ name, list, value: `${elH}h / ${estH}h`, badge: `+${(elH - estH).toFixed(1)}h over` });
+      }
       if (s && Array.isArray(s.history)) {
         s.history.forEach((h) => sessions.push({ date: h.date, seconds: Number(h.seconds) || 0 }));
       }
       debug.push({
-        card: (entry.meta.name || id).slice(0, 30),
+        card: name.slice(0, 30),
         hasState: !!s,
         elapsedSec: el,
         running: !!(s && s.running),
         sessions: s && Array.isArray(s.history) ? s.history.length : 0,
       });
     });
+    breakdown.hours.sort((a, b) => b.sort - a.sort);
     console.log("[ProgressReport] mapped cards:", debug, "| total sessions:", sessions.length);
 
     /* line chart — hours per day from session logs (dates have no year → assume current) */
@@ -187,6 +204,7 @@ window.ProgressReport = (function () {
       hoursLabels,
       productivityDay,
       history,
+      breakdown,
     };
   }
 
