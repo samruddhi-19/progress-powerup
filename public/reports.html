@@ -37,20 +37,25 @@
       .metric{cursor:pointer}
       .metric.open .tip{display:none}
       .metric.open{border-width:1.5px}
-      .popover{position:absolute;top:calc(100% + 8px);width:250px;background:#2c333a;border:1px solid rgba(255,255,255,.14);border-radius:10px;z-index:20;box-shadow:0 10px 28px rgba(0,0,0,.45);transform:translateX(-50%)}
+      .popover{position:absolute;top:calc(100% + 8px);width:272px;background:#2c333a;border:1px solid rgba(255,255,255,.14);border-radius:10px;z-index:20;box-shadow:0 10px 28px rgba(0,0,0,.45);transform:translateX(-50%)}
       .popover .arrow{position:absolute;top:-5px;left:50%;transform:translateX(-50%) rotate(45deg);width:9px;height:9px;background:#2c333a;border-left:1px solid rgba(255,255,255,.14);border-top:1px solid rgba(255,255,255,.14)}
-      .popover .ph{display:flex;align-items:center;justify-content:space-between;padding:9px 12px 8px;border-bottom:1px solid rgba(255,255,255,.08)}
-      .popover .ph span{font-size:10.5px;letter-spacing:.03em;text-transform:uppercase;font-weight:700}
-      .popover .pclose{background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;line-height:1;padding:2px;font-family:inherit}
-      .popover .plist{max-height:186px;overflow-y:auto}
-      .popover .prow{display:flex;align-items:center;gap:9px;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.06)}
+      .popover .ph{display:flex;align-items:center;justify-content:space-between;padding:10px 12px 9px;border-bottom:1px solid rgba(255,255,255,.08)}
+      .popover .ph span{font-size:10.5px;letter-spacing:.04em;text-transform:uppercase;font-weight:700}
+      .popover .pclose{background:none;border:none;color:var(--muted);cursor:pointer;font-size:13px;line-height:1;padding:3px;font-family:inherit;border-radius:5px}
+      .popover .pclose:hover{color:var(--text);background:rgba(255,255,255,.08)}
+      .popover .plist{max-height:196px;overflow-y:auto}
+      .popover .plist::-webkit-scrollbar{width:5px}
+      .popover .plist::-webkit-scrollbar-track{background:transparent}
+      .popover .plist::-webkit-scrollbar-thumb{background:rgba(255,255,255,.18);border-radius:4px}
+      .popover .prow{display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid rgba(255,255,255,.06)}
       .popover .prow:last-child{border-bottom:none}
+      .popover .prow:hover{background:rgba(255,255,255,.04)}
       .popover .pdot{width:5px;height:5px;border-radius:50%;flex-shrink:0}
       .popover .pmain{flex:1;min-width:0}
-      .popover .pname{font-size:12px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-      .popover .plst{font-size:10px;color:var(--muted)}
-      .popover .pval{font-size:10.5px;color:var(--dim);white-space:nowrap}
-      .popover .pbadge{font-size:10px;padding:2px 8px;border-radius:20px;font-weight:600;white-space:nowrap;margin-left:6px}
+      .popover .pname{display:block;font-size:12px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+      .popover .plst{display:block;font-size:10px;color:var(--muted);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+      .popover .pval{font-size:11px;color:var(--dim);white-space:nowrap;font-variant-numeric:tabular-nums}
+      .popover .pbadge{font-size:10px;padding:2px 8px;border-radius:20px;font-weight:600;white-space:nowrap;margin-left:2px}
       .popover .pempty{padding:16px 12px;text-align:center;color:var(--muted);font-size:11.5px}
       .charts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-bottom:10px}
       .chart-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}

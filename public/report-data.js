@@ -18,6 +18,15 @@ window.ProgressReport = (function () {
   const WD = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
   const MO = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
+  /* Strip decorations some boards put in list titles: emoji + "(2/4)" style counters */
+  function cleanListName(name) {
+    return String(name || "")
+      .replace(/\(\s*\d+\s*\/\s*\d+\s*\)/g, "")          // (2/4) counters
+      .replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\u{FE0F}\u{200D}]/gu, "") // emoji & pictographs
+      .replace(/\s{2,}/g, " ")
+      .trim();
+  }
+
   /* ── per-card derivations (mirror card-progress-iframe.js) ── */
   function computeProgress(s) {
     if (!s) return 0;
@@ -60,7 +69,7 @@ window.ProgressReport = (function () {
     const cards = await cardsRes.json();
     const listName = {};
     if (listsRes.ok) {
-      (await listsRes.json()).forEach((l) => { listName[l.id] = l.name; });
+      (await listsRes.json()).forEach((l) => { listName[l.id] = cleanListName(l.name); });
     }
     const map = {};
     cards.forEach((c) => {
