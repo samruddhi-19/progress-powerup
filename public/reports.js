@@ -257,7 +257,20 @@
           };
           download(base+".json",new Blob([JSON.stringify(payload,null,2)],{type:"application/json"}));
         } else if(fmt==="pdf"){
-          window.print(); // uses browser's Save as PDF — no libs, no CSP issues
+          // Print the dashboard as a standalone window so Trello chrome doesn't appear in the PDF
+          const styles=Array.from(document.querySelectorAll("style,link[rel='stylesheet']"))
+            .map(n=>n.outerHTML).join("");
+          const body=document.getElementById("app").outerHTML;
+          const w=window.open("","progress-report-print","width=1000,height=1200");
+          if(!w){window.print();return;} // fallback if popup blocked
+          w.document.write(`<!doctype html><html><head><meta charset="utf-8">
+            <title>Progress ${mode} report</title>${styles}
+            <style>body{margin:0;padding:16px;background:${getComputedStyle(document.body).backgroundColor}}
+            .export-row,.tip,.popover,.topbar .seg{display:none !important}</style>
+            </head><body>${body}</body></html>`);
+          w.document.close();
+          w.focus();
+          setTimeout(()=>{w.print();w.close();},250);
         }
       }
 
