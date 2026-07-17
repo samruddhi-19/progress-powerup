@@ -6,6 +6,12 @@
 
       let mode = "weekly";
       let report = null;
+      let exportFmt = "csv";
+      const FORMATS = {
+        csv:  { label: "CSV",  hint: "Spreadsheet",   iconKey: "csv"  },
+        json: { label: "JSON", hint: "Raw data",      iconKey: "json" },
+        pdf:  { label: "PDF",  hint: "Full dashboard", iconKey: "pdf" },
+      };
 
       const SERIES = ["#22a06b","#4c6ef5","#e9a23b","#7c6ff0","#4bce97","#e5684a"];
       const icon = (p) => `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
@@ -16,6 +22,10 @@
         warn:'<path d="M12 4 2 20h20L12 4Z"/><path d="M12 10v4M12 17.5v.5"/>',
         cal:'<rect x="3" y="4" width="18" height="17" rx="3"/><path d="M3 9h18M8 2v4M16 2v4"/><path d="m10 15 1.4 1.4L14 14"/>',
         dl:'<path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M4 21h16"/>',
+        csv:'<path d="M14 3v5h5"/><path d="M7 3h7l5 5v13H7z"/><path d="M9 14h2M9 17h2M13 14v3M15 14v3"/>',
+        json:'<path d="M14 3v5h5"/><path d="M7 3h7l5 5v13H7z"/><path d="M9 14v3M11 14v3M13 14v3M15 14v3"/>',
+        pdf:'<path d="M14 3v5h5"/><path d="M7 3h7l5 5v13H7z"/><text x="12" y="18" text-anchor="middle" font-size="5" font-weight="700" fill="currentColor" stroke="none">PDF</text>',
+        chev:'<path d="m6 9 6 6 6-6"/>',
       };
 
       /* ── charts: fixed 100-based scale for %, gridlines, labels, graceful sparse data ── */
@@ -144,21 +154,35 @@
             <th style="width:24%">Period</th><th style="width:9%">Total</th><th style="width:11%">Done</th><th style="width:12%">Overtime</th><th style="width:22%">Deadline</th><th style="width:22%">Rating</th>
           </tr></thead><tbody>${rows}</tbody></table></div>
           <div class="export-row">
-            <button class="export" id="export">${icon(ICONS.dl)}Export ${mode} report</button>
-            <button class="export-more" id="exportMore" aria-label="More export options">${icon('<circle cx="12" cy="6" r="1.4" fill="currentColor"/><circle cx="12" cy="12" r="1.4" fill="currentColor"/><circle cx="12" cy="18" r="1.4" fill="currentColor"/>')}</button>
-            <div class="export-menu" id="exportMenu" hidden>
-              <button data-fmt="csv">${icon('<path d="M14 3v5h5"/><path d="M7 3h7l5 5v13H7z"/>')}Download as CSV<span class="hint">Spreadsheet</span></button>
-              <button data-fmt="json">${icon('<path d="M14 3v5h5"/><path d="M7 3h7l5 5v13H7z"/><path d="M10 13c-1 0-1 1-1 1v2c0 0 0 1 -1 1M14 13c1 0 1 1 1 1v2c0 0 0 1 1 1"/>')}Download as JSON<span class="hint">Raw data</span></button>
-              <button data-fmt="print">${icon('<path d="M6 9V3h12v6"/><rect x="3" y="9" width="18" height="8" rx="2"/><rect x="7" y="15" width="10" height="6" rx="1"/>')}Print / Save as PDF<span class="hint">Full dashboard</span></button>
+            <div class="fmt-select" id="fmtSelect">
+              <button class="fmt-btn" id="fmtBtn" aria-haspopup="listbox">
+                <span class="fmt-icon">${icon(ICONS[FORMATS[exportFmt].iconKey])}</span>
+                <span class="fmt-label">${FORMATS[exportFmt].label}</span>
+                <span class="fmt-chev">${icon(ICONS.chev)}</span>
+              </button>
+              <div class="fmt-menu" id="fmtMenu" hidden role="listbox">
+                ${Object.entries(FORMATS).map(([key,f])=>`
+                  <button data-fmt="${key}" role="option" class="${key===exportFmt?"on":""}">
+                    ${icon(ICONS[f.iconKey])}
+                    <span class="fmt-text"><span class="fmt-t">${f.label}</span><span class="fmt-h">${f.hint}</span></span>
+                  </button>`).join("")}
+              </div>
             </div>
+            <button class="export" id="export">${icon(ICONS.dl)}Export ${mode} report</button>
           </div>`;
 
         document.querySelectorAll(".seg button").forEach(b=>b.onclick=()=>{mode=b.dataset.mode;load();});
-        document.getElementById("export").onclick=()=>exportAs("csv");
-        const menu=document.getElementById("exportMenu");
-        document.getElementById("exportMore").onclick=(e)=>{e.stopPropagation();menu.hidden=!menu.hidden;};
-        menu.querySelectorAll("button").forEach(b=>b.onclick=()=>{menu.hidden=true;exportAs(b.dataset.fmt);});
-        document.addEventListener("click",(e)=>{if(!e.target.closest(".export-row"))menu.hidden=true;},{once:false});
+        const fmtMenu=document.getElementById("fmtMenu");
+        document.getElementById("fmtBtn").onclick=(e)=>{e.stopPropagation();fmtMenu.hidden=!fmtMenu.hidden;};
+        fmtMenu.querySelectorAll("button").forEach(b=>b.onclick=(e)=>{
+          e.stopPropagation();
+          exportFmt=b.dataset.fmt;
+          fmtMenu.hidden=true;
+          // rerender only the button label + list, keep everything else intact
+          renderDashboard();
+        });
+        document.addEventListener("click",(e)=>{if(!e.target.closest("#fmtSelect"))fmtMenu.hidden=true;});
+        document.getElementById("export").onclick=()=>exportAs(exportFmt);
         document.querySelectorAll(".metric").forEach(el=>{
           el.onclick=()=>togglePopover(el);
         });
@@ -232,7 +256,7 @@
             history:report.history,
           };
           download(base+".json",new Blob([JSON.stringify(payload,null,2)],{type:"application/json"}));
-        } else if(fmt==="print"){
+        } else if(fmt==="pdf"){
           window.print(); // uses browser's Save as PDF — no libs, no CSP issues
         }
       }

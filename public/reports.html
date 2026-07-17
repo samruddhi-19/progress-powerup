@@ -417,7 +417,7 @@
       }
       .export-row {
         display: flex;
-        gap: 6px;
+        gap: 8px;
         margin-top: 12px;
         position: relative;
       }
@@ -444,38 +444,54 @@
       .export:hover {
         filter: brightness(1.08);
       }
-      .export-more {
-        width: 40px;
-        padding: 0;
-        background: var(--export-bg);
-        color: var(--export-fg);
-        border: none;
+      .fmt-select {
+        position: relative;
+        flex-shrink: 0;
+      }
+      .fmt-btn {
+        height: 100%;
+        min-height: 42px;
+        padding: 0 12px 0 12px;
+        background: var(--card);
+        color: var(--text);
+        border: 1px solid var(--border);
         border-radius: 9px;
+        font-family: inherit;
+        font-size: 12.5px;
+        font-weight: 600;
         cursor: pointer;
         display: flex;
         align-items: center;
-        justify-content: center;
-        position: relative;
+        gap: 8px;
+        min-width: 130px;
       }
-      .export-more::before {
-        content: "";
+      .fmt-btn:hover {
+        background: rgba(255, 255, 255, 0.03);
+        border-color: rgba(255, 255, 255, 0.14);
+      }
+      .fmt-btn .fmt-icon {
+        display: flex;
+        color: var(--accent);
+      }
+      .fmt-btn .fmt-icon svg {
+        width: 15px;
+        height: 15px;
+      }
+      .fmt-btn .fmt-label {
+        flex: 1;
+        text-align: left;
+      }
+      .fmt-btn .fmt-chev {
+        display: flex;
+        color: var(--muted);
+      }
+      .fmt-btn .fmt-chev svg {
+        width: 13px;
+        height: 13px;
+      }
+      .fmt-menu {
         position: absolute;
         left: 0;
-        top: 8px;
-        bottom: 8px;
-        width: 1px;
-        background: rgba(255, 255, 255, 0.18);
-      }
-      .export-more:hover {
-        filter: brightness(1.08);
-      }
-      .export-more svg {
-        width: 18px;
-        height: 18px;
-      }
-      .export-menu {
-        position: absolute;
-        right: 0;
         bottom: calc(100% + 6px);
         width: 220px;
         background: #252a2f;
@@ -485,10 +501,10 @@
         padding: 4px;
         z-index: 15;
       }
-      .export-menu[hidden] {
+      .fmt-menu[hidden] {
         display: none;
       }
-      .export-menu button {
+      .fmt-menu button {
         display: flex;
         align-items: center;
         gap: 10px;
@@ -504,20 +520,35 @@
         border-radius: 6px;
         text-align: left;
       }
-      .export-menu button:hover {
+      .fmt-menu button:hover {
         background: rgba(255, 255, 255, 0.06);
       }
-      .export-menu button svg {
-        width: 15px;
-        height: 15px;
+      .fmt-menu button.on {
+        background: rgba(87, 157, 255, 0.1);
+      }
+      .fmt-menu button.on svg {
+        color: var(--accent);
+      }
+      .fmt-menu button svg {
+        width: 16px;
+        height: 16px;
         color: var(--dim);
         flex-shrink: 0;
       }
-      .export-menu .hint {
-        margin-left: auto;
+      .fmt-menu .fmt-text {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+      }
+      .fmt-menu .fmt-t {
+        font-size: 12.5px;
+        font-weight: 600;
+        color: var(--text);
+      }
+      .fmt-menu .fmt-h {
         font-size: 10px;
         color: var(--muted);
-        font-weight: 400;
+        margin-top: 1px;
       }
       @media print {
         body {
