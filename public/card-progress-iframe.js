@@ -1,4 +1,4 @@
-const TRELLO_API_KEY = "58a903ef47a68cf462fd91ad5101444e";
+const TRELLO_API_KEY = "93b1fabac6fe3f9a688c9b4cc836f97d";
 
 const t = TrelloPowerUp.iframe({
   appKey: TRELLO_API_KEY,
@@ -251,7 +251,6 @@ function stopSession() {
     const d = new Date(state.startTime);
     const sessionNumber = state.history.length + 1;
     state.history.push({
-      ts: d.getTime(),
       date: d.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
       time: d.toLocaleTimeString("en-US", {
         hour: "2-digit",
