@@ -129,7 +129,7 @@
           </div>
           <div class="metrics" id="metrics">
             ${(()=>{const per=mode==="monthly"?"this month":"this week";return `
-            ${metric("active","var(--green-bg)","var(--green-fg)","check",m.active,"Active cards",`Cards worked on ${per}`)}
+            ${metric("active","var(--green-bg)","var(--green-fg)","check",m.active,"Active cards","Cards currently mapped and tracked on this board")}
             ${metric("achieved","var(--blue-bg)","var(--blue-fg)","target",m.achieved,"Completed cards",`Cards that reached 100% ${per}`)}
             ${metric("hours","var(--amber-bg)","var(--amber-fg)","clock",m.hours,"Hours tracked",`Hours tracked ${per}`)}
             ${metric("overtime","var(--red-bg)","var(--red-fg)","warn",m.overtime,"Overtime warning",`Cards that went over their estimate ${per}`)}`;})()}

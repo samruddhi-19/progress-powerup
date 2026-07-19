@@ -59,7 +59,6 @@ window.ProgressReport = (function () {
   async function fetchCards(t, token) {
     const ctx = t.getContext();
     const boardId = ctx.board;
-    const ourPluginId = ctx.plugin || null;
     const base = `key=${API_KEY}&token=${token}`;
     const [cardsRes, listsRes] = await Promise.all([
       fetch(`https://api.trello.com/1/boards/${boardId}/cards?fields=name,idList,due,dueComplete&pluginData=true&${base}`),
@@ -74,12 +73,13 @@ window.ProgressReport = (function () {
     const map = {};
     cards.forEach((c) => {
       let state = null;
+      // Identify OUR data by shape, not by idPlugin — t.getContext().plugin does not
+      // reliably match REST's pluginData[].idPlugin across all iframe contexts (modal
+      // vs card badge), so an exact-ID filter can silently drop our own data.
       (c.pluginData || []).forEach((pd) => {
-        // Only our own Power-Up's data — other plugins store pluginData on the same cards
-        if (ourPluginId && pd.idPlugin && pd.idPlugin !== ourPluginId) return;
         try {
           const v = JSON.parse(pd.value);
-          if (v && (v.data || v.tasks || v.progressSource)) state = v;
+          if (v && (v.data || v.tasks || v.progressSource !== undefined)) state = v;
         } catch (e) {}
       });
       map[c.id] = { meta: c, state, list: listName[c.idList] || "" };
@@ -117,7 +117,10 @@ window.ProgressReport = (function () {
   function sessionTs(h) {
     if (h && typeof h.ts === "number") return h.ts;
     if (!h || !h.date) return NaN;
-    const d = new Date(`${h.date} ${new Date().getFullYear()} ${h.time || "12:00 PM"}`);
+    // Some browsers insert a narrow no-break space (U+202F) before AM/PM instead of
+    // a normal space, which can break naive Date parsing — normalize all whitespace first.
+    const clean = (s) => String(s || "").replace(/\s+/g, " ").trim();
+    const d = new Date(`${clean(h.date)} ${new Date().getFullYear()} ${clean(h.time) || "12:00 PM"}`);
     return isNaN(d) ? NaN : d.getTime();
   }
 
@@ -193,7 +196,6 @@ window.ProgressReport = (function () {
     let hoursSecPeriod = 0;
     const periodSessions = [];          // sessions inside the current period
     const perCardPeriodSec = {};        // cardId -> seconds tracked this period
-    const activeIds = new Set();        // cards with activity this period
     const debug = [];
 
     mapped.forEach((id) => {
@@ -221,22 +223,23 @@ window.ProgressReport = (function () {
       if (cardPeriodSec > 0) perCardPeriodSec[id] = cardPeriodSec;
       hoursSecPeriod += cardPeriodSec;
 
-      const workedThisPeriod = cardPeriodSec > 0 || (s && s.running);
-      const completedThisPeriod = inP(completedSeen[id]);
-      const overtimeThisPeriod = inP(overtimeSeen[id]);
-      if (workedThisPeriod || completedThisPeriod || overtimeThisPeriod) activeIds.add(id);
-
       debug.push({
         card: (entry.meta.name || id).slice(0, 30),
         hasState: !!s,
         periodSec: cardPeriodSec,
         sessionsInPeriod,
         running: !!(s && s.running),
-        completedThisPeriod, overtimeThisPeriod,
+        completedThisPeriod: inP(completedSeen[id]),
+        overtimeThisPeriod: inP(overtimeSeen[id]),
       });
     });
 
-    /* period-scoped metrics + breakdowns */
+    /* "Active cards" = however many cards are mapped for tracking right now — a live
+       count, not scoped to the period. It naturally changes if cards are mapped/unmapped. */
+    const activeCardIds = mapped.filter((id) => cardMap[id]);
+    const active = activeCardIds.length;
+
+    /* period-scoped metrics + breakdowns (completed / hours / overtime stay week-scoped) */
     const breakdown = { active: [], achieved: [], hours: [], overtime: [] };
     let completed = 0, overtime = 0;
     mapped.forEach((id) => {
@@ -249,7 +252,7 @@ window.ProgressReport = (function () {
       const el = elapsedOf(s), est = estimatedOf(s);
       const elH = +(el / 3600).toFixed(1), estH = +(est / 3600).toFixed(1);
 
-      if (activeIds.has(id)) breakdown.active.push({ name, list, value: prog + "%" });
+      breakdown.active.push({ name, list, value: prog + "%" });
       if (inP(completedSeen[id])) { completed++; breakdown.achieved.push({ name, list, value: "100%" }); }
       if (perCardPeriodSec[id]) {
         breakdown.hours.push({ name, list, value: +(perCardPeriodSec[id] / 3600).toFixed(1) + "h", sort: perCardPeriodSec[id] });
@@ -260,7 +263,6 @@ window.ProgressReport = (function () {
       }
     });
     breakdown.hours.sort((a, b) => b.sort - a.sort);
-    const active = activeIds.size;
     console.log("[ProgressReport]", mode, "period", new Date(P.start).toDateString(), "→", new Date(P.end).toDateString(), debug);
 
     /* line chart — only the days that actually have tracked time (original look),
