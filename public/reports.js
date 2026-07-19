@@ -115,11 +115,11 @@
 
         const metric=(key,chipBg,chipFg,iconKey,val,lbl,tip)=>`
           <div class="card metric" data-key="${key}" data-fg="${chipFg}" data-bg="${chipBg}">
-            <div class="chip" style="background:${chipBg};color:${chipFg}">${icon(ICONS[iconKey])}</div>
-            <div class="mtext">
-              <div class="val" style="color:${chipFg}">${val}</div>
-              <div class="lbl">${lbl}</div>
+            <div class="mrow">
+              <div class="chip" style="background:${chipBg};color:${chipFg}">${icon(ICONS[iconKey])}</div>
+              <div class="val">${val}</div>
             </div>
+            <div class="lbl">${lbl}</div>
             <div class="tip">${tip}</div>
           </div>`;
 
