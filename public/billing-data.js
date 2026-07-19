@@ -98,6 +98,7 @@ window.ProgressBilling = (function () {
 
     const billable = [];
     const unrated = [];
+    const cardDetails = [];
     let billableHours = 0, totalAmount = 0;
 
     mapped.forEach((id) => {
@@ -108,23 +109,24 @@ window.ProgressBilling = (function () {
       const list = entry.list || "";
       const rate = s && typeof s.hourlyRate === "number" ? s.hourlyRate : null;
       const ds = dueStatus(entry.meta.due, entry.meta.dueComplete);
+      const elH = +(elapsedOf(s) / 3600).toFixed(2);
+      const progress = computeProgress(s);
+
+      // Card Details — every tracked card, regardless of billing rate
+      cardDetails.push({ name, list, progress, hours: elH, due: ds });
 
       if (rate) {
-        const elH = +(elapsedOf(s) / 3600).toFixed(2);
         const amount = +(elH * rate).toFixed(2);
         billableHours += elH;
         totalAmount += amount;
-        billable.push({
-          name, list, rate, hours: elH, amount,
-          progress: computeProgress(s),
-          due: ds,
-        });
+        billable.push({ name, list, rate, hours: elH, amount, progress, due: ds });
       } else {
         unrated.push({ name, list, due: ds });
       }
     });
 
     billable.sort((a, b) => b.amount - a.amount);
+    cardDetails.sort((a, b) => (a.due && a.due.date ? a.due.date : Infinity) - (b.due && b.due.date ? b.due.date : Infinity));
 
     return {
       metrics: {
@@ -133,6 +135,7 @@ window.ProgressBilling = (function () {
         totalAmount: +totalAmount.toFixed(2),
         noRateCount: unrated.length,
       },
+      cardDetails,
       billable,
       unrated,
     };
