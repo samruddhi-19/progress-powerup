@@ -51,10 +51,13 @@ function progressBar(pct){
 }
 
 function renderDashboard(){
-  const d = report, m = d.metrics;
+  const d = report || {};
+  const cardDetails = Array.isArray(d.cardDetails) ? d.cardDetails : [];
+  const billableList = Array.isArray(d.billable) ? d.billable : [];
+  const m = d.metrics || { billableCards:0, billableHours:0, totalAmount:0, noRateCount:0 };
 
   /* ── Card Details: every tracked card, always populated ── */
-  const detailRows = d.cardDetails.length ? d.cardDetails.map((c)=>`
+  const detailRows = cardDetails.length ? cardDetails.map((c)=>`
     <tr>
       <td>${esc(c.name)}<div style="font-size:10px;color:var(--muted);margin-top:2px">${esc(c.list)}</div></td>
       <td style="width:26%">${progressBar(c.progress)}</td>
@@ -63,7 +66,7 @@ function renderDashboard(){
     </tr>`).join("") : `<tr><td colspan="4" class="empty-cell">No cards are mapped for tracking yet.</td></tr>`;
 
   /* ── Active Billable Tasks: only cards with a rate set ── */
-  const billRows = d.billable.length ? d.billable.map((c)=>`
+  const billRows = billableList.length ? billableList.map((c)=>`
     <tr>
       <td>${esc(c.name)}<div style="font-size:10px;color:var(--muted);margin-top:2px">${esc(c.list)}</div></td>
       <td class="num" style="text-align:right">${c.hours}h</td>
@@ -71,7 +74,7 @@ function renderDashboard(){
       <td class="num" style="text-align:right;font-weight:600">$${c.amount.toFixed(2)}</td>
     </tr>`).join("") : `<tr><td colspan="4" class="empty-cell">No cards have an hourly rate set yet.</td></tr>`;
 
-  const totalRow = d.billable.length ? `
+  const totalRow = billableList.length ? `
     <tr class="total-row">
       <td>Total</td>
       <td class="num" style="text-align:right">${m.billableHours}h</td>
@@ -90,7 +93,7 @@ function renderDashboard(){
       <span class="hint">Rates are set per-card, from the card itself</span>
     </div>
 
-    <div class="sec-row"><span class="sec-h">Card details</span><span class="hint">${d.cardDetails.length} tracked</span></div>
+    <div class="sec-row"><span class="sec-h">Card details</span><span class="hint">${cardDetails.length} tracked</span></div>
     <div class="table-card">
       <table>
         <thead><tr>
@@ -123,21 +126,24 @@ function renderDashboard(){
 
 function exportCSV(){
   if(!report) return;
+  const cardDetails = Array.isArray(report.cardDetails) ? report.cardDetails : [];
+  const billableList = Array.isArray(report.billable) ? report.billable : [];
+  const metrics = report.metrics || { billableHours:0, totalAmount:0 };
   const q = v => `"${String(v).replace(/"/g,'""')}"`;
   const lines = [];
   lines.push(q("Card Details"));
   lines.push(["Task name","List","Completion (%)","Hours taken","Due status"].map(q).join(","));
-  report.cardDetails.forEach(c => lines.push(
+  cardDetails.forEach(c => lines.push(
     [c.name, c.list, c.progress, c.hours, c.due ? c.due.label : ""].map(q).join(",")
   ));
   lines.push("");
   lines.push(q("Active Billable Tasks"));
   lines.push(["Work","List","Hours","Hourly rate ($)","Total amount ($)"].map(q).join(","));
-  report.billable.forEach(c => lines.push(
+  billableList.forEach(c => lines.push(
     [c.name, c.list, c.hours, c.rate, c.amount.toFixed(2)].map(q).join(",")
   ));
-  if (report.billable.length) {
-    lines.push(["Total","", report.metrics.billableHours, "", report.metrics.totalAmount.toFixed(2)].map(q).join(","));
+  if (billableList.length) {
+    lines.push(["Total","", metrics.billableHours, "", metrics.totalAmount.toFixed(2)].map(q).join(","));
   }
   const stamp = new Date().toISOString().slice(0,10);
   const blob = new Blob([lines.join("\n")], {type:"text/csv;charset=utf-8"});
