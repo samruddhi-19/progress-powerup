@@ -181,8 +181,8 @@ TrelloPowerUp.initialize({
         callback: function (t) {
           return t.popup({
             title: "Progress",
-            url: "./menu.html",
-            height: 300,
+            url: "./progress-cards.html",
+            height: 560,
             mouseEvent: opts.mouseEvent,
           });
         },
