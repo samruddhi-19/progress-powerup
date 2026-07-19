@@ -1,4 +1,4 @@
-const TRELLO_API_KEY = "93b1fabac6fe3f9a688c9b4cc836f97d";
+const TRELLO_API_KEY = "58a903ef47a68cf462fd91ad5101444e";
 
 const t = TrelloPowerUp.iframe({
   appKey: TRELLO_API_KEY,
@@ -29,10 +29,12 @@ let state = {
   tasks: [],
   logView: "list",
   showAllLogs: false,
+  hourlyRate: null,
   collapsed: {
     eta: false,
     tasks: false,
     timer: false,
+    billing: true,
   },
   data: {
     hours: { elapsed: 0, estimated: 8 * 3600 },
@@ -45,6 +47,7 @@ let state = {
 
 let cardMeta = { name: "", labelName: "", labelColor: "" };
 let timerInterval = null;
+let editingRate = false; // transient UI state — not persisted
 
 /* ── Helpers ── */
 function formatHM(sec) {
@@ -251,6 +254,7 @@ function stopSession() {
     const d = new Date(state.startTime);
     const sessionNumber = state.history.length + 1;
     state.history.push({
+      ts: d.getTime(),
       date: d.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
       time: d.toLocaleTimeString("en-US", {
         hour: "2-digit",
@@ -589,6 +593,62 @@ function render() {
         }
       </div>
 
+      <!-- Billing / Hourly Rate -->
+      <div class="section">
+        <div class="section-header collapsible" data-toggle="billing">
+          <div class="section-header-left">
+            ${chevron(c.billing)}
+            <span class="section-title">Billing</span>
+          </div>
+          ${
+            state.hourlyRate
+              ? `<span class="section-meta">$${state.hourlyRate}/hr</span>`
+              : ""
+          }
+        </div>
+        ${
+          c.billing
+            ? ""
+            : `
+        <div class="section-body">
+          ${
+            editingRate
+              ? `
+          <div class="eta-row">
+            <span class="eta-label">$</span>
+            <input id="rateInput" type="number" min="0" step="0.5" class="eta-input" style="flex:1;" placeholder="0.00" value="${state.hourlyRate || ""}" />
+            <span class="eta-sep">/hr</span>
+          </div>
+          <div class="timer-right" style="margin-top:8px;justify-content:flex-end;">
+            <button id="cancelRateBtn" class="btn-reset" style="width:auto;padding:0 12px;">Cancel</button>
+            <button id="saveRateBtn" class="btn-timer-start" style="width:auto;padding:0 14px;">Save</button>
+          </div>`
+              : state.hourlyRate
+                ? `
+          <div class="timer-row" style="align-items:center;">
+            <div class="timer-stats">
+              <div class="timer-stat">
+                <span class="timer-stat-label">Rate</span>
+                <span class="timer-display">$${state.hourlyRate}/hr</span>
+              </div>
+              <div class="timer-stat">
+                <span class="timer-stat-label">Amount so far</span>
+                <span class="timer-display">$${((elapsed / 3600) * state.hourlyRate).toFixed(2)}</span>
+              </div>
+            </div>
+            <div class="timer-right">
+              <button id="editRateBtn" class="btn-reset" title="Edit rate">${resetIcon}</button>
+            </div>
+          </div>`
+                : `
+          <div class="eta-row">
+            <button id="addRateBtn" class="btn-timer-start" style="width:100%;justify-content:center;">+ Add Hourly Rate</button>
+          </div>`
+          }
+        </div>`
+        }
+      </div>
+
     </div>
   `;
 
@@ -636,6 +696,47 @@ function bindEvents() {
       render();
     });
   });
+
+  const addRateBtn = document.getElementById("addRateBtn");
+  if (addRateBtn)
+    addRateBtn.addEventListener("click", function () {
+      editingRate = true;
+      render();
+      setTimeout(() => document.getElementById("rateInput")?.focus(), 30);
+    });
+
+  const editRateBtn = document.getElementById("editRateBtn");
+  if (editRateBtn)
+    editRateBtn.addEventListener("click", function () {
+      editingRate = true;
+      render();
+      setTimeout(() => document.getElementById("rateInput")?.focus(), 30);
+    });
+
+  const cancelRateBtn = document.getElementById("cancelRateBtn");
+  if (cancelRateBtn)
+    cancelRateBtn.addEventListener("click", function () {
+      editingRate = false;
+      render();
+    });
+
+  const saveRateBtn = document.getElementById("saveRateBtn");
+  if (saveRateBtn)
+    saveRateBtn.addEventListener("click", function () {
+      const input = document.getElementById("rateInput");
+      const val = parseFloat(input && input.value);
+      state.hourlyRate = isFinite(val) && val > 0 ? val : null;
+      editingRate = false;
+      save();
+      render();
+    });
+
+  const rateInput = document.getElementById("rateInput");
+  if (rateInput)
+    rateInput.addEventListener("keydown", function (e) {
+      if (e.key === "Enter") document.getElementById("saveRateBtn")?.click();
+      if (e.key === "Escape") document.getElementById("cancelRateBtn")?.click();
+    });
 
   const etaDate = document.getElementById("etaDate");
   if (etaDate)

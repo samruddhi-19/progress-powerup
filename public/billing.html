@@ -4,14 +4,247 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <script src="https://p.trellocdn.com/power-up.min.js"></script>
+    <script src="./billing-data.js"></script>
+
     <style>
-      body{margin:0;font-family:"DM Sans",-apple-system,sans-serif;background:#fff;color:#626f86;
-           display:flex;align-items:center;justify-content:center;height:100vh;text-align:center}
-      h3{color:#172b4d;margin:0 0 6px}
+      :root {
+        --bg: #1d2125;
+        --card: #22272b;
+        --text: #e2e8ee;
+        --dim: #8590a2;
+        --muted: #6b788a;
+        --border: rgba(255, 255, 255, 0.08);
+        --track: rgba(255, 255, 255, 0.12);
+        --green-fg: #6ee7b7;
+        --green-bg: rgba(75, 206, 151, 0.12);
+        --blue-fg: #85b8ff;
+        --blue-bg: rgba(87, 157, 255, 0.12);
+        --amber-fg: #fbbf7c;
+        --amber-bg: rgba(245, 160, 95, 0.12);
+        --red-fg: #ff8f8f;
+        --red-bg: rgba(229, 72, 77, 0.14);
+        --export-bg: #0c66e4;
+        --export-fg: #fff;
+        --accent: #579dff;
+      }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        background: var(--bg);
+        color: var(--text);
+        font-family:
+          "DM Sans",
+          -apple-system,
+          sans-serif;
+        -webkit-font-smoothing: antialiased;
+        font-size: 13px;
+      }
+      .wrap {
+        padding: 14px 16px 16px;
+        max-width: 1000px;
+        margin: 0 auto;
+      }
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 14px;
+      }
+      .topbar h1 {
+        font-size: 16px;
+        font-weight: 700;
+      }
+      .topbar .hint {
+        font-size: 10.5px;
+        color: var(--muted);
+        background: rgba(255, 255, 255, 0.05);
+        padding: 4px 10px;
+        border-radius: 20px;
+      }
+      .card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 11px;
+      }
+      .metrics {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 9px;
+        margin-bottom: 14px;
+      }
+      .metric {
+        padding: 13px 14px;
+      }
+      .metric .mrow {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .chip {
+        width: 30px;
+        height: 30px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+      .chip svg {
+        width: 15px;
+        height: 15px;
+      }
+      .metric .val {
+        font-size: 19px;
+        font-weight: 600;
+        line-height: 1;
+        color: var(--text);
+        font-variant-numeric: tabular-nums;
+      }
+      .metric .lbl {
+        font-size: 10px;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--dim);
+        margin-top: 9px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .sec-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 8px;
+      }
+      .sec-h {
+        font-size: 12.5px;
+        font-weight: 600;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed;
+      }
+      th {
+        font-size: 10.5px;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--muted);
+        text-align: left;
+        padding: 11px 12px;
+        font-weight: 600;
+        background: rgba(255, 255, 255, 0.02);
+      }
+      td {
+        padding: 13px 12px;
+        font-size: 12px;
+        border-top: 1px solid var(--border);
+      }
+      .num {
+        font-variant-numeric: tabular-nums;
+      }
+      .badge {
+        font-size: 10px;
+        padding: 3px 9px;
+        border-radius: 20px;
+        font-weight: 600;
+        white-space: nowrap;
+      }
+      .due-date {
+        font-size: 10px;
+        color: var(--muted);
+        display: block;
+        margin-top: 2px;
+      }
+      .total-row td {
+        background: rgba(255, 255, 255, 0.02);
+        font-weight: 600;
+        border-top: 1px solid rgba(255, 255, 255, 0.12);
+      }
+      .banner {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 11px 14px;
+        margin: 12px 0 14px;
+        font-size: 11.5px;
+        color: var(--dim);
+      }
+      .banner svg {
+        width: 15px;
+        height: 15px;
+        color: var(--dim);
+        flex-shrink: 0;
+      }
+      .banner strong {
+        color: var(--text);
+      }
+      .export {
+        width: 100%;
+        padding: 12px;
+        background: var(--export-bg);
+        color: var(--export-fg);
+        border: none;
+        border-radius: 9px;
+        font-family: inherit;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+      }
+      .export:hover {
+        filter: brightness(1.08);
+      }
+      .state {
+        padding: 40px 24px;
+        text-align: center;
+        color: var(--dim);
+      }
+      .state h2 {
+        font-size: 15px;
+        color: var(--text);
+        margin-bottom: 6px;
+      }
+      .state button {
+        margin-top: 14px;
+        padding: 10px 18px;
+        background: var(--accent);
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        font-family: inherit;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .empty-cell {
+        padding: 20px;
+        text-align: center;
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .table-card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 11px;
+        overflow: hidden;
+        margin-bottom: 12px;
+      }
     </style>
   </head>
+
   <body>
-    <div><h3>Workspace & Billing</h3><p>Coming soon.</p></div>
-    <script>/* global TrelloPowerUp */ TrelloPowerUp.iframe();</script>
+    <div class="wrap" id="app"><div class="state">Loading billing…</div></div>
+    <script src="./billing.js"></script>
   </body>
 </html>
