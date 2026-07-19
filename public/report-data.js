@@ -101,7 +101,27 @@ window.ProgressReport = (function () {
   }
   function rating(pct) { return pct >= 90 ? "Excellent" : pct >= 80 ? "Good" : "Need attention"; }
 
-  /* ── snapshot current period, then return full stored history (newest first) ── */
+  /* Start/end (exclusive) of the current period */
+  function periodBounds(mode, now) {
+    if (mode === "monthly") {
+      const s = new Date(now.getFullYear(), now.getMonth(), 1);
+      const e = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+      return { start: s.getTime(), end: e.getTime() };
+    }
+    const s = weekStart(now);
+    const e = new Date(s); e.setDate(s.getDate() + 7);
+    return { start: s.getTime(), end: e.getTime() };
+  }
+
+  /* Session timestamp: new entries carry ts; legacy entries get parsed (assumes current year) */
+  function sessionTs(h) {
+    if (h && typeof h.ts === "number") return h.ts;
+    if (!h || !h.date) return NaN;
+    const d = new Date(`${h.date} ${new Date().getFullYear()} ${h.time || "12:00 PM"}`);
+    return isNaN(d) ? NaN : d.getTime();
+  }
+
+  /* ── snapshot current period, then return full stored history ── */
   async function snapshot(t, mode, agg) {
     const storeKey = mode === "monthly" ? "reportHistoryMonthly" : "reportHistoryWeekly";
     let hist = (await t.get("board", "shared", storeKey)) || [];
@@ -116,6 +136,38 @@ window.ProgressReport = (function () {
     if (hist.length > 26) hist = hist.slice(-26);
     try { await t.set("board", "shared", storeKey, hist); } catch (e) {}
     return hist;
+  }
+
+  /* ── first-seen trackers: when did a card complete / enter overtime? ──
+     Cards don't store these moments, so the report records the first time it
+     observes each condition, in board storage. "Completed this week" then
+     means: its first-seen-complete timestamp falls inside this week. */
+  async function updateSeenMaps(t, mapped, cardMap) {
+    const now = Date.now();
+    let completedSeen, overtimeSeen;
+    try { completedSeen = (await t.get("board", "shared", "completedSeen")) || {}; } catch (e) { completedSeen = {}; }
+    try { overtimeSeen = (await t.get("board", "shared", "overtimeSeen")) || {}; } catch (e) { overtimeSeen = {}; }
+    let dirty = false;
+    mapped.forEach((id) => {
+      const entry = cardMap[id];
+      if (!entry) return;
+      const s = entry.state;
+      const prog = computeProgress(s);
+      const el = elapsedOf(s), est = estimatedOf(s);
+      if (prog >= 100) {
+        if (!completedSeen[id]) { completedSeen[id] = now; dirty = true; }
+      } else if (completedSeen[id]) { delete completedSeen[id]; dirty = true; } // reopened
+      if (est > 0 && el > est) {
+        if (!overtimeSeen[id]) { overtimeSeen[id] = now; dirty = true; }
+      } else if (overtimeSeen[id]) { delete overtimeSeen[id]; dirty = true; }
+    });
+    Object.keys(completedSeen).forEach((id) => { if (!mapped.includes(id)) { delete completedSeen[id]; dirty = true; } });
+    Object.keys(overtimeSeen).forEach((id) => { if (!mapped.includes(id)) { delete overtimeSeen[id]; dirty = true; } });
+    if (dirty) {
+      try { await t.set("board", "shared", "completedSeen", completedSeen); } catch (e) {}
+      try { await t.set("board", "shared", "overtimeSeen", overtimeSeen); } catch (e) {}
+    }
+    return { completedSeen, overtimeSeen };
   }
 
   /* ── main ── */
@@ -133,14 +185,63 @@ window.ProgressReport = (function () {
       mapped = (await t.get("board", "shared", "mappedCards")) || [];
     } catch (e) { return { error: e.message || "Could not load board data" }; }
 
-    let active = 0, completed = 0, hoursSec = 0, overtime = 0;
-    const sessions = [];
+    const nowDate = new Date();
+    const P = periodBounds(mode, nowDate);
+    const inP = (ts) => typeof ts === "number" && ts >= P.start && ts < P.end;
+    const { completedSeen, overtimeSeen } = await updateSeenMaps(t, mapped, cardMap);
+
+    let hoursSecPeriod = 0;
+    const periodSessions = [];          // sessions inside the current period
+    const perCardPeriodSec = {};        // cardId -> seconds tracked this period
+    const activeIds = new Set();        // cards with activity this period
     const debug = [];
-    const breakdown = { active: [], achieved: [], hours: [], overtime: [] };
+
     mapped.forEach((id) => {
       const entry = cardMap[id];
       if (!entry) return;
-      active++;
+      const s = entry.state;
+      let cardPeriodSec = 0;
+      let sessionsInPeriod = 0;
+      if (s && Array.isArray(s.history)) {
+        s.history.forEach((h) => {
+          const ts = sessionTs(h);
+          if (inP(ts)) {
+            const sec = Number(h.seconds) || 0;
+            cardPeriodSec += sec;
+            sessionsInPeriod++;
+            periodSessions.push({ ts, seconds: sec });
+          }
+        });
+      }
+      // live running timer counts toward the current period
+      if (s && s.running && s.startTime) {
+        const liveSec = Math.floor((Date.now() - s.startTime) / 1000);
+        if (liveSec > 0) { cardPeriodSec += liveSec; periodSessions.push({ ts: Date.now(), seconds: liveSec }); }
+      }
+      if (cardPeriodSec > 0) perCardPeriodSec[id] = cardPeriodSec;
+      hoursSecPeriod += cardPeriodSec;
+
+      const workedThisPeriod = cardPeriodSec > 0 || (s && s.running);
+      const completedThisPeriod = inP(completedSeen[id]);
+      const overtimeThisPeriod = inP(overtimeSeen[id]);
+      if (workedThisPeriod || completedThisPeriod || overtimeThisPeriod) activeIds.add(id);
+
+      debug.push({
+        card: (entry.meta.name || id).slice(0, 30),
+        hasState: !!s,
+        periodSec: cardPeriodSec,
+        sessionsInPeriod,
+        running: !!(s && s.running),
+        completedThisPeriod, overtimeThisPeriod,
+      });
+    });
+
+    /* period-scoped metrics + breakdowns */
+    const breakdown = { active: [], achieved: [], hours: [], overtime: [] };
+    let completed = 0, overtime = 0;
+    mapped.forEach((id) => {
+      const entry = cardMap[id];
+      if (!entry) return;
       const s = entry.state;
       const name = entry.meta.name || "(unnamed card)";
       const list = entry.list || "";
@@ -148,51 +249,45 @@ window.ProgressReport = (function () {
       const el = elapsedOf(s), est = estimatedOf(s);
       const elH = +(el / 3600).toFixed(1), estH = +(est / 3600).toFixed(1);
 
-      breakdown.active.push({ name, list, value: prog + "%" });
-      if (prog >= 100) { completed++; breakdown.achieved.push({ name, list, value: "100%" }); }
-      hoursSec += el;
-      if (el > 0) breakdown.hours.push({ name, list, value: elH + "h", sort: el });
-      if (est > 0 && el > est) {
+      if (activeIds.has(id)) breakdown.active.push({ name, list, value: prog + "%" });
+      if (inP(completedSeen[id])) { completed++; breakdown.achieved.push({ name, list, value: "100%" }); }
+      if (perCardPeriodSec[id]) {
+        breakdown.hours.push({ name, list, value: +(perCardPeriodSec[id] / 3600).toFixed(1) + "h", sort: perCardPeriodSec[id] });
+      }
+      if (inP(overtimeSeen[id])) {
         overtime++;
         breakdown.overtime.push({ name, list, value: `${elH}h / ${estH}h`, badge: `+${(elH - estH).toFixed(1)}h over` });
       }
-      if (s && Array.isArray(s.history)) {
-        s.history.forEach((h) => sessions.push({ date: h.date, seconds: Number(h.seconds) || 0 }));
-      }
-      debug.push({
-        card: name.slice(0, 30),
-        hasState: !!s,
-        elapsedSec: el,
-        running: !!(s && s.running),
-        sessions: s && Array.isArray(s.history) ? s.history.length : 0,
-      });
     });
     breakdown.hours.sort((a, b) => b.sort - a.sort);
-    console.log("[ProgressReport] mapped cards:", debug, "| total sessions:", sessions.length);
+    const active = activeIds.size;
+    console.log("[ProgressReport]", mode, "period", new Date(P.start).toDateString(), "→", new Date(P.end).toDateString(), debug);
 
-    /* line chart — hours per day from session logs (dates have no year → assume current) */
-    const year = new Date().getFullYear();
+    /* line chart — only the days that actually have tracked time (original look),
+       but the underlying sessions are already scoped to the current period */
+    const dayMs = 86400000;
     const byDay = {};
-    sessions.forEach((x) => { byDay[x.date] = (byDay[x.date] || 0) + x.seconds; });
+    periodSessions.forEach((x) => {
+      const key = fmtDay(new Date(x.ts));
+      byDay[key] = (byDay[key] || 0) + x.seconds;
+    });
     const dayKeys = Object.keys(byDay).sort(
-      (a, b) => new Date(`${a} ${year}`) - new Date(`${b} ${year}`),
+      (a, b) => periodSessions.find((s) => fmtDay(new Date(s.ts)) === a).ts -
+                periodSessions.find((s) => fmtDay(new Date(s.ts)) === b).ts,
     );
     const span = mode === "monthly" ? 12 : 7;
     const recent = dayKeys.slice(-span);
     const hoursTracked = recent.map((k) => +(byDay[k] / 3600).toFixed(1));
-    const hoursLabels = recent; // "Jul 15" style day keys
+    const hoursLabels = recent;
 
-    /* most productivity day — weekday with most tracked time */
+    /* most productive day — within the current period only */
     const byWd = [0, 0, 0, 0, 0, 0, 0];
-    sessions.forEach((x) => {
-      const d = new Date(`${x.date} ${year}`);
-      if (!isNaN(d)) byWd[d.getDay()] += x.seconds;
-    });
+    periodSessions.forEach((x) => { byWd[new Date(x.ts).getDay()] += x.seconds; });
     let best = 0;
     byWd.forEach((v, i) => { if (v > byWd[best]) best = i; });
-    const productivityDay = sessions.length ? WD[best] : "—";
+    const productivityDay = periodSessions.length ? WD[best] : "—";
 
-    /* snapshot + history-derived table & bar chart */
+    /* snapshot + history table & bar chart (now truly per-period numbers) */
     const hist = await snapshot(t, mode, { total: active, completed, overtime });
     const history = hist.slice().reverse().map((h) => ({
       range: h.range, total: h.total, completed: h.completed,
@@ -200,13 +295,12 @@ window.ProgressReport = (function () {
     }));
     const deadlineTrend = hist.map((h) => h.deadline);
     const trendLabels = hist.map((h) => {
-      // short label: "Jul 12" from "Jul 12 – Jul 18, 2026" or "Jun 2026"
       const r = String(h.range || "");
       return r.split("–")[0].replace(/,.*$/, "").trim().slice(0, 8);
     });
 
     return {
-      metrics: { active, achieved: completed, hours: +(hoursSec / 3600).toFixed(1), overtime },
+      metrics: { active, achieved: completed, hours: +(hoursSecPeriod / 3600).toFixed(1), overtime },
       deadlineTrend: deadlineTrend.length ? deadlineTrend : [],
       trendLabels,
       hoursTracked: hoursTracked.length ? hoursTracked : [],
