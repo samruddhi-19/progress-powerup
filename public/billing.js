@@ -23,7 +23,10 @@ const ICONS = {
 function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
 function fmtDate(d){ return d ? d.toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}) : ""; }
 function app(){ return document.getElementById("app"); }
-function fit(){ t.sizeTo("body").catch(()=>{}); }
+/* The modal is opened at a fixed height, and .wrap scrolls internally.
+   Calling t.sizeTo() here would grow the iframe to fit the content, which makes
+   Trello's outer modal scroll instead of our own scrollbar — so we don't. */
+function fit(){}
 function showState(html){ app().innerHTML = `<div class="state">${html}</div>`; fit(); }
 
 function dueBadge(ds){

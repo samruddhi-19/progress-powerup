@@ -36,6 +36,8 @@
       }
       html,
       body {
+        height: 100%;
+        overflow: hidden;
         background: var(--bg);
         color: var(--text);
         font-family:
@@ -49,6 +51,21 @@
         padding: 14px 16px 16px;
         max-width: 1000px;
         margin: 0 auto;
+        height: 100%;
+        overflow-y: auto;
+      }
+      .wrap::-webkit-scrollbar {
+        width: 8px;
+      }
+      .wrap::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      .wrap::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.13);
+        border-radius: 5px;
+      }
+      .wrap::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 255, 255, 0.2);
       }
       .topbar {
         display: flex;
