@@ -8,7 +8,7 @@
   } or { needsAuth: true } / { error: "..." }
 */
 window.ProgressBilling = (function () {
-  const API_KEY = "93b1fabac6fe3f9a688c9b4cc836f97d";
+  const API_KEY = window.ProgressConfig.API_KEY;
 
   function cleanListName(name) {
     return String(name || "")

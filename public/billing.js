@@ -1,7 +1,7 @@
 /* global TrelloPowerUp, ProgressBilling */
 const t = TrelloPowerUp.iframe({
-  appKey: "93b1fabac6fe3f9a688c9b4cc836f97d",
-  appName: "Progress Tracker",
+  appKey: window.ProgressConfig.API_KEY,
+  appName: window.ProgressConfig.APP_NAME,
 });
 
 let report = null;

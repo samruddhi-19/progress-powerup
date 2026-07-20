@@ -1,4 +1,4 @@
-const TRELLO_API_KEY = "58a903ef47a68cf462fd91ad5101444e";
+const TRELLO_API_KEY = window.ProgressConfig.API_KEY;
 
 const t = TrelloPowerUp.iframe({
   appKey: TRELLO_API_KEY,
