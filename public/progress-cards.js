@@ -394,6 +394,14 @@ function showAuthView() {
   }, 40);
 }
 
+/* Height for our full-screen-ish windows (Reports / Billing).
+   Capped so the window always fits on screen — anything taller makes the
+   browser scroll the whole Trello page instead of scrolling inside the window. */
+function modalHeight() {
+  const screenH = (window.screen && window.screen.availHeight) || 900;
+  return Math.max(420, Math.min(620, screenH - 380));
+}
+
 /* ── Tabs: Mapping | Reports | Billing ── */
 let activeTab = "mapping";
 
@@ -410,7 +418,7 @@ function setActiveTab(tab) {
       title: "Workspace & Billing",
       url: "./billing.html",
       fullscreen: false,
-      height: 820,
+      height: modalHeight(),
     });
     return;
   }
@@ -430,7 +438,7 @@ function bindTabs() {
       title: "Reports & Analytics",
       url: "./reports.html",
       fullscreen: false,
-      height: 820,
+      height: modalHeight(),
     });
   });
 }

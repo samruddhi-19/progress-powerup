@@ -131,7 +131,6 @@ function renderDashboard(){
       <div class="sec-left"><span class="sec-h">Card details</span><span class="pill">${cardDetails.length}</span></div>
     </div>
     <div class="table-card">
-      <div class="tbl-scroll">
       <table>
         <thead><tr>
           <th style="width:37%">Task</th>
@@ -141,7 +140,6 @@ function renderDashboard(){
         </tr></thead>
         <tbody>${detailRows}</tbody>
       </table>
-      </div>
     </div>
 
     <div class="sec-row">
@@ -149,7 +147,6 @@ function renderDashboard(){
       <button class="export sm" id="export">Generate Details</button>
     </div>
     <div class="table-card">
-      <div class="tbl-scroll">
       <table>
         <thead><tr>
           <th style="width:46%">Work</th>
@@ -159,7 +156,6 @@ function renderDashboard(){
         </tr></thead>
         <tbody>${billRows}</tbody>
       </table>
-      </div>
       ${footStrip}
     </div>
 
