@@ -136,7 +136,7 @@ function renderDashboard(){
 
     <div class="sec-row">
       <div class="sec-left"><span class="sec-h">Active billable tasks</span><span class="pill">${billableList.length}</span></div>
-      <button class="export sm" id="export">${icon(ICONS.dl)}Generate invoice</button>
+      <button class="export sm" id="export">Generate Details</button>
     </div>
     <div class="table-card">
       <table>
@@ -152,12 +152,13 @@ function renderDashboard(){
     </div>
 
     <div class="bottom">
-      ${rateHint || "<span></span>"}
-      <span class="note">Invoice exports as CSV &middot; includes both tables</span>
+      ${rateHint || ""}
     </div>
   `;
 
-  document.getElementById("export").onclick = exportCSV;
+  // "Generate Details" is intentionally inert for now — behavior TBD.
+  // exportCSV() is kept below so wiring it back is a one-line change.
+  document.getElementById("export").onclick = null;
   fit();
 }
 
