@@ -399,7 +399,7 @@ function showAuthView() {
    browser scroll the whole Trello page instead of scrolling inside the window. */
 function modalHeight() {
   const screenH = (window.screen && window.screen.availHeight) || 900;
-  Math.max(460, Math.min(900, screenH - 190));
+  return Math.max(460, Math.min(900, screenH - 190));
 }
 
 /* ── Tabs: Mapping | Reports | Billing ── */
