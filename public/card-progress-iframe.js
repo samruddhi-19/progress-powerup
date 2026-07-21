@@ -167,6 +167,7 @@ async function load() {
     state.progressSource = saved.progressSource || "tasks";
     state.etaDate = saved.etaDate || "";
     state.etaTime = saved.etaTime || "";
+    state.hourlyRate = saved.hourlyRate ?? null;
     const savedCollapsed = saved.collapsed || {};
     state.collapsed = {
       eta: savedCollapsed.eta ?? false,
@@ -350,6 +351,7 @@ function generateChartSVG(type) {
 const playIcon = `<svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>`;
 const stopIcon = `<svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h12v12H6z"/></svg>`;
 const resetIcon = `<svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg>`;
+const checkIcon = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
 
 function chevron(collapsed) {
   return `<svg class="chevron${collapsed ? "" : " open"}" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>`;
@@ -614,15 +616,16 @@ function render() {
           ${
             editingRate
               ? `
-          <div class="eta-row">
-            <span class="eta-label">$</span>
-            <input id="rateInput" type="number" min="0" step="0.5" class="eta-input" style="flex:1;" placeholder="0.00" value="${state.hourlyRate || ""}" />
-            <span class="eta-sep">/hr</span>
+          <div class="rate-input-wrap">
+            <span class="rate-currency">$</span>
+            <input id="rateInput" type="number" min="0" step="0.5" class="rate-input" placeholder="0.00" value="${state.hourlyRate || ""}" />
+            <span class="rate-suffix">/hour</span>
           </div>
-          <div class="timer-right" style="margin-top:8px;justify-content:flex-end;">
-            <button id="cancelRateBtn" class="btn-reset" style="width:auto;padding:0 12px;">Cancel</button>
-            <button id="saveRateBtn" class="btn-timer-start" style="width:auto;padding:0 14px;">Save</button>
-          </div>`
+          <div class="rate-actions">
+            <button id="saveRateBtn" class="btn-rate-save">${checkIcon} Save rate</button>
+            <button id="cancelRateBtn" class="btn-rate-cancel">Cancel</button>
+          </div>
+          <div class="rate-hint">Enter to save · Esc to cancel</div>`
               : state.hourlyRate
                 ? `
           <div class="timer-row" style="align-items:center;">

@@ -205,6 +205,49 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 }
 .eta-sep { font-size: 11px; color: #596773; flex-shrink: 0; }
 
+/* ── Rate editor ── */
+.rate-input-wrap {
+  display: flex; align-items: center; gap: 6px;
+  background: #22272b;
+  border: 1px solid rgba(87,157,255,0.45);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+.rate-input-wrap:focus-within { border-color: #579dff; }
+.rate-currency { font-size: 15px; font-weight: 600; color: #579dff; flex-shrink: 0; }
+.rate-input {
+  flex: 1; min-width: 0;
+  background: transparent; border: none; outline: none;
+  color: #e2e8ee; font-size: 16px; font-weight: 700;
+  font-family: 'DM Sans', sans-serif;
+}
+.rate-input::-webkit-inner-spin-button,
+.rate-input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.rate-input::placeholder { color: #596773; font-weight: 600; }
+.rate-suffix { font-size: 11px; color: #596773; flex-shrink: 0; }
+.rate-actions { display: flex; gap: 8px; margin-top: 10px; }
+.btn-rate-save {
+  flex: 1;
+  display: flex; align-items: center; justify-content: center; gap: 7px;
+  background: #3b7dfa; color: #fff; border: none;
+  border-radius: 8px; font-family: 'DM Sans', sans-serif;
+  font-size: 12.5px; font-weight: 600;
+  padding: 10px 14px; cursor: pointer;
+  transition: filter 0.12s;
+}
+.btn-rate-save:hover { filter: brightness(1.08); }
+.btn-rate-save svg { flex-shrink: 0; }
+.btn-rate-cancel {
+  background: transparent; color: #9fadbc;
+  border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 8px; font-family: 'DM Sans', sans-serif;
+  font-size: 12.5px; font-weight: 600;
+  padding: 10px 16px; cursor: pointer;
+  transition: all 0.12s;
+}
+.btn-rate-cancel:hover { border-color: rgba(255,255,255,0.24); color: #b6c2cf; }
+.rate-hint { text-align: center; font-size: 10px; color: #596773; margin-top: 9px; }
+
 /* ── Tasks ── */
 .tasks-list { display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px; }
 .task-item {
