@@ -114,7 +114,7 @@ function renderDashboard(){
          <span class="ci">${icon(ICONS.info)}</span>
          <span class="ctext">
            <span class="ct">${m.noRateCount} card${m.noRateCount===1?"":"s"} ${m.noRateCount===1?"has":"have"} no hourly rate yet</span>
-           <span class="cb">Open the card on your board &rarr; scroll to <strong>Billing</strong> &rarr; tap <strong>+ Add Hourly Rate</strong>. Cards only appear above once they have a rate.</span>
+           <span class="cdesc">Open the card on your board &rarr; scroll to <strong>Billing</strong> &rarr; tap <strong>+ Add Hourly Rate</strong>. Cards only appear above once they have a rate.</span>
          </span>
        </div>`
     : "";
