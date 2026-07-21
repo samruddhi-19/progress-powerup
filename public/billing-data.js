@@ -113,7 +113,7 @@ window.ProgressBilling = (function () {
       const progress = computeProgress(s);
 
       // Card Details — every tracked card, regardless of billing rate
-      cardDetails.push({ name, list, progress, hours: elH, due: ds, rate });
+      cardDetails.push({ name, list, progress, hours: elH, due: ds });
 
       if (rate) {
         const amount = +(elH * rate).toFixed(2);

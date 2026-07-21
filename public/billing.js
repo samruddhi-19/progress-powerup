@@ -23,11 +23,8 @@ const ICONS = {
 function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
 function fmtDate(d){ return d ? d.toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}) : ""; }
 function app(){ return document.getElementById("app"); }
-/* The modal is opened at a fixed height, and .wrap scrolls internally.
-   Calling t.sizeTo() here would grow the iframe to fit the content, which makes
-   Trello's outer modal scroll instead of our own scrollbar — so we don't. */
-function fit(){}
-function showState(html){ app().innerHTML = `<div class="content"><div class="state">${html}</div></div>`; fit(); }
+function fit(){ t.sizeTo("body").catch(()=>{}); }
+function showState(html){ app().innerHTML = `<div class="state">${html}</div>`; fit(); }
 
 function dueBadge(ds){
   if(!ds) return "";
@@ -85,18 +82,13 @@ function renderDashboard(){
   const billableList = Array.isArray(d.billable) ? d.billable : [];
   const m = d.metrics || { billableCards:0, billableHours:0, totalAmount:0, noRateCount:0 };
 
-  const rateCell = (rate) => rate
-    ? `<span class="rate">$${rate}/hr</span>`
-    : `<span class="norate">Set on card</span>`;
-
   const detailRows = cardDetails.length ? cardDetails.map((c)=>`
     <tr>
       <td class="tname">${esc(c.name)}<span class="tlist">${esc(c.list)}</span></td>
       <td class="mid">${progressBar(c.progress)}</td>
       <td class="mid r num">${c.hours}</td>
-      <td class="mid r">${rateCell(c.rate)}</td>
       <td class="r">${dueCell(c.due)}</td>
-    </tr>`).join("") : `<tr><td colspan="5" class="empty-cell">No cards are mapped for tracking yet.</td></tr>`;
+    </tr>`).join("") : `<tr><td colspan="4" class="empty-cell">No cards are mapped for tracking yet.</td></tr>`;
 
   const billRows = billableList.length ? billableList.map((c)=>`
     <tr>
@@ -113,13 +105,7 @@ function renderDashboard(){
     </div>` : "";
 
   const rateHint = m.noRateCount > 0
-    ? `<div class="callout">
-         <span class="ci">${icon(ICONS.info)}</span>
-         <span>
-           <span class="ct">${m.noRateCount} card${m.noRateCount===1?"":"s"} ${m.noRateCount===1?"has":"have"} no hourly rate yet</span>
-           <span class="cb">Open the card on your board &rarr; scroll to <strong>Billing</strong> &rarr; tap <strong>+ Add Hourly Rate</strong>. Cards only appear above once they have a rate.</span>
-         </span>
-       </div>`
+    ? `<span class="sec-hint">${m.noRateCount} without a rate &middot; set from the card&rsquo;s <span class="link">Billing</span> section</span>`
     : "";
 
   app().innerHTML = `
@@ -137,17 +123,15 @@ function renderDashboard(){
       </div>
     </div>
 
-    <div class="content">
     <div class="sec-row">
       <div class="sec-left"><span class="sec-h">Card details</span><span class="pill">${cardDetails.length}</span></div>
     </div>
     <div class="table-card">
       <table>
         <thead><tr>
-          <th style="width:28%">Task</th>
-          <th class="mid" style="width:18%">Completion</th>
-          <th class="mid r" style="width:10%">Hours</th>
-          <th class="mid r" style="width:16%">Rate</th>
+          <th style="width:37%">Task</th>
+          <th class="mid" style="width:23%">Completion</th>
+          <th class="mid r" style="width:12%">Hours</th>
           <th class="r" style="width:28%">Due</th>
         </tr></thead>
         <tbody>${detailRows}</tbody>
@@ -173,7 +157,6 @@ function renderDashboard(){
 
     <div class="bottom">
       ${rateHint || ""}
-    </div>
     </div>
   `;
 

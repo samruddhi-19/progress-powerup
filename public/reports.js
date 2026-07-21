@@ -91,9 +91,7 @@
         return["var(--amber-bg)","var(--amber-fg)","#e9a23b"];
       }
       const app=()=>document.getElementById("app");
-      /* Fixed-height modal: .wrap scrolls internally. Calling sizeTo() would grow
-         the iframe and make Trello's outer modal scroll instead. */
-      function fit(){}
+      function fit(){t.sizeTo("body").catch(()=>{});}
 
       function showState(html){app().innerHTML=`<div class="state">${html}</div>`;fit();}
 
