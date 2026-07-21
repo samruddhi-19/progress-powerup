@@ -614,15 +614,16 @@ function render() {
           ${
             editingRate
               ? `
-          <div class="eta-row">
-            <span class="eta-label">$</span>
-            <input id="rateInput" type="number" min="0" step="0.5" class="eta-input" style="flex:1;" placeholder="0.00" value="${state.hourlyRate || ""}" />
-            <span class="eta-sep">/hr</span>
+          <div class="rate-field">
+            <span class="cur">$</span>
+            <input id="rateInput" type="number" min="0" step="0.5" inputmode="decimal" placeholder="0.00" value="${state.hourlyRate || ""}" />
+            <span class="per">/hour</span>
           </div>
-          <div class="timer-right" style="margin-top:8px;justify-content:flex-end;">
-            <button id="cancelRateBtn" class="btn-reset" style="width:auto;padding:0 12px;">Cancel</button>
-            <button id="saveRateBtn" class="btn-timer-start" style="width:auto;padding:0 14px;">Save</button>
-          </div>`
+          <div class="rate-actions">
+            <button id="saveRateBtn" class="btn-rate-save"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m20 6-11 11-5-5"/></svg>Save rate</button>
+            <button id="cancelRateBtn" class="btn-rate-cancel">Cancel</button>
+          </div>
+          <div class="rate-hint">Enter to save &middot; Esc to cancel</div>`
               : state.hourlyRate
                 ? `
           <div class="timer-row" style="align-items:center;">
