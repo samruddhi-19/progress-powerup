@@ -437,8 +437,8 @@ function bindTabs() {
     t.modal({
       title: "Reports & Analytics",
       url: "./reports.html",
-      fullscreen: true,
-      // height: modalHeight(),
+      fullscreen: false,
+      height: modalHeight(),
     });
   });
 }

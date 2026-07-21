@@ -14,8 +14,8 @@
           modal: {
             title: "Reports & Analytics",
             url: "./reports.html",
-            fullscreen: true,
-            // height: 820,
+            fullscreen: false,
+            height: 820,
           },
         },
         {
