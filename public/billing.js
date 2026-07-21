@@ -23,7 +23,26 @@ const ICONS = {
 function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
 function fmtDate(d){ return d ? d.toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}) : ""; }
 function app(){ return document.getElementById("app"); }
-function fit(){} // popup height is fixed at 660px; content scrolls internally instead
+
+const FIT_MAX = 660;
+const FIT_MIN = 220;
+
+function fit(){
+  requestAnimationFrame(() => {
+    const el = app();
+    if(!el) return;
+    el.classList.remove("scrolls");
+    el.style.maxHeight = "none";
+    const natural = el.scrollHeight;
+    const target = Math.min(FIT_MAX, Math.max(FIT_MIN, natural));
+    if(natural > FIT_MAX){
+      el.style.maxHeight = FIT_MAX + "px";
+      el.classList.add("scrolls");
+    }
+    try{ t.sizeTo(target); }catch(e){}
+  });
+}
+
 function showState(html){ app().innerHTML = `<div class="state">${html}</div>`; fit(); }
 
 function dueBadge(ds){

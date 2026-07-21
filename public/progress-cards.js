@@ -410,7 +410,7 @@ function setActiveTab(tab) {
       title: "Workspace & Billing",
       url: "./billing.html",
       fullscreen: false,
-      height: 820,
+      height: 660,
     });
     return;
   }
