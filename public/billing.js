@@ -260,7 +260,7 @@ function renderInvoice(){
   const rows = items.map((c,i)=>{
     const on = inv.picked.has(i);
     return `<tr class="${on?"on":"off"}" data-i="${i}">
-      <td style="padding-left:18px;padding-right:0"><span class="cb ${on?"on":""}">${on?icon(ICONS.check):""}</span></td>
+      <td style="padding-left:18px;padding-right:0"><span class="chk ${on?"on":""}">${on?icon(ICONS.check):""}</span></td>
       <td class="tname">${esc(c.name)}<span class="tlist">${esc(c.list)}</span></td>
       <td class="mid r num">${c.hours}</td>
       <td class="mid r rate">$${c.rate}</td>
