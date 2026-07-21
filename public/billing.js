@@ -82,13 +82,18 @@ function renderDashboard(){
   const billableList = Array.isArray(d.billable) ? d.billable : [];
   const m = d.metrics || { billableCards:0, billableHours:0, totalAmount:0, noRateCount:0 };
 
+  const rateCell = (rate) => rate
+    ? `<span class="rate">$${rate}/hr</span>`
+    : `<span class="norate">Set on card</span>`;
+
   const detailRows = cardDetails.length ? cardDetails.map((c)=>`
     <tr>
       <td class="tname">${esc(c.name)}<span class="tlist">${esc(c.list)}</span></td>
       <td class="mid">${progressBar(c.progress)}</td>
       <td class="mid r num">${c.hours}</td>
+      <td class="mid r">${rateCell(c.rate)}</td>
       <td class="r">${dueCell(c.due)}</td>
-    </tr>`).join("") : `<tr><td colspan="4" class="empty-cell">No cards are mapped for tracking yet.</td></tr>`;
+    </tr>`).join("") : `<tr><td colspan="5" class="empty-cell">No cards are mapped for tracking yet.</td></tr>`;
 
   const billRows = billableList.length ? billableList.map((c)=>`
     <tr>
@@ -105,7 +110,13 @@ function renderDashboard(){
     </div>` : "";
 
   const rateHint = m.noRateCount > 0
-    ? `<span class="sec-hint">${m.noRateCount} without a rate &middot; set from the card&rsquo;s <span class="link">Billing</span> section</span>`
+    ? `<div class="callout">
+         <span class="ci">${icon(ICONS.info)}</span>
+         <span class="ctext">
+           <span class="ct">${m.noRateCount} card${m.noRateCount===1?"":"s"} ${m.noRateCount===1?"has":"have"} no hourly rate yet</span>
+           <span class="cb">Open the card on your board &rarr; scroll to <strong>Billing</strong> &rarr; tap <strong>+ Add Hourly Rate</strong>. Cards only appear above once they have a rate.</span>
+         </span>
+       </div>`
     : "";
 
   app().innerHTML = `
@@ -129,9 +140,10 @@ function renderDashboard(){
     <div class="table-card">
       <table>
         <thead><tr>
-          <th style="width:37%">Task</th>
-          <th class="mid" style="width:23%">Completion</th>
-          <th class="mid r" style="width:12%">Hours</th>
+          <th style="width:28%">Task</th>
+          <th class="mid" style="width:18%">Completion</th>
+          <th class="mid r" style="width:10%">Hours</th>
+          <th class="mid r" style="width:16%">Rate</th>
           <th class="r" style="width:28%">Due</th>
         </tr></thead>
         <tbody>${detailRows}</tbody>
