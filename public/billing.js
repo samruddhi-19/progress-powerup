@@ -23,7 +23,7 @@ const ICONS = {
 function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
 function fmtDate(d){ return d ? d.toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}) : ""; }
 function app(){ return document.getElementById("app"); }
-function fit(){ t.sizeTo("body").catch(()=>{}); }
+function fit(){} // popup height is fixed at 660px; content scrolls internally instead
 function showState(html){ app().innerHTML = `<div class="state">${html}</div>`; fit(); }
 
 function dueBadge(ds){

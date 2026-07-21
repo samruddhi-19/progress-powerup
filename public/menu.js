@@ -37,10 +37,10 @@
           sub: "Manage your plan and members",
           icon: '<circle cx="12" cy="12" r="9"/><path d="M15 9.5c0-1.4-1.3-2.5-3-2.5s-3 1.1-3 2.5S10.3 12 12 12s3 1.1 3 2.5S13.7 17 12 17s-3-1.1-3-2.5M12 5.5v13" stroke-width="1.8"/>',
           popup: {
-            title: "Workspace & Billing",
-            url: "./billing.html",
-            height: 480,
-          },
+  title: "Workspace & Billing",
+  url: "./billing.html",
+  height: 660,
+},
         },
       ];
 
