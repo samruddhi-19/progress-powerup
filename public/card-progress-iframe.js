@@ -155,12 +155,31 @@ async function load() {
     const shared = all?.board?.shared || {};
 
     // Resolve admin status once — avoids repeated async calls in render()
+    // t.board("memberships") returns an array of {idMember, memberType} objects
+    // t.getContext().member is the current member's ID
     try {
-      const ctx = t.getContext();
-      const memberships = await t.board("memberships");
-      const me = memberships.find(m => m.idMember === ctx.member);
-      isAdmin = me ? me.memberType === "admin" : false;
-    } catch(e) { isAdmin = false; }
+      const [memberships, ctx] = await Promise.all([
+        t.board("memberships"),
+        t.getContext(),
+      ]);
+      const myId = ctx.member;
+      // memberships may be the array directly, or wrapped as {memberships:[...]}
+      const list = Array.isArray(memberships)
+        ? memberships
+        : (memberships.memberships || []);
+      console.log("[Progress] memberships raw:", JSON.stringify(memberships));
+      console.log("[Progress] myId:", myId, "| list:", JSON.stringify(list));
+      const me = list.find(m => m.idMember === myId);
+      console.log("[Progress] me:", JSON.stringify(me), "| isAdmin:", isAdmin);
+      isAdmin = me ? (me.memberType === "admin" || me.memberType === "owner") : false;
+    } catch(e) {
+      // Fallback: check via board permissions from t.getAll()
+      try {
+        const ctx = t.getContext();
+        const perms = ctx.permissions || {};
+        isAdmin = perms.board === "admin" || perms.board === "write";
+      } catch(e2) { isAdmin = false; }
+    }
 
     boardSettings.hideEta = shared.hideEta ?? true;
     boardSettings.hideSubtask = shared.hideSubtask ?? true;
