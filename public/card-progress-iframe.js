@@ -1,5 +1,17 @@
 const TRELLO_API_KEY = window.ProgressConfig.API_KEY;
 
+/* Hash a string with SHA-256 (Web Crypto — built into every browser, no library needed).
+   We store only the hash so the plain-text code never touches board storage. */
+async function hashCode(str) {
+  const buf = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(str)
+  );
+  return Array.from(new Uint8Array(buf))
+    .map(b => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
 const t = TrelloPowerUp.iframe({
   appKey: TRELLO_API_KEY,
   appName: "Progress Tracker",
@@ -51,6 +63,8 @@ let editingRate = false; // transient UI state — not persisted
 let isAdmin = false;          // resolved once in load()
 let rateUnlocked = false;     // non-admin entered correct code this session
 let enteringCode = false;     // showing the code input
+let settingCode = false;      // admin is setting the code (inline UI)
+let codeSetMsg = "";          // success/info message after admin sets code
 
 /* ── Helpers ── */
 function formatHM(sec) {
@@ -633,12 +647,8 @@ function render() {
             <span class="section-title">Billing</span>
           </div>
           <div style="display:flex;align-items:center;gap:8px;">
-            ${
-              state.hourlyRate
-                ? `<span class="section-meta">$${state.hourlyRate}/hr</span>`
-                : ""
-            }
-            ${isAdmin ? `<button id="setCodeBtn" class="btn-reset" title="Set access code for billing" style="font-size:10px;opacity:.6;padding:2px 6px;border:1px solid rgba(255,255,255,.15);border-radius:4px;">🔑 Set code</button>` : ""}
+            ${state.hourlyRate ? `<span class="section-meta">$${state.hourlyRate}/hr</span>` : ""}
+            ${isAdmin && !settingCode ? `<button id="setCodeBtn" class="btn-reset" title="Set access code for rate editing" style="font-size:10px;opacity:.55;padding:2px 6px;border:1px solid rgba(255,255,255,.13);border-radius:4px;">🔑${codeSetMsg==="set"?" ✓ Code set":codeSetMsg==="removed"?" Removed":""}</button>` : ""}
           </div>
         </div>
         ${
@@ -647,7 +657,21 @@ function render() {
             : `
         <div class="section-body">
           ${
-            (editingRate && (isAdmin || rateUnlocked))
+            settingCode
+              ? /* ── admin: inline set-code form ── */ `
+          <div class="rate-code-prompt">
+            <div class="rate-code-label">Set an access code for rate editing</div>
+            <div class="rate-input-wrap">
+              <input id="newCodeInput" type="text" class="rate-input" placeholder="Enter new code (blank = remove)" autocomplete="off" />
+            </div>
+            <div class="rate-actions">
+              <button id="saveCodeBtn" class="btn-rate-save">Save code</button>
+              <button id="cancelCodeSetBtn" class="btn-rate-cancel">Cancel</button>
+            </div>
+            <div class="rate-code-label" style="margin-top:8px;opacity:.7">Share this code with members you want to allow editing rates.</div>
+          </div>`
+
+              : (editingRate && (isAdmin || rateUnlocked))
               ? /* ── rate editor ── */ `
           <div class="rate-input-wrap">
             <span class="rate-currency">$</span>
@@ -752,23 +776,49 @@ function bindEvents() {
     });
   });
 
-  // ── admin: set access code ──
+  // ── admin: set access code (inline UI — no browser prompt) ──
   const setCodeBtn = document.getElementById("setCodeBtn");
-  if (setCodeBtn) setCodeBtn.addEventListener("click", async (e) => {
-    e.stopPropagation(); // don't toggle the collapse
-    const current = await t.get("member","private","billingCode").catch(()=>null);
-    const newCode = prompt(current
-      ? "Update the billing access code\n(leave blank to remove it):"
-      : "Set a billing access code\n(share this with members you want to allow editing):",
-      current || "");
-    if (newCode === null) return; // cancelled
-    if (newCode.trim() === "") {
-      await t.remove("member","private","billingCode").catch(()=>{});
-      alert("Access code removed. All members can now edit rates.");
+  if (setCodeBtn) setCodeBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    settingCode = true;
+    codeSetMsg = "";
+    render();
+    setTimeout(()=>document.getElementById("newCodeInput")?.focus(),30);
+  });
+
+  const saveCodeBtn = document.getElementById("saveCodeBtn");
+  if (saveCodeBtn) saveCodeBtn.addEventListener("click", async () => {
+    const input = document.getElementById("newCodeInput");
+    const newCode = (input?.value || "").trim();
+    if (newCode === "") {
+      // Remove the code
+      await t.remove("board","shared","billingCodeHash").catch(()=>{});
+      settingCode = false;
+      codeSetMsg = "removed";
     } else {
-      await t.set("member","private","billingCode", newCode.trim());
-      alert(`Access code set.\nShare "${newCode.trim()}" with members you want to allow editing rates.`);
+      const hash = await hashCode(newCode);
+      await t.set("board","shared","billingCodeHash", hash);
+      settingCode = false;
+      codeSetMsg = "set";
     }
+    render();
+    // Clear the success message after 3s
+    setTimeout(()=>{ codeSetMsg = ""; render(); }, 3000);
+  });
+
+  const cancelCodeSetBtn = document.getElementById("cancelCodeSetBtn");
+  if (cancelCodeSetBtn) cancelCodeSetBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    settingCode = false;
+    codeSetMsg = "";
+    render();
+  });
+
+  const newCodeInput = document.getElementById("newCodeInput");
+  if (newCodeInput) newCodeInput.addEventListener("keydown", (e) => {
+    e.stopPropagation();
+    if (e.key === "Enter") document.getElementById("saveCodeBtn")?.click();
+    if (e.key === "Escape") document.getElementById("cancelCodeSetBtn")?.click();
   });
 
   // ── rate editor buttons ──
@@ -805,15 +855,17 @@ function bindEvents() {
   if (submitCodeBtn) submitCodeBtn.addEventListener("click", async () => {
     const input = document.getElementById("codeInput");
     const entered = (input?.value || "").trim();
-    // Code is stored in admin's member/private storage — non-admins can never read it
-    const stored = await t.get("member","private","billingCode").catch(()=>null);
-    if (!stored) {
-      // No code set yet by admin — show friendly message
+    if (!entered) return;
+    // Code hash is stored in board/shared — readable by all, but only the hash
+    const storedHash = await t.get("board","shared","billingCodeHash").catch(()=>null);
+    if (!storedHash) {
       document.getElementById("codeError").textContent = "No access code has been set by an admin yet";
       document.getElementById("codeError").style.display = "";
       return;
     }
-    if (entered === stored) {
+    // Hash the entered code and compare
+    const enteredHash = await hashCode(entered);
+    if (enteredHash === storedHash) {
       rateUnlocked = true;
       enteringCode = false;
       editingRate = true;
