@@ -522,3 +522,18 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 }
 
 .est-input-inline:focus { color: #579dff; }
+/* ── Billing: access-code prompt ── */
+.rate-code-prompt {
+  padding: 2px 0;
+}
+.rate-code-label {
+  font-size: 10.5px;
+  color: var(--text-dim, #8590a2);
+  margin-bottom: 8px;
+}
+.rate-code-error {
+  font-size: 10.5px;
+  color: #ff8f8f;
+  margin-top: 6px;
+  text-align: center;
+}

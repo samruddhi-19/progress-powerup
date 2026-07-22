@@ -48,6 +48,9 @@ let state = {
 let cardMeta = { name: "", labelName: "", labelColor: "" };
 let timerInterval = null;
 let editingRate = false; // transient UI state — not persisted
+let isAdmin = false;          // resolved once in load()
+let rateUnlocked = false;     // non-admin entered correct code this session
+let enteringCode = false;     // showing the code input
 
 /* ── Helpers ── */
 function formatHM(sec) {
@@ -150,6 +153,14 @@ async function load() {
     const saved = (await t.get("card", "shared")) || {};
     const all = await t.getAll();
     const shared = all?.board?.shared || {};
+
+    // Resolve admin status once — avoids repeated async calls in render()
+    try {
+      const ctx = t.getContext();
+      const memberships = await t.board("memberships");
+      const me = memberships.find(m => m.idMember === ctx.member);
+      isAdmin = me ? me.memberType === "admin" : false;
+    } catch(e) { isAdmin = false; }
 
     boardSettings.hideEta = shared.hideEta ?? true;
     boardSettings.hideSubtask = shared.hideSubtask ?? true;
@@ -602,11 +613,14 @@ function render() {
             ${chevron(c.billing)}
             <span class="section-title">Billing</span>
           </div>
-          ${
-            state.hourlyRate
-              ? `<span class="section-meta">$${state.hourlyRate}/hr</span>`
-              : ""
-          }
+          <div style="display:flex;align-items:center;gap:8px;">
+            ${
+              state.hourlyRate
+                ? `<span class="section-meta">$${state.hourlyRate}/hr</span>`
+                : ""
+            }
+            ${isAdmin ? `<button id="setCodeBtn" class="btn-reset" title="Set access code for billing" style="font-size:10px;opacity:.6;padding:2px 6px;border:1px solid rgba(255,255,255,.15);border-radius:4px;">🔑 Set code</button>` : ""}
+          </div>
         </div>
         ${
           c.billing
@@ -614,8 +628,8 @@ function render() {
             : `
         <div class="section-body">
           ${
-            editingRate
-              ? `
+            (editingRate && (isAdmin || rateUnlocked))
+              ? /* ── rate editor ── */ `
           <div class="rate-input-wrap">
             <span class="rate-currency">$</span>
             <input id="rateInput" type="number" min="0" step="0.5" class="rate-input" placeholder="0.00" value="${state.hourlyRate || ""}" />
@@ -626,8 +640,23 @@ function render() {
             <button id="cancelRateBtn" class="btn-rate-cancel">Cancel</button>
           </div>
           <div class="rate-hint">Enter to save · Esc to cancel</div>`
+
+              : enteringCode
+              ? /* ── code prompt (non-admins) ── */ `
+          <div class="rate-code-prompt">
+            <div class="rate-code-label">Enter access code to edit rate</div>
+            <div class="rate-input-wrap">
+              <input id="codeInput" type="password" class="rate-input" placeholder="Access code" autocomplete="off" />
+            </div>
+            <div class="rate-actions">
+              <button id="submitCodeBtn" class="btn-rate-save">Unlock</button>
+              <button id="cancelCodeBtn" class="btn-rate-cancel">Cancel</button>
+            </div>
+            <div id="codeError" class="rate-code-error" style="display:none">Incorrect code — try again</div>
+          </div>`
+
               : state.hourlyRate
-                ? `
+              ? /* ── rate display ── */ `
           <div class="timer-row" style="align-items:center;">
             <div class="timer-stats">
               <div class="timer-stat">
@@ -639,13 +668,17 @@ function render() {
                 <span class="timer-display">$${((elapsed / 3600) * state.hourlyRate).toFixed(2)}</span>
               </div>
             </div>
-            <div class="timer-right">
-              <button id="editRateBtn" class="btn-reset" title="Edit rate">${resetIcon}</button>
-            </div>
+            ${(isAdmin || rateUnlocked) ? `<div class="timer-right"><button id="editRateBtn" class="btn-reset" title="Edit rate">${resetIcon}</button></div>` : `<div class="timer-right"><button id="unlockRateBtn" class="btn-reset" title="Enter code to edit" style="opacity:.5">🔒</button></div>`}
           </div>`
-                : `
+
+              : /* ── no rate yet ── */ (isAdmin || rateUnlocked)
+              ? `
           <div class="eta-row">
             <button id="addRateBtn" class="btn-timer-start" style="width:100%;justify-content:center;">+ Add Hourly Rate</button>
+          </div>`
+              : `
+          <div class="eta-row">
+            <button id="unlockRateBtn" class="btn-timer-start" style="width:100%;justify-content:center;opacity:.65;">🔒 Add Hourly Rate</button>
           </div>`
           }
         </div>`
@@ -700,46 +733,89 @@ function bindEvents() {
     });
   });
 
+  // ── admin: set access code ──
+  const setCodeBtn = document.getElementById("setCodeBtn");
+  if (setCodeBtn) setCodeBtn.addEventListener("click", async (e) => {
+    e.stopPropagation(); // don't toggle the collapse
+    const current = await t.get("member","private","billingCode").catch(()=>null);
+    const newCode = prompt(current
+      ? "Update the billing access code\n(leave blank to remove it):"
+      : "Set a billing access code\n(share this with members you want to allow editing):",
+      current || "");
+    if (newCode === null) return; // cancelled
+    if (newCode.trim() === "") {
+      await t.remove("member","private","billingCode").catch(()=>{});
+      alert("Access code removed. All members can now edit rates.");
+    } else {
+      await t.set("member","private","billingCode", newCode.trim());
+      alert(`Access code set.\nShare "${newCode.trim()}" with members you want to allow editing rates.`);
+    }
+  });
+
+  // ── rate editor buttons ──
   const addRateBtn = document.getElementById("addRateBtn");
-  if (addRateBtn)
-    addRateBtn.addEventListener("click", function () {
-      editingRate = true;
-      render();
-      setTimeout(() => document.getElementById("rateInput")?.focus(), 30);
-    });
+  if (addRateBtn) addRateBtn.addEventListener("click", () => { editingRate = true; render(); setTimeout(()=>document.getElementById("rateInput")?.focus(),30); });
 
   const editRateBtn = document.getElementById("editRateBtn");
-  if (editRateBtn)
-    editRateBtn.addEventListener("click", function () {
-      editingRate = true;
-      render();
-      setTimeout(() => document.getElementById("rateInput")?.focus(), 30);
-    });
+  if (editRateBtn) editRateBtn.addEventListener("click", () => { editingRate = true; render(); setTimeout(()=>document.getElementById("rateInput")?.focus(),30); });
 
   const cancelRateBtn = document.getElementById("cancelRateBtn");
-  if (cancelRateBtn)
-    cancelRateBtn.addEventListener("click", function () {
-      editingRate = false;
-      render();
-    });
+  if (cancelRateBtn) cancelRateBtn.addEventListener("click", () => { editingRate = false; render(); });
 
   const saveRateBtn = document.getElementById("saveRateBtn");
-  if (saveRateBtn)
-    saveRateBtn.addEventListener("click", function () {
-      const input = document.getElementById("rateInput");
-      const val = parseFloat(input && input.value);
-      state.hourlyRate = isFinite(val) && val > 0 ? val : null;
-      editingRate = false;
-      save();
-      render();
-    });
+  if (saveRateBtn) saveRateBtn.addEventListener("click", () => {
+    const input = document.getElementById("rateInput");
+    const val = parseFloat(input && input.value);
+    state.hourlyRate = isFinite(val) && val > 0 ? val : null;
+    editingRate = false;
+    save();
+    render();
+  });
 
   const rateInput = document.getElementById("rateInput");
-  if (rateInput)
-    rateInput.addEventListener("keydown", function (e) {
-      if (e.key === "Enter") document.getElementById("saveRateBtn")?.click();
-      if (e.key === "Escape") document.getElementById("cancelRateBtn")?.click();
-    });
+  if (rateInput) rateInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") document.getElementById("saveRateBtn")?.click();
+    if (e.key === "Escape") document.getElementById("cancelRateBtn")?.click();
+  });
+
+  // ── code prompt buttons (non-admins) ──
+  const unlockRateBtn = document.getElementById("unlockRateBtn");
+  if (unlockRateBtn) unlockRateBtn.addEventListener("click", () => { enteringCode = true; editingRate = false; render(); setTimeout(()=>document.getElementById("codeInput")?.focus(),30); });
+
+  const submitCodeBtn = document.getElementById("submitCodeBtn");
+  if (submitCodeBtn) submitCodeBtn.addEventListener("click", async () => {
+    const input = document.getElementById("codeInput");
+    const entered = (input?.value || "").trim();
+    // Code is stored in admin's member/private storage — non-admins can never read it
+    const stored = await t.get("member","private","billingCode").catch(()=>null);
+    if (!stored) {
+      // No code set yet by admin — show friendly message
+      document.getElementById("codeError").textContent = "No access code has been set by an admin yet";
+      document.getElementById("codeError").style.display = "";
+      return;
+    }
+    if (entered === stored) {
+      rateUnlocked = true;
+      enteringCode = false;
+      editingRate = true;
+      render();
+      setTimeout(()=>document.getElementById("rateInput")?.focus(),30);
+    } else {
+      document.getElementById("codeError").textContent = "Incorrect code — try again";
+      document.getElementById("codeError").style.display = "";
+      input.value = "";
+      input.focus();
+    }
+  });
+
+  const cancelCodeBtn = document.getElementById("cancelCodeBtn");
+  if (cancelCodeBtn) cancelCodeBtn.addEventListener("click", () => { enteringCode = false; render(); });
+
+  const codeInput = document.getElementById("codeInput");
+  if (codeInput) codeInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") document.getElementById("submitCodeBtn")?.click();
+    if (e.key === "Escape") document.getElementById("cancelCodeBtn")?.click();
+  });
 
   const etaDate = document.getElementById("etaDate");
   if (etaDate)
