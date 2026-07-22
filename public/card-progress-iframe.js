@@ -660,15 +660,15 @@ function render() {
             settingCode
               ? /* ── admin: inline set-code form ── */ `
           <div class="rate-code-prompt">
-            <div class="rate-code-label">Set an access code for rate editing</div>
-            <div class="rate-input-wrap">
-              <input id="newCodeInput" type="text" class="rate-input" placeholder="Enter new code (blank = remove)" autocomplete="off" />
-            </div>
-            <div class="rate-actions">
-              <button id="saveCodeBtn" class="btn-rate-save">Save code</button>
-              <button id="cancelCodeSetBtn" class="btn-rate-cancel">Cancel</button>
-            </div>
-            <div class="rate-code-label" style="margin-top:8px;opacity:.7">Share this code with members you want to allow editing rates.</div>
+            <div class="rate-code-label">Protect rate editing with a code</div>
+<div class="rate-input-wrap">
+  <input id="newCodeInput" type="text" class="rate-input" placeholder="Choose a secret code" autocomplete="off" />
+</div>
+<div class="rate-actions">
+  <button id="saveCodeBtn" class="btn-rate-save">Save code</button>
+  <button id="cancelCodeSetBtn" class="btn-rate-cancel">Cancel</button>
+</div>
+<div class="rate-code-label" style="margin-top:8px;opacity:.7">Only members with this code can edit hourly rates</div>
           </div>`
 
               : (editingRate && (isAdmin || rateUnlocked))
