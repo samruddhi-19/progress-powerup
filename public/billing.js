@@ -91,14 +91,24 @@ function dueCell(ds){
   return `<span class="due"><span class="dot blue"></span><span class="due-txt">${fmtShort(d)}</span><span class="due-sub">&middot; in ${n}d</span></span>`;
 }
 
+function initialsOf(name){
+  const parts = String(name||"").trim().split(/\s+/);
+  if(parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+  return (parts[0] || "?").slice(0,2).toUpperCase();
+}
+
+const AVATAR_COLORS = ["#c0392b","#2980b9","#8e44ad","#16a085","#d35400","#2c3e50","#27ae60","#e67e22"];
+function colorFor(name){
+  let h = 0;
+  for(let i=0;i<name.length;i++) h = name.charCodeAt(i) + ((h<<5)-h);
+  return AVATAR_COLORS[Math.abs(h) % AVATAR_COLORS.length];
+}
+
 function assigneeCell(list){
   if(!list || !list.length) return `<span class="due-none">Unassigned</span>`;
-  return list.map(a => {
-    const initials = esc(a.name.slice(0,2).toUpperCase());
-    return a.avatar
-      ? `<img src="${a.avatar}" alt="${esc(a.name)}" title="${esc(a.name)}" class="avatar" onerror="this.outerHTML='<span title=&quot;${esc(a.name)}&quot; class=&quot;avatar-fallback&quot;>${initials}</span>'">`
-      : `<span title="${esc(a.name)}" class="avatar-fallback">${initials}</span>`;
-  }).join("");
+  return `<span class="avatar-group">` + list.map(a =>
+    `<span class="avatar-badge" style="background:${colorFor(a.name)}" title="${esc(a.name)}">${esc(initialsOf(a.name))}</span>`
+  ).join("") + `</span>`;
 }
 
 function money(n, decimals){
