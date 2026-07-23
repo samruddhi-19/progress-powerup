@@ -93,7 +93,7 @@
       const app=()=>document.getElementById("app");
       function fit(){}
 
-      function showState(html){app().innerHTML=`<div class="state">${html}</div>`;fit();}
+      function showState(html){app().innerHTML=`<div class="content"><div class="state">${html}</div></div>`;fit();}
 
       async function connect(){
         try{await t.getRestApi().authorize({scope:"read",expiration:"never"});load();}
@@ -124,9 +124,12 @@
           </div>`;
 
         app().innerHTML=`
-          <div class="topbar"><h1>History reports &amp; export</h1>
-            <div class="seg"><button data-mode="weekly" class="${mode==="weekly"?"on":""}">Weekly report</button><button data-mode="monthly" class="${mode==="monthly"?"on":""}">Monthly report</button></div>
+          <div class="topbar-wrap">
+            <div class="topbar"><h1>History reports &amp; export</h1>
+              <div class="seg"><button data-mode="weekly" class="${mode==="weekly"?"on":""}">Weekly report</button><button data-mode="monthly" class="${mode==="monthly"?"on":""}">Monthly report</button></div>
+            </div>
           </div>
+          <div class="content">
           <div class="metrics" id="metrics">
             ${(()=>{const per=mode==="monthly"?"this month":"this week";return `
             ${metric("active","var(--green-bg)","var(--green-fg)","check",m.active,"Active cards","Cards currently mapped and tracked on this board")}
@@ -170,6 +173,7 @@
               </div>
             </div>
             <button class="export" id="export">${icon(ICONS.dl)}Export ${mode} report</button>
+          </div>
           </div>`;
 
         document.querySelectorAll(".seg button").forEach(b=>b.onclick=()=>{mode=b.dataset.mode;load();});
