@@ -5,6 +5,7 @@ const t = TrelloPowerUp.iframe({
 });
 
 let report = null;
+let billTab = "details";   // "details" | "billable"
 
 const icon = (p) => `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
 const ICONS = {
@@ -179,9 +180,15 @@ function renderDashboard(){
       </div>
     </div>
 
-    <div class="sec-row">
-      <div class="sec-left"><span class="sec-h">Card details</span><span class="pill">${cardDetails.length}</span></div>
+    <div class="tab-row">
+      <div class="tabs">
+        <button class="tab ${billTab==="details"?"on":""}" data-tab="details">Card details<span class="tabn">${cardDetails.length}</span></button>
+        <button class="tab ${billTab==="billable"?"on":""}" data-tab="billable">Active billable tasks<span class="tabn">${billableList.length}</span></button>
+      </div>
+      <button class="export sm" id="export">Generate Details</button>
     </div>
+
+    ${billTab==="details" ? `
     <div class="table-card">
       <table>
         <thead><tr>
@@ -194,12 +201,7 @@ function renderDashboard(){
         </tr></thead>
         <tbody>${detailRows}</tbody>
       </table>
-    </div>
-
-    <div class="sec-row">
-      <div class="sec-left"><span class="sec-h">Active billable tasks</span><span class="pill">${billableList.length}</span></div>
-      <button class="export sm" id="export">Generate Details</button>
-    </div>
+    </div>` : `
     <div class="table-card">
       <table>
         <thead><tr>
@@ -211,7 +213,7 @@ function renderDashboard(){
         <tbody>${billRows}</tbody>
       </table>
       ${footStrip}
-    </div>
+    </div>`}
 
     <div class="bottom">
       ${rateHint || ""}
@@ -219,6 +221,9 @@ function renderDashboard(){
   `;
 
   document.getElementById("export").onclick = openInvoice;
+  document.querySelectorAll(".tab").forEach(b=>{
+    b.onclick = () => { billTab = b.dataset.tab; renderDashboard(); };
+  });
   fit();
 }
 

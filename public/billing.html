@@ -117,6 +117,41 @@
       }
 
       /* section heads */
+      .tab-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 11px;
+        flex-wrap: wrap;
+      }
+      .tabs { display: flex; gap: 6px; }
+      .tab {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        padding: 7px 13px;
+        font-family: inherit;
+        font-size: 11.5px;
+        font-weight: 600;
+        color: var(--dim);
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        cursor: pointer;
+      }
+      .tab:hover { color: var(--text); }
+      .tab.on { color: var(--text); background: rgba(255, 255, 255, 0.07); }
+      .tabn {
+        font-size: 10px;
+        font-weight: 600;
+        color: var(--muted);
+        background: rgba(255, 255, 255, 0.07);
+        padding: 1px 7px;
+        border-radius: 10px;
+        font-variant-numeric: tabular-nums;
+      }
+      .tab.on .tabn { color: var(--soft); }
       .sec-row {
         display: flex;
         align-items: center;
