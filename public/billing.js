@@ -106,9 +106,15 @@ function colorFor(name){
 
 function assigneeCell(list){
   if(!list || !list.length) return `<span class="due-none">Unassigned</span>`;
-  return `<span class="avatar-group">` + list.map(a =>
-    `<span class="avatar-badge" style="background:${colorFor(a.name)}" title="${esc(a.name)}">${esc(initialsOf(a.name))}</span>`
-  ).join("") + `</span>`;
+  const first = list[0];
+  const allNames = list.map(a => a.name).join(", ");
+  const more = list.length > 1
+    ? `<span class="assignee-more">+${list.length - 1}</span>`
+    : "";
+  return `<span class="assignee-cell" title="${esc(allNames)}">
+    <span class="avatar-badge" style="background:${colorFor(first.name)}">${esc(initialsOf(first.name))}</span>
+    <span class="assignee-name">${esc(first.name)}</span>${more}
+  </span>`;
 }
 
 function money(n, decimals){
@@ -123,11 +129,11 @@ function renderDashboard(){
 
   const rateCell = (rate) => rate
     ? `<span class="rate">$${rate}/hr</span>`
-    : `<span class="norate">Set on card</span>`;
+    : `<span class="norate-wrap"><span class="norate">No rate assigned</span><span class="norate-sub">set on card</span></span>`;
 
   const detailRows = cardDetails.length ? cardDetails.map((c)=>`
     <tr>
-      <td class="tname">${esc(c.name)}<span class="tlist">${esc(c.list)}</span></td>
+      <td class="tname">${esc(c.name)}</td>
       <td class="mid">${progressBar(c.progress)}</td>
       <td class="mid">${assigneeCell(c.assignees)}</td>
       <td class="mid r num">${c.hours}</td>
@@ -137,7 +143,7 @@ function renderDashboard(){
 
   const billRows = billableList.length ? billableList.map((c)=>`
     <tr>
-      <td class="tname">${esc(c.name)}<span class="tlist">${esc(c.list)}</span></td>
+      <td class="tname">${esc(c.name)}</td>
       <td class="mid r num">${c.hours}</td>
       <td class="mid r rate">$${c.rate}</td>
       <td class="r amt">$${money(c.amount,2)}</td>
@@ -180,12 +186,12 @@ function renderDashboard(){
     <div class="table-card">
       <table>
         <thead><tr>
-          <th style="width:24%">Task</th>
-<th class="mid" style="width:14%">Completion</th>
-<th class="mid" style="width:16%">Assigned</th>
-<th class="mid r" style="width:10%">Hours</th>
-<th class="mid r" style="width:14%">Rate</th>
-<th class="r" style="width:22%">Due</th>
+          <th style="width:26%">Task</th>
+          <th class="mid" style="width:13%">Completion</th>
+          <th class="mid" style="width:17%">Assigned</th>
+          <th class="mid r" style="width:8%">Hours</th>
+          <th class="mid r" style="width:15%">Rate</th>
+          <th class="r" style="width:21%">Due</th>
         </tr></thead>
         <tbody>${detailRows}</tbody>
       </table>
@@ -297,7 +303,7 @@ function renderInvoice(){
   const on = inv.picked.has(i);
   return `<tr class="${on?"on":"off"}" data-i="${i}">
     <td style="padding-left:18px;padding-right:0"><span class="cb ${on?"on":""}">${on?icon(ICONS.check):""}</span></td>
-    <td class="tname">${esc(c.name)}<span class="tlist">${esc(c.list)}</span></td>
+    <td class="tname">${esc(c.name)}</td>
     <td class="mid">${assigneeCell(c.assignees)}</td>
     <td class="mid r num">${c.hours}</td>
     <td class="mid r rate">$${c.rate}</td>
