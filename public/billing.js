@@ -284,15 +284,16 @@ function renderInvoice(){
        </div>`;
 
   const rows = items.map((c,i)=>{
-    const on = inv.picked.has(i);
-    return `<tr class="${on?"on":"off"}" data-i="${i}">
-      <td style="padding-left:18px;padding-right:0"><span class="cb ${on?"on":""}">${on?icon(ICONS.check):""}</span></td>
-      <td class="tname">${esc(c.name)}<span class="tlist">${esc(c.list)}</span></td>
-      <td class="mid r num">${c.hours}</td>
-      <td class="mid r rate">$${c.rate}</td>
-      <td class="r amt" style="padding-right:18px">$${money(c.amount,2)}</td>
-    </tr>`;
-  }).join("");
+  const on = inv.picked.has(i);
+  return `<tr class="${on?"on":"off"}" data-i="${i}">
+    <td style="padding-left:18px;padding-right:0"><span class="cb ${on?"on":""}">${on?icon(ICONS.check):""}</span></td>
+    <td class="tname">${esc(c.name)}<span class="tlist">${esc(c.list)}</span></td>
+    <td class="mid">${assigneeCell(c.assignees)}</td>
+    <td class="mid r num">${c.hours}</td>
+    <td class="mid r rate">$${c.rate}</td>
+    <td class="r amt" style="padding-right:18px">$${money(c.amount,2)}</td>
+  </tr>`;
+}).join("");
 
   ov.innerHTML = `
     <div class="inv" role="dialog" aria-label="Generate invoice">
@@ -306,12 +307,13 @@ function renderInvoice(){
       <div class="inv-list">
         <table>
           <thead><tr>
-            <th style="width:8%;padding-left:18px"></th>
-            <th style="width:42%">Work</th>
-            <th class="mid r" style="width:16%">Hours</th>
-            <th class="mid r" style="width:15%">Rate</th>
-            <th class="r" style="width:19%;padding-right:18px">Amount</th>
-          </tr></thead>
+  <th style="width:8%;padding-left:18px"></th>
+  <th style="width:30%">Work</th>
+  <th class="mid" style="width:18%">Assigned</th>
+  <th class="mid r" style="width:14%">Hours</th>
+  <th class="mid r" style="width:13%">Rate</th>
+  <th class="r" style="width:17%;padding-right:18px">Amount</th>
+</tr></thead>
           <tbody>${rows}</tbody>
         </table>
       </div>

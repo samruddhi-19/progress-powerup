@@ -124,7 +124,7 @@ window.ProgressBilling = (function () {
         const amount = +(elH * rate).toFixed(2);
         billableHours += elH;
         totalAmount += amount;
-        billable.push({ name, list, rate, hours: elH, amount, progress, due: ds });
+        billable.push({ name, list, rate, hours: elH, amount, progress, due: ds, assignees });
       } else {
         unrated.push({ name, list, due: ds });
       }
