@@ -103,7 +103,7 @@ function renderDashboard(){
 
   const rateCell = (rate) => rate
     ? `<span class="rate">$${rate}/hr</span>`
-    : `<span class="norate"><span class="norate-txt">Not set yet</span><span class="norate-sub">set on the card</span></span>`;
+    : `<span class="norate-wrap"><span class="norate">Not set yet</span><span class="norate-sub">set on the card</span></span>`;
 
   const detailRows = cardDetails.length ? cardDetails.map((c)=>`
     <tr>
