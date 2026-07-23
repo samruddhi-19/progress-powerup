@@ -93,10 +93,12 @@ function dueCell(ds){
 
 function assigneeCell(list){
   if(!list || !list.length) return `<span class="due-none">Unassigned</span>`;
-  return list.map(a => a.avatar
-    ? `<img src="${a.avatar}" alt="${esc(a.name)}" title="${esc(a.name)}" class="avatar">`
-    : `<span title="${esc(a.name)}" class="avatar-fallback">${esc(a.name.slice(0,2).toUpperCase())}</span>`
-  ).join("");
+  return list.map(a => {
+    const initials = esc(a.name.slice(0,2).toUpperCase());
+    return a.avatar
+      ? `<img src="${a.avatar}" alt="${esc(a.name)}" title="${esc(a.name)}" class="avatar" onerror="this.outerHTML='<span title=&quot;${esc(a.name)}&quot; class=&quot;avatar-fallback&quot;>${initials}</span>'">`
+      : `<span title="${esc(a.name)}" class="avatar-fallback">${initials}</span>`;
+  }).join("");
 }
 
 function money(n, decimals){
