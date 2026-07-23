@@ -61,7 +61,7 @@ window.ProgressReport = (function () {
     const boardId = ctx.board;
     const base = `key=${API_KEY}&token=${token}`;
     const [cardsRes, listsRes] = await Promise.all([
-      fetch(`https://api.trello.com/1/boards/${boardId}/cards?fields=name,idList,due,dueComplete&pluginData=true&${base}`),
+      fetch(`https://api.trello.com/1/boards/${boardId}/cards?fields=name,idList,due,dueComplete&pluginData=true&members=true&member_fields=fullName,username&${base}`),
       fetch(`https://api.trello.com/1/boards/${boardId}/lists?fields=name&${base}`),
     ]);
     if (!cardsRes.ok) throw new Error("REST " + cardsRes.status);
@@ -241,6 +241,7 @@ window.ProgressReport = (function () {
 
     /* period-scoped metrics + breakdowns (completed / hours / overtime stay week-scoped) */
     const breakdown = { active: [], achieved: [], hours: [], overtime: [] };
+    const allCards = [];   // full detail list for the "View all" screen
     let completed = 0, overtime = 0;
     mapped.forEach((id) => {
       const entry = cardMap[id];
@@ -257,11 +258,24 @@ window.ProgressReport = (function () {
       if (perCardPeriodSec[id]) {
         breakdown.hours.push({ name, list, value: +(perCardPeriodSec[id] / 3600).toFixed(1) + "h", sort: perCardPeriodSec[id] });
       }
-      if (inP(overtimeSeen[id])) {
+      const isOvertime = !!inP(overtimeSeen[id]);
+      if (isOvertime) {
         overtime++;
         breakdown.overtime.push({ name, list, value: `${elH}h / ${estH}h`, badge: `+${(elH - estH).toFixed(1)}h over` });
       }
+
+      allCards.push({
+        name, list,
+        progress: prog,
+        hours: +(perCardPeriodSec[id] ? perCardPeriodSec[id] / 3600 : el / 3600).toFixed(1),
+        due: entry.meta.due || null,
+        dueComplete: !!entry.meta.dueComplete,
+        assignees: (entry.meta.members || []).map(mem => mem.fullName || mem.username),
+        isCompleted: !!inP(completedSeen[id]),
+        isOvertime,
+      });
     });
+    allCards.sort((a, b) => b.progress - a.progress);
     breakdown.hours.sort((a, b) => b.sort - a.sort);
     console.log("[ProgressReport]", mode, "period", new Date(P.start).toDateString(), "→", new Date(P.end).toDateString(), debug);
 
@@ -310,6 +324,7 @@ window.ProgressReport = (function () {
       productivityDay,
       history,
       breakdown,
+      allCards,
     };
   }
 

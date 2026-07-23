@@ -26,6 +26,8 @@
         json:'<path d="M14 3v5h5"/><path d="M7 3h7l5 5v13H7z"/><path d="M9 14v3M11 14v3M13 14v3M15 14v3"/>',
         pdf:'<path d="M14 3v5h5"/><path d="M7 3h7l5 5v13H7z"/><text x="12" y="18" text-anchor="middle" font-size="5" font-weight="700" fill="currentColor" stroke="none">PDF</text>',
         chev:'<path d="m6 9 6 6 6-6"/>',
+        arrowR:'<path d="M5 12h14m0 0-5-5m5 5-5 5"/>',
+        arrowL:'<path d="M19 12H5m0 0 5 5m-5-5 5-5"/>',
       };
 
       /* ── charts: fixed 100-based scale for %, gridlines, labels, graceful sparse data ── */
@@ -93,6 +95,10 @@
       const app=()=>document.getElementById("app");
       function fit(){t.sizeTo("body").catch(()=>{});}
 
+      /* "View all" screen — replaces the dashboard in place, never overlays it */
+      let view = "dashboard";   // "dashboard" | "all"
+      let allFilter = "all";    // all | active | completed | overtime
+
       function showState(html){app().innerHTML=`<div class="state">${html}</div>`;fit();}
 
       async function connect(){
@@ -134,6 +140,10 @@
             ${metric("hours","var(--amber-bg)","var(--amber-fg)","clock",m.hours,"Hours tracked",`Hours tracked ${per}`)}
             ${metric("overtime","var(--red-bg)","var(--red-fg)","warn",m.overtime,"Overtime warning",`Cards that went over their estimate ${per}`)}`;})()}
           </div>
+          <button class="viewall-row" id="viewAllRow">
+            <span class="va-count">${(d.allCards||[]).length} tracked card${(d.allCards||[]).length===1?"":"s"} ${mode==="monthly"?"this month":"this week"}</span>
+            <span class="va-link">View all ${icon(ICONS.arrowR)}</span>
+          </button>
           <div class="charts">
             <div class="card" style="padding:12px 14px">
               <div class="chart-head"><span class="ct">Deadline achievement</span><span class="ch">last ${d.deadlineTrend.length||0} ${mode==="monthly"?"months":"weeks"}</span></div>
@@ -187,6 +197,8 @@
         document.querySelectorAll(".metric").forEach(el=>{
           el.onclick=()=>togglePopover(el);
         });
+        const vaRow=document.getElementById("viewAllRow");
+        if(vaRow) vaRow.onclick=()=>{view="all";allFilter="all";renderAll();};
         fit();
       }
 
@@ -196,6 +208,76 @@
         const p=document.querySelector(".popover");if(p)p.remove();
         document.querySelectorAll(".metric.open").forEach(x=>x.classList.remove("open"));
       }
+      /* ══ "All tracked cards" screen ══ */
+      function dueTxt(c){
+        if(!c.due) return `<span class="ac-nodue">No due date</span>`;
+        const dt=new Date(c.due), now=Date.now();
+        const short=dt.toLocaleDateString("en-US",{month:"short",day:"numeric"});
+        if(c.dueComplete) return `<span class="ac-due done">Completed</span>`;
+        const days=Math.floor((now-dt.getTime())/86400000);
+        if(days>0) return `<span class="ac-due late">${short}<span class="ac-sub"> · ${days}d late</span></span>`;
+        if(days===0) return `<span class="ac-due today">Due today</span>`;
+        return `<span class="ac-due ok">${short}<span class="ac-sub"> · in ${Math.abs(days)}d</span></span>`;
+      }
+
+      function filteredCards(){
+        const all=(report&&report.allCards)||[];
+        if(allFilter==="active")    return all.filter(c=>!c.isCompleted);
+        if(allFilter==="completed") return all.filter(c=>c.isCompleted);
+        if(allFilter==="overtime")  return all.filter(c=>c.isOvertime);
+        return all;
+      }
+
+      function renderAll(){
+        const all=(report&&report.allCards)||[];
+        const rows=filteredCards();
+        const FILTERS=[["all","All"],["active","Active"],["completed","Completed"],["overtime","Overtime"]];
+
+        const body = rows.length ? rows.map(c=>`
+          <tr>
+            <td class="ac-name">${esc(c.name)}</td>
+            <td class="ac-mid">${barMini(c.progress)}</td>
+            <td class="ac-mid">${c.assignees.length?esc(c.assignees.join(", ")):`<span class="ac-nodue">Unassigned</span>`}</td>
+            <td class="ac-mid r">${c.hours}</td>
+            <td class="r">${dueTxt(c)}</td>
+          </tr>`).join("")
+          : `<tr><td colspan="5" class="empty-cell">No cards match this filter.</td></tr>`;
+
+        app().innerHTML=`
+          <div class="topbar">
+            <div class="ac-head">
+              <button class="ac-back" id="acBack" aria-label="Back to reports">${icon(ICONS.arrowL)}</button>
+              <h1>All tracked cards</h1>
+              <span class="ac-count">${rows.length===all.length?`${all.length} cards`:`${rows.length} of ${all.length}`}</span>
+            </div>
+            <div class="seg">
+              ${FILTERS.map(([k,label])=>`<button data-f="${k}" class="${allFilter===k?"on":""}">${label}</button>`).join("")}
+            </div>
+          </div>
+          <div class="card" style="overflow:hidden">
+            <table class="ac-table">
+              <thead><tr>
+                <th style="width:32%">Task</th>
+                <th style="width:18%">Completion</th>
+                <th style="width:22%">Assigned</th>
+                <th class="r" style="width:10%">Hours</th>
+                <th class="r" style="width:18%">Due</th>
+              </tr></thead>
+              <tbody>${body}</tbody>
+            </table>
+          </div>`;
+
+        document.getElementById("acBack").onclick=()=>{view="dashboard";renderDashboard();};
+        document.querySelectorAll(".seg button").forEach(b=>b.onclick=()=>{allFilter=b.dataset.f;renderAll();});
+        fit();
+      }
+
+      function barMini(p){
+        const v=Math.min(100,p||0);
+        const col=v>=100?"var(--green-fg)":v>=50?"var(--blue-fg)":"var(--amber-fg)";
+        return `<span class="ac-bar"><span class="ac-track"><span style="width:${v}%;background:${col}"></span></span><span class="ac-pct">${v}%</span></span>`;
+      }
+
       function togglePopover(el){
         const key=el.dataset.key;
         const wasOpen=el.classList.contains("open");
@@ -285,7 +367,8 @@
           const b=document.getElementById("cbtn");if(b)b.onclick=connect;return;}
         if(res.error){showState(`<h2>Couldn't load board data</h2><div>${res.error}</div><button id="rbtn">Retry</button>`);
           const b=document.getElementById("rbtn");if(b)b.onclick=load;return;}
-        report=res;renderDashboard();
+        report=res;
+        if(view==="all") renderAll(); else renderDashboard();
       }
 
       document.documentElement.dataset.theme="dark";
