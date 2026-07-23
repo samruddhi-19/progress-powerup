@@ -99,11 +99,14 @@
       function fit(){
         requestAnimationFrame(()=>{
           const tb=document.querySelector(".topbar-wrap");
-          const ct=document.querySelector(".content");
-          if(!ct){t.sizeTo("body").catch(()=>{});return;}
-          const need=(tb?tb.offsetHeight:0)+ct.scrollHeight+2;
+          const inner=document.querySelector(".cinner");
+          if(!inner){t.sizeTo("body").catch(()=>{});return;}
+          /* .content is a flex child, so its scrollHeight reports the stretched
+             box. .cinner is a plain block, so it reports the true content height. */
+          const pad=30;
+          const need=(tb?tb.offsetHeight:0)+inner.getBoundingClientRect().height+pad;
           const screenH=(window.screen&&window.screen.availHeight)||900;
-          const cap=Math.max(380,Math.min(720,screenH-300));
+          const cap=Math.max(400,Math.min(800,screenH-210));
           t.sizeTo(Math.min(Math.ceil(need),cap)).catch(()=>{});
         });
       }
@@ -112,7 +115,7 @@
       let view = "dashboard";   // "dashboard" | "metric"
       let metricKey = "active"; // active | achieved | hours | overtime
 
-      function showState(html){app().innerHTML=`<div class="content"><div class="state">${html}</div></div>`;fit();}
+      function showState(html){app().innerHTML=`<div class="content"><div class="cinner"><div class="state">${html}</div></div></div>`;fit();}
 
       async function connect(){
         try{await t.getRestApi().authorize({scope:"read",expiration:"never"});load();}
@@ -148,7 +151,7 @@
               <div class="seg"><button data-mode="weekly" class="${mode==="weekly"?"on":""}">Weekly report</button><button data-mode="monthly" class="${mode==="monthly"?"on":""}">Monthly report</button></div>
             </div>
           </div>
-          <div class="content">
+          <div class="content"><div class="cinner">
           <div class="metrics" id="metrics">
             ${(()=>{const per=mode==="monthly"?"this month":"this week";return `
             ${metric("active","var(--green-bg)","var(--green-fg)","check",m.active,"Active cards","Cards currently mapped and tracked on this board")}
@@ -193,7 +196,7 @@
             </div>
             <button class="export" id="export">${icon(ICONS.dl)}Export ${mode} report</button>
           </div>
-          </div>`;
+          </div></div>`;
 
         document.querySelectorAll(".seg button").forEach(b=>b.onclick=()=>{mode=b.dataset.mode;load();});
         const fmtMenu=document.getElementById("fmtMenu");
@@ -297,7 +300,7 @@
             </div>
             </div>
           </div>
-          <div class="content">
+          <div class="content"><div class="cinner">
           <div class="md-tabs">
             ${Object.keys(METRICS).map(k=>`
               <button data-k="${k}" class="md-tab ${k===metricKey?"on":""}">
@@ -307,7 +310,7 @@
           <div class="card" style="overflow:hidden">
             <table class="md-table"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>
           </div>
-          </div>`;
+          </div></div>`;
 
         document.getElementById("mdBack").onclick=()=>{view="dashboard";renderDashboard();};
         document.querySelectorAll(".md-tab").forEach(t=>t.onclick=()=>{metricKey=t.dataset.k;renderMetric();});
