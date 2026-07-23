@@ -96,8 +96,8 @@
       function fit(){t.sizeTo("body").catch(()=>{});}
 
       /* "View all" screen — replaces the dashboard in place, never overlays it */
-      let view = "dashboard";   // "dashboard" | "all"
-      let allFilter = "all";    // all | active | completed | overtime
+      let view = "dashboard";   // "dashboard" | "metric"
+      let metricKey = "active"; // active | achieved | hours | overtime
 
       function showState(html){app().innerHTML=`<div class="state">${html}</div>`;fit();}
 
@@ -140,10 +140,6 @@
             ${metric("hours","var(--amber-bg)","var(--amber-fg)","clock",m.hours,"Hours tracked",`Hours tracked ${per}`)}
             ${metric("overtime","var(--red-bg)","var(--red-fg)","warn",m.overtime,"Overtime warning",`Cards that went over their estimate ${per}`)}`;})()}
           </div>
-          <button class="viewall-row" id="viewAllRow">
-            <span class="va-count">${(d.allCards||[]).length} tracked card${(d.allCards||[]).length===1?"":"s"} ${mode==="monthly"?"this month":"this week"}</span>
-            <span class="va-link">View all ${icon(ICONS.arrowR)}</span>
-          </button>
           <div class="charts">
             <div class="card" style="padding:12px 14px">
               <div class="chart-head"><span class="ct">Deadline achievement</span><span class="ch">last ${d.deadlineTrend.length||0} ${mode==="monthly"?"months":"weeks"}</span></div>
@@ -195,10 +191,8 @@
         document.addEventListener("click",(e)=>{if(!e.target.closest("#fmtSelect"))fmtMenu.hidden=true;});
         document.getElementById("export").onclick=()=>exportAs(exportFmt);
         document.querySelectorAll(".metric").forEach(el=>{
-          el.onclick=()=>togglePopover(el);
+          el.onclick=()=>{view="metric";metricKey=el.dataset.key;renderMetric();};
         });
-        const vaRow=document.getElementById("viewAllRow");
-        if(vaRow) vaRow.onclick=()=>{view="all";allFilter="all";renderAll();};
         fit();
       }
 
@@ -208,74 +202,95 @@
         const p=document.querySelector(".popover");if(p)p.remove();
         document.querySelectorAll(".metric.open").forEach(x=>x.classList.remove("open"));
       }
-      /* ══ "All tracked cards" screen ══ */
-      function dueTxt(c){
-        if(!c.due) return `<span class="ac-nodue">No due date</span>`;
-        const dt=new Date(c.due), now=Date.now();
+      /* ══ Per-metric detail screen ══ */
+      const METRICS = {
+        active:   { label:"Active cards",      fg:"var(--green-fg)", sub:m=>`${m} card${m===1?"":"s"} currently tracked on this board` },
+        achieved: { label:"Completed cards",   fg:"var(--blue-fg)",  sub:(m,p)=>`${m} card${m===1?"":"s"} reached 100% ${p}` },
+        hours:    { label:"Hours tracked",     fg:"var(--amber-fg)", sub:(m,p)=>`${m}h logged ${p}` },
+        overtime: { label:"Overtime warning",  fg:"var(--red-fg)",   sub:(m,p)=>`${m} card${m===1?"":"s"} went over estimate ${p}` },
+      };
+
+      function whoTxt(w){
+        return (w && w.length) ? esc(w.join(", ")) : `<span class="md-none">Unassigned</span>`;
+      }
+      function dueTxt(due,dueComplete){
+        if(dueComplete) return `<span class="md-due done">Completed</span>`;
+        if(!due) return `<span class="md-none">No due date</span>`;
+        const dt=new Date(due), days=Math.floor((Date.now()-dt.getTime())/86400000);
         const short=dt.toLocaleDateString("en-US",{month:"short",day:"numeric"});
-        if(c.dueComplete) return `<span class="ac-due done">Completed</span>`;
-        const days=Math.floor((now-dt.getTime())/86400000);
-        if(days>0) return `<span class="ac-due late">${short}<span class="ac-sub"> · ${days}d late</span></span>`;
-        if(days===0) return `<span class="ac-due today">Due today</span>`;
-        return `<span class="ac-due ok">${short}<span class="ac-sub"> · in ${Math.abs(days)}d</span></span>`;
+        if(days>0)  return `<span class="md-due late">${short}<span class="md-sub"> · ${days}d late</span></span>`;
+        if(days===0)return `<span class="md-due today">Due today</span>`;
+        return `<span class="md-due ok">${short}<span class="md-sub"> · in ${Math.abs(days)}d</span></span>`;
       }
-
-      function filteredCards(){
-        const all=(report&&report.allCards)||[];
-        if(allFilter==="active")    return all.filter(c=>!c.isCompleted);
-        if(allFilter==="completed") return all.filter(c=>c.isCompleted);
-        if(allFilter==="overtime")  return all.filter(c=>c.isOvertime);
-        return all;
-      }
-
-      function renderAll(){
-        const all=(report&&report.allCards)||[];
-        const rows=filteredCards();
-        const FILTERS=[["all","All"],["active","Active"],["completed","Completed"],["overtime","Overtime"]];
-
-        const body = rows.length ? rows.map(c=>`
-          <tr>
-            <td class="ac-name">${esc(c.name)}</td>
-            <td class="ac-mid">${barMini(c.progress)}</td>
-            <td class="ac-mid">${c.assignees.length?esc(c.assignees.join(", ")):`<span class="ac-nodue">Unassigned</span>`}</td>
-            <td class="ac-mid r">${c.hours}</td>
-            <td class="r">${dueTxt(c)}</td>
-          </tr>`).join("")
-          : `<tr><td colspan="5" class="empty-cell">No cards match this filter.</td></tr>`;
-
-        app().innerHTML=`
-          <div class="topbar">
-            <div class="ac-head">
-              <button class="ac-back" id="acBack" aria-label="Back to reports">${icon(ICONS.arrowL)}</button>
-              <h1>All tracked cards</h1>
-              <span class="ac-count">${rows.length===all.length?`${all.length} cards`:`${rows.length} of ${all.length}`}</span>
-            </div>
-            <div class="seg">
-              ${FILTERS.map(([k,label])=>`<button data-f="${k}" class="${allFilter===k?"on":""}">${label}</button>`).join("")}
-            </div>
-          </div>
-          <div class="card" style="overflow:hidden">
-            <table class="ac-table">
-              <thead><tr>
-                <th style="width:32%">Task</th>
-                <th style="width:18%">Completion</th>
-                <th style="width:22%">Assigned</th>
-                <th class="r" style="width:10%">Hours</th>
-                <th class="r" style="width:18%">Due</th>
-              </tr></thead>
-              <tbody>${body}</tbody>
-            </table>
-          </div>`;
-
-        document.getElementById("acBack").onclick=()=>{view="dashboard";renderDashboard();};
-        document.querySelectorAll(".seg button").forEach(b=>b.onclick=()=>{allFilter=b.dataset.f;renderAll();});
-        fit();
-      }
-
       function barMini(p){
         const v=Math.min(100,p||0);
         const col=v>=100?"var(--green-fg)":v>=50?"var(--blue-fg)":"var(--amber-fg)";
-        return `<span class="ac-bar"><span class="ac-track"><span style="width:${v}%;background:${col}"></span></span><span class="ac-pct">${v}%</span></span>`;
+        return `<span class="md-bar"><span class="md-track"><span style="width:${v}%;background:${col}"></span></span><span class="md-pct">${v}%</span></span>`;
+      }
+
+      /* each metric gets the columns that actually suit it */
+      function tableFor(key,rows){
+        if(!rows.length) return {head:"",body:`<tr><td colspan="4" class="empty-cell">No cards for this metric ${mode==="monthly"?"this month":"this week"}.</td></tr>`};
+        if(key==="active") return {
+          head:`<th style="width:38%">Task</th><th style="width:20%">Completion</th><th style="width:22%">Assigned</th><th class="r" style="width:20%">Due</th>`,
+          body:rows.map(c=>`<tr>
+            <td class="md-name">${esc(c.name)}</td>
+            <td>${barMini(c.progress)}</td>
+            <td class="md-soft">${whoTxt(c.who)}</td>
+            <td class="r">${dueTxt(c.due,c.dueComplete)}</td></tr>`).join("")};
+        if(key==="achieved") return {
+          head:`<th style="width:40%">Task</th><th style="width:24%">Assigned</th><th class="r" style="width:18%">Hours spent</th><th class="r" style="width:18%">Estimate</th>`,
+          body:rows.map(c=>`<tr>
+            <td class="md-name">${esc(c.name)}</td>
+            <td class="md-soft">${whoTxt(c.who)}</td>
+            <td class="r md-num">${c.hoursNum}h</td>
+            <td class="r md-soft">${c.estNum}h</td></tr>`).join("")};
+        if(key==="hours") return {
+          head:`<th style="width:42%">Task</th><th style="width:26%">Assigned</th><th class="r" style="width:16%">This period</th><th class="r" style="width:16%">All time</th>`,
+          body:rows.map(c=>`<tr>
+            <td class="md-name">${esc(c.name)}</td>
+            <td class="md-soft">${whoTxt(c.who)}</td>
+            <td class="r md-num">${c.hoursNum}h</td>
+            <td class="r md-soft">${c.totalNum}h</td></tr>`).join("")};
+        return {
+          head:`<th style="width:36%">Task</th><th style="width:24%">Assigned</th><th class="r" style="width:22%">Tracked / est</th><th class="r" style="width:18%">Over by</th>`,
+          body:rows.map(c=>`<tr>
+            <td class="md-name">${esc(c.name)}</td>
+            <td class="md-soft">${whoTxt(c.who)}</td>
+            <td class="r md-num">${c.hoursNum}h / ${c.estNum}h</td>
+            <td class="r"><span class="md-over">+${c.overNum}h</span></td></tr>`).join("")};
+      }
+
+      function renderMetric(){
+        const b=(report&&report.breakdown)||{active:[],achieved:[],hours:[],overtime:[]};
+        const m=report.metrics||{};
+        const counts={active:m.active,achieved:m.achieved,hours:m.hours,overtime:m.overtime};
+        const per=mode==="monthly"?"this month":"this week";
+        const rows=b[metricKey]||[];
+        const meta=METRICS[metricKey];
+        const {head,body}=tableFor(metricKey,rows);
+
+        app().innerHTML=`
+          <div class="topbar">
+            <div class="md-head">
+              <button class="md-back" id="mdBack" aria-label="Back to reports">${icon(ICONS.arrowL)}</button>
+              <h1 style="color:${meta.fg}">${meta.label}</h1>
+              <span class="md-sublabel">${meta.sub(counts[metricKey],per)}</span>
+            </div>
+          </div>
+          <div class="md-tabs">
+            ${Object.keys(METRICS).map(k=>`
+              <button data-k="${k}" class="md-tab ${k===metricKey?"on":""}">
+                ${METRICS[k].label}<span class="md-tabn" style="${k===metricKey?`color:${METRICS[k].fg}`:""}">${counts[k]}</span>
+              </button>`).join("")}
+          </div>
+          <div class="card" style="overflow:hidden">
+            <table class="md-table"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>
+          </div>`;
+
+        document.getElementById("mdBack").onclick=()=>{view="dashboard";renderDashboard();};
+        document.querySelectorAll(".md-tab").forEach(t=>t.onclick=()=>{metricKey=t.dataset.k;renderMetric();});
+        fit();
       }
 
       function togglePopover(el){
@@ -368,7 +383,7 @@
         if(res.error){showState(`<h2>Couldn't load board data</h2><div>${res.error}</div><button id="rbtn">Retry</button>`);
           const b=document.getElementById("rbtn");if(b)b.onclick=load;return;}
         report=res;
-        if(view==="all") renderAll(); else renderDashboard();
+        if(view==="metric") renderMetric(); else renderDashboard();
       }
 
       document.documentElement.dataset.theme="dark";

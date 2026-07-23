@@ -241,7 +241,6 @@ window.ProgressReport = (function () {
 
     /* period-scoped metrics + breakdowns (completed / hours / overtime stay week-scoped) */
     const breakdown = { active: [], achieved: [], hours: [], overtime: [] };
-    const allCards = [];   // full detail list for the "View all" screen
     let completed = 0, overtime = 0;
     mapped.forEach((id) => {
       const entry = cardMap[id];
@@ -253,29 +252,27 @@ window.ProgressReport = (function () {
       const el = elapsedOf(s), est = estimatedOf(s);
       const elH = +(el / 3600).toFixed(1), estH = +(est / 3600).toFixed(1);
 
-      breakdown.active.push({ name, list, value: prog + "%" });
-      if (inP(completedSeen[id])) { completed++; breakdown.achieved.push({ name, list, value: "100%" }); }
+      const who = (entry.meta.members || []).map(mem => mem.fullName || mem.username);
+      const due = entry.meta.due || null;
+      const dueComplete = !!entry.meta.dueComplete;
+
+      breakdown.active.push({ name, list, value: prog + "%", who, progress: prog, due, dueComplete, hoursNum: elH });
+      if (inP(completedSeen[id])) {
+        completed++;
+        breakdown.achieved.push({ name, list, value: "100%", who, hoursNum: elH, estNum: estH, due, dueComplete });
+      }
       if (perCardPeriodSec[id]) {
-        breakdown.hours.push({ name, list, value: +(perCardPeriodSec[id] / 3600).toFixed(1) + "h", sort: perCardPeriodSec[id] });
+        const ph = +(perCardPeriodSec[id] / 3600).toFixed(1);
+        breakdown.hours.push({ name, list, value: ph + "h", sort: perCardPeriodSec[id], who, hoursNum: ph, totalNum: elH });
       }
       const isOvertime = !!inP(overtimeSeen[id]);
       if (isOvertime) {
         overtime++;
-        breakdown.overtime.push({ name, list, value: `${elH}h / ${estH}h`, badge: `+${(elH - estH).toFixed(1)}h over` });
+        breakdown.overtime.push({ name, list, value: `${elH}h / ${estH}h`, badge: `+${(elH - estH).toFixed(1)}h over`,
+          who, hoursNum: elH, estNum: estH, overNum: +(elH - estH).toFixed(1) });
       }
 
-      allCards.push({
-        name, list,
-        progress: prog,
-        hours: +(perCardPeriodSec[id] ? perCardPeriodSec[id] / 3600 : el / 3600).toFixed(1),
-        due: entry.meta.due || null,
-        dueComplete: !!entry.meta.dueComplete,
-        assignees: (entry.meta.members || []).map(mem => mem.fullName || mem.username),
-        isCompleted: !!inP(completedSeen[id]),
-        isOvertime,
-      });
     });
-    allCards.sort((a, b) => b.progress - a.progress);
     breakdown.hours.sort((a, b) => b.sort - a.sort);
     console.log("[ProgressReport]", mode, "period", new Date(P.start).toDateString(), "→", new Date(P.end).toDateString(), debug);
 
@@ -324,7 +321,6 @@ window.ProgressReport = (function () {
       productivityDay,
       history,
       breakdown,
-      allCards,
     };
   }
 

@@ -417,48 +417,18 @@
         font-weight: 600;
         white-space: nowrap;
       }
-      /* ── "View all" entry row ── */
-      .viewall-row {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        width: 100%;
-        background: var(--card);
-        border: 1px solid rgba(87, 157, 255, 0.22);
-        border-radius: 10px;
-        padding: 9px 13px;
-        margin-bottom: 10px;
-        font-family: inherit;
-        cursor: pointer;
-      }
-      .viewall-row:hover {
-        border-color: rgba(87, 157, 255, 0.45);
-        background: rgba(87, 157, 255, 0.05);
-      }
-      .viewall-row .va-count {
-        font-size: 11px;
-        color: var(--dim);
-      }
-      .viewall-row .va-link {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        font-size: 11px;
-        font-weight: 600;
-        color: var(--blue-fg);
-      }
-      .viewall-row .va-link svg {
-        width: 13px;
-        height: 13px;
-      }
-
-      /* ── "All tracked cards" screen ── */
-      .ac-head {
+      /* ── metric detail screen ── */
+      .metric { cursor: pointer; }
+      .metric:hover { border-color: var(--border-strong, rgba(255,255,255,.16)); }
+      .md-head {
         display: flex;
         align-items: center;
         gap: 10px;
+        flex-wrap: wrap;
       }
-      .ac-back {
+      .md-head h1 { font-size: 15px; font-weight: 700; }
+      .md-sublabel { font-size: 11px; color: var(--muted); }
+      .md-back {
         display: flex;
         align-items: center;
         justify-content: center;
@@ -469,97 +439,68 @@
         border: 1px solid var(--border);
         color: var(--dim);
         cursor: pointer;
+        flex-shrink: 0;
       }
-      .ac-back:hover {
-        color: var(--text);
-        background: rgba(255, 255, 255, 0.06);
+      .md-back:hover { color: var(--text); background: rgba(255,255,255,.06); }
+      .md-back svg { width: 14px; height: 14px; }
+      .md-tabs { display: flex; gap: 5px; margin-bottom: 11px; flex-wrap: wrap; }
+      .md-tab {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 11px;
+        font-family: inherit;
+        font-size: 10.5px;
+        color: var(--dim);
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 7px;
+        cursor: pointer;
       }
-      .ac-back svg {
-        width: 14px;
-        height: 14px;
-      }
-      .ac-count {
-        font-size: 11px;
-        color: var(--muted);
-      }
-      .ac-table {
-        width: 100%;
-        border-collapse: collapse;
-        table-layout: fixed;
-      }
-      .ac-table th {
+      .md-tab:hover { color: var(--text); }
+      .md-tab.on { color: var(--text); background: var(--surface-2, #2c333a); }
+      .md-tabn { color: var(--muted); font-variant-numeric: tabular-nums; }
+      .md-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+      .md-table th {
         text-align: left;
         padding: 10px 14px;
         font-size: 9.5px;
-        letter-spacing: 0.06em;
+        letter-spacing: .06em;
         text-transform: uppercase;
         color: var(--muted);
         font-weight: 600;
         border-bottom: 1px solid var(--border);
       }
-      .ac-table th.r,
-      .ac-table td.r {
-        text-align: right;
-      }
-      .ac-table td {
+      .md-table th.r, .md-table td.r { text-align: right; }
+      .md-table td {
         padding: 11px 14px;
         font-size: 11.5px;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+        border-bottom: 1px solid rgba(255,255,255,.04);
       }
-      .ac-table tbody tr:last-child td {
-        border-bottom: none;
+      .md-table tbody tr:last-child td { border-bottom: none; }
+      .md-table tbody tr:nth-child(odd) { background: rgba(255,255,255,.015); }
+      .md-name { color: var(--text); font-weight: 500; overflow-wrap: anywhere; }
+      .md-soft { color: var(--soft, #c7d0da); }
+      .md-num { color: var(--soft, #c7d0da); font-variant-numeric: tabular-nums; }
+      .md-none { color: var(--muted); font-size: 10.5px; }
+      .md-bar { display: flex; align-items: center; gap: 8px; }
+      .md-track {
+        flex: 1; max-width: 58px; height: 4px; border-radius: 3px;
+        background: rgba(255,255,255,.09); overflow: hidden; display: block;
       }
-      .ac-table tbody tr:nth-child(odd) {
-        background: rgba(255, 255, 255, 0.015);
-      }
-      .ac-name {
-        color: var(--text);
-        font-weight: 500;
-        overflow-wrap: anywhere;
-      }
-      .ac-mid {
-        color: var(--soft);
+      .md-track > span { display: block; height: 100%; border-radius: 3px; }
+      .md-pct { font-size: 10px; color: var(--dim); min-width: 30px; }
+      .md-due { font-size: 11px; white-space: nowrap; }
+      .md-due.late { color: var(--red-fg); }
+      .md-due.today { color: var(--amber-fg); }
+      .md-due.ok { color: var(--soft, #c7d0da); }
+      .md-due.done { color: var(--green-fg); }
+      .md-sub { color: var(--muted); font-size: 10px; }
+      .md-over {
+        font-size: 10px; color: var(--red-fg);
+        background: rgba(229,72,77,.14);
+        padding: 2px 7px; border-radius: 20px;
         font-variant-numeric: tabular-nums;
-      }
-      .ac-bar {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-      }
-      .ac-track {
-        flex: 1;
-        max-width: 58px;
-        height: 4px;
-        border-radius: 3px;
-        background: rgba(255, 255, 255, 0.09);
-        overflow: hidden;
-        display: block;
-      }
-      .ac-track > span {
-        display: block;
-        height: 100%;
-        border-radius: 3px;
-      }
-      .ac-pct {
-        font-size: 10px;
-        color: var(--dim);
-        min-width: 30px;
-      }
-      .ac-nodue {
-        color: var(--muted);
-        font-size: 10.5px;
-      }
-      .ac-due {
-        font-size: 11px;
-        white-space: nowrap;
-      }
-      .ac-due.late { color: var(--red-fg); }
-      .ac-due.today { color: var(--amber-fg); }
-      .ac-due.ok { color: var(--soft); }
-      .ac-due.done { color: var(--green-fg); }
-      .ac-sub {
-        color: var(--muted);
-        font-size: 10px;
       }
       .export-row {
         display: flex;
