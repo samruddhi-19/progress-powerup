@@ -194,7 +194,7 @@
                   </button>`).join("")}
               </div>
             </div>
-            <button class="export" id="export">${icon(ICONS.dl)}Export ${mode} report</button>
+            <button class="export" id="export">${icon(ICONS.dl)}Export</button>
           </div>
           </div></div>`;
 
