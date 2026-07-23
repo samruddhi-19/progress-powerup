@@ -106,14 +106,13 @@ function colorFor(name){
 
 function assigneeCell(list){
   if(!list || !list.length) return `<span class="due-none">Unassigned</span>`;
-  const first = list[0];
   const allNames = list.map(a => a.name).join(", ");
-  const more = list.length > 1
-    ? `<span class="assignee-more">+${list.length - 1}</span>`
-    : "";
+  const avatars = list.map(a =>
+    `<span class="avatar-badge" style="background:${colorFor(a.name)}">${esc(initialsOf(a.name))}</span>`
+  ).join("");
   return `<span class="assignee-cell" title="${esc(allNames)}">
-    <span class="avatar-badge" style="background:${colorFor(first.name)}">${esc(initialsOf(first.name))}</span>
-    <span class="assignee-name">${esc(first.name)}</span>${more}
+    <span class="avatar-group">${avatars}</span>
+    <span class="assignee-name">${esc(allNames)}</span>
   </span>`;
 }
 
@@ -377,9 +376,14 @@ function generatePDF(){
   const title = inv.name || "Untitled Bill";
   const dateStr = new Date().toLocaleDateString("en-US",{month:"long",day:"numeric",year:"numeric"});
 
+  const namesOf = (c) => (c.assignees && c.assignees.length)
+    ? c.assignees.map(a => a.name).join(", ")
+    : "Unassigned";
+
   const rows = items.map((c)=>`
     <tr>
-      <td class="w">${esc(c.name)}${c.list ? `<span class="l">${esc(c.list)}</span>` : ""}</td>
+      <td class="w">${esc(c.name)}</td>
+      <td class="a">${esc(namesOf(c))}</td>
       <td class="n">${c.hours}</td>
       <td class="n">$${c.rate}</td>
       <td class="n b">$${money(c.amount,2)}</td>
@@ -399,7 +403,7 @@ function generatePDF(){
     th.n,td.n{text-align:right}
     td{padding:13px 0;border-bottom:1px solid #f0f1f4;font-size:12px}
     td.w{font-weight:600}
-    td.w .l{font-weight:400;color:#8993a4;font-size:10.5px;margin-left:8px}
+    td.a{color:#626f86;font-size:11px}
     td.b{font-weight:700}
     .tot{display:flex;justify-content:space-between;align-items:baseline;margin-top:26px}
     .tot .lbl{font-size:10px;letter-spacing:1.2px;text-transform:uppercase;color:#626f86;font-weight:700}
@@ -415,7 +419,7 @@ function generatePDF(){
     </div>
     <div class="rule"></div>
     <table>
-      <thead><tr><th>Work</th><th class="n">Hours</th><th class="n">Rate</th><th class="n">Amount</th></tr></thead>
+      <thead><tr><th>Work</th><th>Assigned</th><th class="n">Hours</th><th class="n">Rate</th><th class="n">Amount</th></tr></thead>
       <tbody>${rows}</tbody>
     </table>
     <div class="tot">

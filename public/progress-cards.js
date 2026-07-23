@@ -407,7 +407,7 @@ function setActiveTab(tab) {
     // Billing is a launcher (wide modal), not an in-place tab —
     // same pattern as Reports. Whichever tab was active stays selected.
     t.modal({
-      title: "Workspace & Billing",
+      title: " ",  // blank — our own white header inside the page is the title
       url: "./billing.html",
       fullscreen: false,
       height: 660,
