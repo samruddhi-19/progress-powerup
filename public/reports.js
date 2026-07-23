@@ -93,13 +93,16 @@
         return["var(--amber-bg)","var(--amber-fg)","#e9a23b"];
       }
       const app=()=>document.getElementById("app");
-      function fit(){t.sizeTo("body").catch(()=>{});}
+      /* Modal has a fixed height and .content scrolls internally.
+         Calling sizeTo() would grow the iframe and make Trello's outer
+         modal scroll instead of our own scrollbar — so we don't. */
+      function fit(){}
 
       /* "View all" screen — replaces the dashboard in place, never overlays it */
       let view = "dashboard";   // "dashboard" | "metric"
       let metricKey = "active"; // active | achieved | hours | overtime
 
-      function showState(html){app().innerHTML=`<div class="state">${html}</div>`;fit();}
+      function showState(html){app().innerHTML=`<div class="content"><div class="state">${html}</div></div>`;fit();}
 
       async function connect(){
         try{await t.getRestApi().authorize({scope:"read",expiration:"never"});load();}
@@ -130,9 +133,12 @@
           </div>`;
 
         app().innerHTML=`
-          <div class="topbar"><h1>History reports &amp; export</h1>
-            <div class="seg"><button data-mode="weekly" class="${mode==="weekly"?"on":""}">Weekly report</button><button data-mode="monthly" class="${mode==="monthly"?"on":""}">Monthly report</button></div>
+          <div class="topbar-wrap">
+            <div class="topbar"><h1>History reports &amp; export</h1>
+              <div class="seg"><button data-mode="weekly" class="${mode==="weekly"?"on":""}">Weekly report</button><button data-mode="monthly" class="${mode==="monthly"?"on":""}">Monthly report</button></div>
+            </div>
           </div>
+          <div class="content">
           <div class="metrics" id="metrics">
             ${(()=>{const per=mode==="monthly"?"this month":"this week";return `
             ${metric("active","var(--green-bg)","var(--green-fg)","check",m.active,"Active cards","Cards currently mapped and tracked on this board")}
@@ -176,6 +182,7 @@
               </div>
             </div>
             <button class="export" id="export">${icon(ICONS.dl)}Export ${mode} report</button>
+          </div>
           </div>`;
 
         document.querySelectorAll(".seg button").forEach(b=>b.onclick=()=>{mode=b.dataset.mode;load();});
@@ -271,13 +278,16 @@
         const {head,body}=tableFor(metricKey,rows);
 
         app().innerHTML=`
-          <div class="topbar">
+          <div class="topbar-wrap">
+            <div class="topbar">
             <div class="md-head">
               <button class="md-back" id="mdBack" aria-label="Back to reports">${icon(ICONS.arrowL)}</button>
               <h1 style="color:${meta.fg}">${meta.label}</h1>
               <span class="md-sublabel">${meta.sub(counts[metricKey],per)}</span>
             </div>
+            </div>
           </div>
+          <div class="content">
           <div class="md-tabs">
             ${Object.keys(METRICS).map(k=>`
               <button data-k="${k}" class="md-tab ${k===metricKey?"on":""}">
@@ -286,6 +296,7 @@
           </div>
           <div class="card" style="overflow:hidden">
             <table class="md-table"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>
+          </div>
           </div>`;
 
         document.getElementById("mdBack").onclick=()=>{view="dashboard";renderDashboard();};
