@@ -93,10 +93,20 @@
         return["var(--amber-bg)","var(--amber-fg)","#e9a23b"];
       }
       const app=()=>document.getElementById("app");
-      /* Modal has a fixed height and .content scrolls internally.
-         Calling sizeTo() would grow the iframe and make Trello's outer
-         modal scroll instead of our own scrollbar — so we don't. */
-      function fit(){}
+      /* Size the modal to its content, capped to the screen.
+         Short content  -> modal shrinks, no dead space, no scrollbar.
+         Long content   -> modal caps, header stays put, .content scrolls. */
+      function fit(){
+        requestAnimationFrame(()=>{
+          const tb=document.querySelector(".topbar-wrap");
+          const ct=document.querySelector(".content");
+          if(!ct){t.sizeTo("body").catch(()=>{});return;}
+          const need=(tb?tb.offsetHeight:0)+ct.scrollHeight+2;
+          const screenH=(window.screen&&window.screen.availHeight)||900;
+          const cap=Math.max(380,Math.min(720,screenH-300));
+          t.sizeTo(Math.min(Math.ceil(need),cap)).catch(()=>{});
+        });
+      }
 
       /* "View all" screen — replaces the dashboard in place, never overlays it */
       let view = "dashboard";   // "dashboard" | "metric"
