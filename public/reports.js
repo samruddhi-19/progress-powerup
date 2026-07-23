@@ -91,7 +91,7 @@
         return["var(--amber-bg)","var(--amber-fg)","#e9a23b"];
       }
       const app=()=>document.getElementById("app");
-      function fit(){t.sizeTo("body").catch(()=>{});}
+      function fit(){}
 
       function showState(html){app().innerHTML=`<div class="state">${html}</div>`;fit();}
 
