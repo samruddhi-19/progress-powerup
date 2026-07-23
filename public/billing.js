@@ -91,6 +91,14 @@ function dueCell(ds){
   return `<span class="due"><span class="dot blue"></span><span class="due-txt">${fmtShort(d)}</span><span class="due-sub">&middot; in ${n}d</span></span>`;
 }
 
+function assigneeCell(list){
+  if(!list || !list.length) return `<span class="due-none">Unassigned</span>`;
+  return list.map(a => a.avatar
+    ? `<img src="${a.avatar}" alt="${esc(a.name)}" title="${esc(a.name)}" class="avatar">`
+    : `<span title="${esc(a.name)}" class="avatar-fallback">${esc(a.name.slice(0,2).toUpperCase())}</span>`
+  ).join("");
+}
+
 function money(n, decimals){
   return Number(n||0).toLocaleString("en-US",{minimumFractionDigits:decimals,maximumFractionDigits:decimals});
 }
@@ -109,10 +117,11 @@ function renderDashboard(){
     <tr>
       <td class="tname">${esc(c.name)}<span class="tlist">${esc(c.list)}</span></td>
       <td class="mid">${progressBar(c.progress)}</td>
+      <td class="mid">${assigneeCell(c.assignees)}</td>
       <td class="mid r num">${c.hours}</td>
       <td class="mid r">${rateCell(c.rate)}</td>
       <td class="r">${dueCell(c.due)}</td>
-    </tr>`).join("") : `<tr><td colspan="5" class="empty-cell">No cards are mapped for tracking yet.</td></tr>`;
+    </tr>`).join("") : `<tr><td colspan="6" class="empty-cell">No cards are mapped for tracking yet.</td></tr>`;
 
   const billRows = billableList.length ? billableList.map((c)=>`
     <tr>
@@ -159,11 +168,12 @@ function renderDashboard(){
     <div class="table-card">
       <table>
         <thead><tr>
-          <th style="width:28%">Task</th>
-          <th class="mid" style="width:18%">Completion</th>
-          <th class="mid r" style="width:10%">Hours</th>
-          <th class="mid r" style="width:16%">Rate</th>
-          <th class="r" style="width:28%">Due</th>
+          <th style="width:24%">Task</th>
+<th class="mid" style="width:14%">Completion</th>
+<th class="mid" style="width:16%">Assigned</th>
+<th class="mid r" style="width:10%">Hours</th>
+<th class="mid r" style="width:14%">Rate</th>
+<th class="r" style="width:22%">Due</th>
         </tr></thead>
         <tbody>${detailRows}</tbody>
       </table>

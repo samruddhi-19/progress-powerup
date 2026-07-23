@@ -57,7 +57,7 @@ window.ProgressBilling = (function () {
     const boardId = ctx.board;
     const base = `key=${API_KEY}&token=${token}`;
     const [cardsRes, listsRes] = await Promise.all([
-      fetch(`https://api.trello.com/1/boards/${boardId}/cards?fields=name,idList,due,dueComplete&pluginData=true&${base}`),
+      fetch(`https://api.trello.com/1/boards/${boardId}/cards?fields=name,idList,due,dueComplete&pluginData=true&members=true&member_fields=fullName,username,avatarUrl&${base}`),
       fetch(`https://api.trello.com/1/boards/${boardId}/lists?fields=name&${base}`),
     ]);
     if (!cardsRes.ok) throw new Error("REST " + cardsRes.status);
@@ -112,8 +112,13 @@ window.ProgressBilling = (function () {
       const elH = +(elapsedOf(s) / 3600).toFixed(2);
       const progress = computeProgress(s);
 
+      const assignees = (entry.meta.members || []).map(m => ({
+  name: m.fullName || m.username,
+  avatar: m.avatarUrl ? m.avatarUrl + "/30.png" : null,
+}));
+
       // Card Details — every tracked card, regardless of billing rate
-      cardDetails.push({ name, list, progress, hours: elH, due: ds, rate });
+      cardDetails.push({ name, list, progress, hours: elH, due: ds, rate, assignees });
 
       if (rate) {
         const amount = +(elH * rate).toFixed(2);
