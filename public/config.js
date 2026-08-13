@@ -1,4 +1,4 @@
 window.ProgressConfig = {
-  API_KEY: "58a903ef47a68cf462fd91ad5101444e",
+  API_KEY: "93b1fabac6fe3f9a688c9b4cc836f97d",
   APP_NAME: "Progress Tracker",
 };
