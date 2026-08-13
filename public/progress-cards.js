@@ -375,11 +375,12 @@ function showAuthView() {
         msg.textContent = "✅ Authorized! Loading…";
         // Re-init after auth
         setTimeout(async () => {
-          qs("startMappingBtn").style.display = "";
-          qs("selectedCount").style.display = "";
-          await loadCards();
-          updateFooter();
-        }, 600);
+  qs("startMappingBtn").style.display = "";
+  qs("selectedCount").style.display = "";
+  await loadCards();
+  updateFooter();
+  await showTrialStartedModal(); // show welcome popup on first auth
+}, 600);
       } catch (e) {
         btn.disabled = false;
         btn.textContent = "⚡ Authorize Progress";
@@ -436,6 +437,17 @@ function bindTabs() {
   });
 }
 
+/* ── Trial started modal — shown once after first auth ── */
+async function showTrialStartedModal() {
+  const seen = await t.get("member", "private", "trialStartedSeen");
+  if (seen) return; // already dismissed, never show again
+  t.popup({
+    title: " ",
+    url: "./trial-started.html",
+    height: 520,
+  });
+}
+
 /* ── Init ── */
 function bindGear() {
   const gearBtn = qs("gearBtn");
@@ -465,5 +477,6 @@ function bindGear() {
     return;
   }
 
-  await loadCards();
+ await loadCards();
+  await showTrialStartedModal(); // no-op if already seen
 })();

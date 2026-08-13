@@ -1,0 +1,344 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="https://p.trellocdn.com/power-up.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        background: #13151a;
+        font-family: "DM Sans", -apple-system, sans-serif;
+        -webkit-font-smoothing: antialiased;
+        overflow: hidden;
+      }
+
+      .modal {
+        width: 100%;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 32px 24px 28px;
+        gap: 0;
+      }
+
+      /* ── Lightning bolt icon ── */
+      .bolt-wrap {
+        width: 64px;
+        height: 64px;
+        border-radius: 16px;
+        background: linear-gradient(145deg, #1a2a3a, #0f1f30);
+        border: 1px solid rgba(87, 157, 255, 0.25);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 20px;
+        box-shadow: 0 0 0 6px rgba(87, 157, 255, 0.06);
+      }
+
+      .bolt-wrap svg {
+        width: 30px;
+        height: 30px;
+      }
+
+      /* ── Headline ── */
+      h1 {
+        font-size: 20px;
+        font-weight: 800;
+        color: #e2e8ee;
+        text-align: center;
+        letter-spacing: -0.3px;
+        margin-bottom: 10px;
+        line-height: 1.25;
+      }
+
+      .subtitle {
+        font-size: 13px;
+        color: #8590a2;
+        text-align: center;
+        line-height: 1.55;
+        margin-bottom: 22px;
+        max-width: 300px;
+      }
+
+      .subtitle strong {
+        color: #e2e8ee;
+        font-weight: 700;
+      }
+
+      /* ── Feature list ── */
+      .features {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-bottom: 18px;
+      }
+
+      .feature-row {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        background: #1c2128;
+        border: 1px solid rgba(255, 255, 255, 0.07);
+        border-radius: 10px;
+        padding: 12px 14px;
+      }
+
+      .feature-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        margin-top: 1px;
+      }
+
+      .feature-icon.blue {
+        background: rgba(87, 157, 255, 0.14);
+        color: #579dff;
+      }
+
+      .feature-icon.green {
+        background: rgba(75, 206, 151, 0.14);
+        color: #4bce97;
+      }
+
+      .feature-icon.amber {
+        background: rgba(245, 166, 35, 0.14);
+        color: #f5a623;
+      }
+
+      .feature-icon svg {
+        width: 16px;
+        height: 16px;
+      }
+
+      .feature-text {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+
+      .feature-title {
+        font-size: 13px;
+        font-weight: 700;
+        color: #e2e8ee;
+        line-height: 1.3;
+      }
+
+      .feature-sub {
+        font-size: 11.5px;
+        color: #6b788a;
+        line-height: 1.45;
+      }
+
+      /* ── Notice box ── */
+      .notice {
+        width: 100%;
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        background: rgba(180, 120, 20, 0.1);
+        border: 1px solid rgba(220, 150, 30, 0.28);
+        border-radius: 9px;
+        padding: 11px 13px;
+        margin-bottom: 20px;
+      }
+
+      .notice svg {
+        flex-shrink: 0;
+        margin-top: 1px;
+        color: #d4920a;
+        width: 15px;
+        height: 15px;
+      }
+
+      .notice-text {
+        font-size: 11.5px;
+        color: #c49a30;
+        line-height: 1.5;
+      }
+
+      .notice-text strong {
+        color: #dba830;
+        font-weight: 700;
+      }
+
+      /* ── CTA button ── */
+      .cta-btn {
+        width: 100%;
+        padding: 14px 0;
+        border-radius: 999px;
+        border: none;
+        background: #2563eb;
+        color: #fff;
+        font-family: "DM Sans", sans-serif;
+        font-size: 14.5px;
+        font-weight: 700;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        letter-spacing: -0.1px;
+        transition: background 0.15s, transform 0.1s;
+      }
+
+      .cta-btn:hover {
+        background: #1d4ed8;
+      }
+
+      .cta-btn:active {
+        transform: scale(0.98);
+      }
+
+      .cta-btn svg {
+        width: 17px;
+        height: 17px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="modal">
+      <!-- Lightning bolt icon -->
+      <div class="bolt-wrap">
+        <svg viewBox="0 0 24 24" fill="none">
+          <path
+            d="M13 2L4.5 13.5H11L10 22L19.5 10.5H13L13 2Z"
+            fill="#f5c842"
+            stroke="#f5c842"
+            stroke-width="0.5"
+            stroke-linejoin="round"
+          />
+        </svg>
+      </div>
+
+      <!-- Headline -->
+      <h1>Welcome to Progress Power-Up!</h1>
+      <p class="subtitle">
+        Your <strong>7-Day Free Pro Trial</strong> has automatically started!
+        You have full access to all features on your board.
+      </p>
+
+      <!-- Feature list -->
+      <div class="features">
+        <!-- Feature 1: Pro Access -->
+        <div class="feature-row">
+          <div class="feature-icon blue">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <polyline points="12 6 12 12 16 14"/>
+            </svg>
+          </div>
+          <div class="feature-text">
+            <span class="feature-title">7 Days Unrestricted Pro Access</span>
+            <span class="feature-sub">Full card age tracking, subtask completion badges, and time logs.</span>
+          </div>
+        </div>
+
+        <!-- Feature 2: Billing Rates -->
+        <div class="feature-row">
+          <div class="feature-icon green">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="12" y1="1" x2="12" y2="23"/>
+              <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+            </svg>
+          </div>
+          <div class="feature-text">
+            <span class="feature-title">Workspace &amp; Billing Rates</span>
+            <span class="feature-sub">Set hourly rates per card, view billable task summaries and revenue totals.</span>
+          </div>
+        </div>
+
+        <!-- Feature 3: Reports -->
+        <div class="feature-row">
+          <div class="feature-icon amber">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="20" x2="18" y2="10"/>
+              <line x1="12" y1="20" x2="12" y2="4"/>
+              <line x1="6" y1="20" x2="6" y2="14"/>
+            </svg>
+          </div>
+          <div class="feature-text">
+            <span class="feature-title">Reports &amp; Export Analytics</span>
+            <span class="feature-sub">Weekly &amp; monthly performance charts, overtime warnings, and CSV exports.</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Notice -->
+      <div class="notice">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="18" height="18" rx="2"/>
+          <line x1="12" y1="8" x2="12" y2="12"/>
+          <line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        <span class="notice-text">
+          <strong>Notice:</strong> After 7 days, Analytics &amp; Billing will
+          lock until you subscribe to the Pro plan ($4.99/mo).
+        </span>
+      </div>
+
+      <!-- CTA -->
+      <button class="cta-btn" id="ctaBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/>
+          <polyline points="12 8 16 12 12 16"/>
+          <line x1="8" y1="12" x2="16" y2="12"/>
+        </svg>
+        Explore My 7-Day Free Trial
+      </button>
+    </div>
+
+    <script src="./config.js"></script>
+    <script>
+      const t = TrelloPowerUp.iframe({
+        appKey: window.ProgressConfig.API_KEY,
+        appName: window.ProgressConfig.APP_NAME,
+      });
+
+      // Size the popup to content height
+      function sizeToContent() {
+        requestAnimationFrame(() => {
+          try {
+            t.sizeTo(document.body);
+          } catch (e) {}
+        });
+      }
+
+      // Close popup when CTA is clicked
+      document.getElementById("ctaBtn").addEventListener("click", async () => {
+        try {
+          // Mark as seen so it never shows again for this member
+          await t.set("member", "private", "trialStartedSeen", true);
+        } catch (e) {}
+        try {
+          t.closePopup();
+        } catch (e) {
+          window.close();
+        }
+      });
+
+      // Size on load
+      document.fonts.ready.then(sizeToContent);
+      setTimeout(sizeToContent, 100);
+    </script>
+  </body>
+</html>
