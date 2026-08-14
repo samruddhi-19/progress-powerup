@@ -568,11 +568,11 @@ async function load(){
   try {
     const token = await t.getRestApi().getToken();
 
-    subscriptionStatus = {
+  subscriptionStatus = {
   isPro: false,
-  isTrialActive: true,
+  isTrialActive: false,
   trialEndsAt: new Date(
-    Date.now() + 7 * 24 * 60 * 60 * 1000
+    Date.now() - 24 * 60 * 60 * 1000
   ).toISOString(),
 };
 
