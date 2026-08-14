@@ -176,6 +176,7 @@ function renderSubscriptionStatus() {
     </div>
   </div>
 `;
+  }
 
   return `
     <div class="subscription-status">
