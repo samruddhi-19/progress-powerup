@@ -7,6 +7,7 @@
       let mode = "weekly";
       let report = null;
       let exportFmt = "csv";
+      let subscriptionStatus = null;
       const FORMATS = {
         csv:  { label: "CSV",  hint: "Spreadsheet",   iconKey: "csv"  },
         json: { label: "JSON", hint: "Raw data",      iconKey: "json" },
@@ -397,6 +398,29 @@
           setTimeout(()=>{w.print();w.close();},250);
         }
       }
+
+      async function loadSubscriptionStatus() {
+  try {
+    const token = await t.getRestApi().getToken();
+
+    subscriptionStatus =
+      await window.ProgressSubscription.getSubscriptionStatus(token);
+
+    console.log(
+      "[Reports] Subscription status:",
+      subscriptionStatus
+    );
+
+    return subscriptionStatus;
+  } catch (error) {
+    console.error(
+      "[Reports] Failed to load subscription status:",
+      error
+    );
+
+    return null;
+  }
+}
 
       async function load(){
         showState("Loading report…");
