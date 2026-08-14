@@ -156,21 +156,26 @@ function renderSubscriptionStatus() {
     );
 
     return `
-      <div class="subscription-status">
-        <div class="status-left">
-          <div class="status-icon">⏳</div>
-          <div>
-            <div class="status-title">Pro Free Trial</div>
-            <div class="status-sub">
-              ${days} day${days === 1 ? "" : "s"} remaining in your trial.
-            </div>
-          </div>
-        </div>
+  <div class="subscription-status">
+    <div class="status-left">
+      <div class="status-icon">⏳</div>
 
-        <div class="status-pill">TRIAL</div>
+      <div>
+        <div class="status-title">Pro Free Trial</div>
+        <div class="status-sub">
+          ${days} day${days === 1 ? "" : "s"} remaining in your trial.
+        </div>
       </div>
-    `;
-  }
+    </div>
+
+    <div class="status-right">
+      <div class="status-pill">TRIAL</div>
+      <button class="upgrade-btn" id="billingUpgradeBtn">
+        Upgrade to Pro
+      </button>
+    </div>
+  </div>
+`;
 
   return `
     <div class="subscription-status">
@@ -293,6 +298,40 @@ function renderDashboard(){
   `;
 
   document.getElementById("export").onclick = openInvoice;
+
+  const upgradeBtn = document.getElementById("billingUpgradeBtn");
+
+if (upgradeBtn) {
+  upgradeBtn.onclick = async () => {
+    try {
+      upgradeBtn.disabled = true;
+      upgradeBtn.textContent = "Opening…";
+
+      const token = await t.getRestApi().getToken();
+
+      const checkout =
+        await window.ProgressSubscription.startCheckout(token);
+
+      if (!checkout?.url) {
+        throw new Error("Checkout URL was not returned.");
+      }
+
+      window.open(checkout.url, "_blank");
+
+    } catch (error) {
+      console.error("[Billing] Checkout failed:", error);
+
+      upgradeBtn.disabled = false;
+      upgradeBtn.textContent = "Upgrade to Pro";
+
+      alert(
+        error?.message ||
+        "Unable to start checkout. Please try again."
+      );
+    }
+  };
+}
+  
   document.querySelectorAll(".tab").forEach(b=>{
     b.onclick = () => { billTab = b.dataset.tab; renderDashboard(); };
   });
