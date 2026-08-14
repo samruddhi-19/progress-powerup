@@ -10,6 +10,7 @@ let searchQuery = "";
 let currentView = "lists";
 let currentListId = null;
 let currentListName = null;
+let subscriptionStatus = null;
 
 /* ── Helpers ── */
 function qs(id) {
@@ -271,6 +272,57 @@ async function loadCards() {
   }
 }
 
+async function loadSubscriptionStatus() {
+  try {
+    const token = await t.getRestApi().getToken();
+
+    subscriptionStatus =
+      await window.ProgressSubscription.getSubscriptionStatus(token);
+
+    updateTrialStatus();
+
+    console.log(
+      "[ProgressCards] Subscription status:",
+      subscriptionStatus
+    );
+  } catch (error) {
+    console.error(
+      "[ProgressCards] Failed to load subscription status:",
+      error
+    );
+  }
+}
+
+function updateTrialStatus() {
+  const pill = qs("trialStatus");
+  const text = qs("trialStatusText");
+
+  if (!pill || !text || !subscriptionStatus) return;
+
+  if (subscriptionStatus.isTrialActive) {
+    const days =
+      window.ProgressSubscription.getTrialDaysRemaining(
+        subscriptionStatus.trialEndsAt
+      );
+
+    text.textContent =
+      `${days} day${days === 1 ? "" : "s"} remaining`;
+
+    pill.hidden = false;
+    return;
+  }
+
+  if (subscriptionStatus.isPro) {
+    text.textContent = "Pro";
+    pill.hidden = false;
+    return;
+  }
+
+  pill.hidden = true;
+}
+
+
+
 /* ══════════════════════════════════════════
    SAVE MAPPING
    selectedIds is the single source of truth.
@@ -465,5 +517,6 @@ function bindGear() {
     return;
   }
 
-  await loadCards();
+  await loadSubscriptionStatus();
+await loadCards();
 })();

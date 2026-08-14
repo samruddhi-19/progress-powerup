@@ -588,6 +588,37 @@
         animation: spin 0.7s linear infinite;
       }
 
+      /* ── Trial status ── */
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.trial-pill {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  height: 38px;
+  padding: 0 12px;
+  border: 1px solid rgba(87, 157, 255, 0.9);
+  border-radius: 10px;
+  background: rgba(87, 157, 255, 0.08);
+  color: var(--text-strong);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.trial-pill[hidden] {
+  display: none;
+}
+
+.trial-icon {
+  font-size: 12px;
+  line-height: 1;
+}
+
       @keyframes spin {
         to {
           transform: rotate(360deg);
@@ -599,27 +630,36 @@
   <body>
     <div class="popup">
       <!-- Header -->
-      <div class="popup-header">
-        <div class="header-left" id="headerLeft">
-          <span class="header-icon">
-            <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor">
-              <path d="M13 2L4.5 13.5H11L10 22L19.5 10.5H13L13 2Z" />
-            </svg>
-          </span>
-          <div>
-            <h2>Progress</h2>
-          </div>
-        </div>
-        <div>
-          <button class="icon-btn" id="gearBtn" title="Settings">
-            <svg viewBox="0 0 24 24">
-              <path
-                d="M12 15.5A3.5 3.5 0 018.5 12 3.5 3.5 0 0112 8.5a3.5 3.5 0 013.5 3.5 3.5 3.5 0 01-3.5 3.5m7.43-2.92c.04-.34.07-.69.07-1.08s-.03-.74-.07-1.08l2.32-1.82c.21-.16.27-.46.13-.7l-2.2-3.81c-.14-.24-.42-.32-.66-.24l-2.74 1.1c-.57-.44-1.18-.79-1.85-1.06L14.07 2.1C14 1.84 13.77 1.66 13.5 1.66h-3c-.27 0-.5.18-.57.44l-.42 2.9c-.67.27-1.28.62-1.85 1.06L4.92 5c-.24-.08-.52 0-.66.24L2.06 9.05c-.14.23-.08.54.13.7l2.32 1.82C4.47 11.86 4.44 12.21 4.44 12.5s.03.74.07 1.08l-2.32 1.82c-.21.16-.27.46-.13.7l2.2 3.81c.14.24.42.32.66.24l2.74-1.1c.57.44 1.18.79 1.85 1.06l.42 2.9c.07.26.3.44.57.44h3c.27 0 .5-.18.57-.44l.42-2.9c.67-.27 1.28-.62 1.85-1.06l2.74 1.1c.24.08.52 0 .66-.24l2.2-3.81c.14-.24.08-.54-.13-.7l-2.32-1.82z"
-              />
-            </svg>
-          </button>
-        </div>
-      </div>
+      <!-- Header -->
+<div class="popup-header">
+  <div class="header-left" id="headerLeft">
+    <span class="header-icon">
+      <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor">
+        <path d="M13 2L4.5 13.5H11L10 22L19.5 10.5H13L13 2Z" />
+      </svg>
+    </span>
+
+    <div>
+      <h2>Progress</h2>
+    </div>
+  </div>
+
+  <!-- Subscription status -->
+  <div class="header-actions">
+    <div class="trial-pill" id="trialStatus">
+      <span class="trial-icon">🧪</span>
+      <span id="trialStatusText">7 days remaining</span>
+    </div>
+
+    <button class="icon-btn" id="gearBtn" title="Settings">
+      <svg viewBox="0 0 24 24">
+        <path
+          d="M12 15.5A3.5 3.5 0 018.5 12 3.5 3.5 0 0112 8.5a3.5 3.5 0 013.5 3.5 3.5 3.5 0 01-3.5 3.5m7.43-2.92c.04-.34.07-.69-.07-1.08s-.03-.74-.07-1.08l2.32-1.82c.21-.16.27-.46.13-.7l-2.2-3.81c-.14-.24-.42-.32-.66-.24l-2.74 1.1c-.57-.44-1.18-.79-1.85-1.06L14.07 2.1C14 1.84 13.77 1.66 13.5 1.66h-3c-.27 0-.5.18-.57.44l-.42 2.9c-.67.27-1.28.62-1.85 1.06L4.92 5c-.24-.08-.52 0-.66.24L2.06 9.05c-.14.23-.08.54.13.7l2.32 1.82C4.47 11.86 4.44 12.21 4.44 12.5s.03.74.07 1.08l-2.32 1.82c-.21.16-.27.46-.13.7l2.2 3.81c.14.24.42.32.66.24l2.74-1.1c.57.44 1.18.79 1.85 1.06l.42 2.9c.07.26.3.44.57.44h3c.27 0 .5-.18.57-.44l.42-2.9c.67-.27 1.28-.62 1.85-1.06l2.74 1.1c.24.24.52.24.66 0l2.2-3.81c.14-.24.08-.54-.13-.7l-2.32-1.82z"
+        />
+      </svg>
+    </button>
+  </div>
+</div>
 
       <!-- Tab bar: Mapping | Reports | Billing -->
       <div class="tab-bar" id="tabBar">
@@ -655,6 +695,8 @@
       </div>
     </div>
 
-    <script src="./progress-cards.js?v=20260720-1"></script>
+    <script src="./config.js"></script>
+<script src="./subscription.js"></script>
+<script src="./progress-cards.js?v=20260720-1"></script>
   </body>
 </html>

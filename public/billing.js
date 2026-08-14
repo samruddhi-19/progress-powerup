@@ -456,16 +456,82 @@ function generatePDF(){
 
 async function load(){
   showState("Loading billing…");
+
+  let subscriptionStatus = null;
   let res;
-  try { res = await ProgressBilling.build(t); }
-  catch(e){ showState(`<h2>Something went wrong</h2><div>${e.message||e}</div><button id="rbtn">Retry</button>`);
-    const b=document.getElementById("rbtn"); if(b) b.onclick=load; return; }
-  if(res.needsAuth){ showState(`<h2>Connect Trello to load billing</h2><div>Billing reads your board's cards to compute rates and hours.</div><button id="cbtn">Connect Trello</button>`);
-    const b=document.getElementById("cbtn"); if(b) b.onclick=connect; return; }
-  if(res.error){ showState(`<h2>Couldn't load board data</h2><div>${res.error}</div><button id="rbtn">Retry</button>`);
-    const b=document.getElementById("rbtn"); if(b) b.onclick=load; return; }
+
+  // Get subscription status
+  try {
+    const token = await t.getRestApi().getToken();
+
+    subscriptionStatus =
+      await window.ProgressSubscription.getSubscriptionStatus(token);
+
+    console.log(
+      "Progress subscription status:",
+      subscriptionStatus
+    );
+  } catch(e) {
+    console.error(
+      "Failed to load subscription status:",
+      e
+    );
+
+    // Don't block the existing Billing UI yet.
+    // We are only connecting the subscription status in this step.
+  }
+
+  // Existing Billing data loading
+  try {
+    res = await ProgressBilling.build(t);
+  }
+  catch(e){
+    showState(
+      `<h2>Something went wrong</h2>
+       <div>${e.message||e}</div>
+       <button id="rbtn">Retry</button>`
+    );
+
+    const b = document.getElementById("rbtn");
+    if(b) b.onclick = load;
+
+    return;
+  }
+
+  if(res.needsAuth){
+    showState(
+      `<h2>Connect Trello to load billing</h2>
+       <div>
+         Billing reads your board's cards to compute rates and hours.
+       </div>
+       <button id="cbtn">Connect Trello</button>`
+    );
+
+    const b = document.getElementById("cbtn");
+    if(b) b.onclick = connect;
+
+    return;
+  }
+
+  if(res.error){
+    showState(
+      `<h2>Couldn't load board data</h2>
+       <div>${res.error}</div>
+       <button id="rbtn">Retry</button>`
+    );
+
+    const b = document.getElementById("rbtn");
+    if(b) b.onclick = load;
+
+    return;
+  }
+
   report = res;
-  inv.picked = null;  // re-default selection to "all" on fresh data
+  inv.picked = null;
+
+  // Temporarily make the status available to the page.
+  window.progressSubscriptionStatus = subscriptionStatus;
+
   renderDashboard();
 }
 
