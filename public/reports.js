@@ -422,8 +422,49 @@
   }
 }
 
+function showReportsLocked() {
+  showState(`
+    <div class="reports-locked">
+      <div class="locked-icon">🔒</div>
+
+      <div class="locked-badge">
+        ⏳ 7-Day Free Pro Trial Expired
+      </div>
+
+      <h2>Reports &amp; Analytics is Locked</h2>
+
+      <p>
+        Your 7-day trial has ended.
+        Subscribe to Pro to unlock historical reports,
+        analytics, and exports.
+      </p>
+
+      <div class="locked-actions">
+        <button id="subscribeBtn" class="subscribe-btn">
+          Subscribe to Pro Plan
+        </button>
+
+        <button id="closeBtn" class="close-btn">
+          Close
+        </button>
+      </div>
+    </div>
+  `);
+
+  document.getElementById("closeBtn")?.addEventListener(
+    "click",
+    () => {
+      window.close();
+    }
+  );
+}
+
       async function load(){
         showState("Loading report…");
+        await loadSubscriptionStatus();
+        showReportsLocked();
+return;
+
         let res;
         try{res=await ProgressReport.build(t,mode);}
         catch(e){showState(`<h2>Something went wrong</h2><div>${e.message||e}</div><button id="rbtn">Retry</button>`);
