@@ -5,7 +5,9 @@ const t = TrelloPowerUp.iframe({
 });
 
 let report = null;
-let billTab = "details";   // "details" | "billable"
+let billTab = "details";
+let subscriptionStatus = null;
+
 
 const icon = (p) => `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
 const ICONS = {
@@ -127,6 +129,66 @@ function money(n, decimals){
   return Number(n||0).toLocaleString("en-US",{minimumFractionDigits:decimals,maximumFractionDigits:decimals});
 }
 
+function renderSubscriptionStatus() {
+  if (!subscriptionStatus) {
+    return "";
+  }
+
+  if (subscriptionStatus.isPro) {
+    return `
+      <div class="subscription-status">
+        <div class="status-left">
+          <div class="status-icon">✓</div>
+          <div>
+            <div class="status-title">Pro Plan</div>
+            <div class="status-sub">Your Pro subscription is active.</div>
+          </div>
+        </div>
+
+        <div class="status-pill">PRO</div>
+      </div>
+    `;
+  }
+
+  if (subscriptionStatus.isTrialActive) {
+    const days = window.ProgressSubscription.getTrialDaysRemaining(
+      subscriptionStatus.trialEndsAt
+    );
+
+    return `
+      <div class="subscription-status">
+        <div class="status-left">
+          <div class="status-icon">⏳</div>
+          <div>
+            <div class="status-title">Pro Free Trial</div>
+            <div class="status-sub">
+              ${days} day${days === 1 ? "" : "s"} remaining in your trial.
+            </div>
+          </div>
+        </div>
+
+        <div class="status-pill">TRIAL</div>
+      </div>
+    `;
+  }
+
+  return `
+    <div class="subscription-status">
+      <div class="status-left">
+        <div class="status-icon">!</div>
+        <div>
+          <div class="status-title">Trial expired</div>
+          <div class="status-sub">
+            Subscribe to Pro to continue using Pro features.
+          </div>
+        </div>
+      </div>
+
+      <div class="status-pill">EXPIRED</div>
+    </div>
+  `;
+}
+
 function renderDashboard(){
   const d = report || {};
   const cardDetails = Array.isArray(d.cardDetails) ? d.cardDetails : [];
@@ -185,7 +247,9 @@ function renderDashboard(){
         <span class="div"></span>
         <span class="stat"><span class="sv green">$${money(m.totalAmount,0)}</span><span class="sl">Total</span></span>
       </div>
-    </div>
+       </div>
+
+    ${renderSubscriptionStatus()}
 
     <div class="tab-row">
       <div class="tabs">
@@ -457,15 +521,20 @@ function generatePDF(){
 async function load(){
   showState("Loading billing…");
 
-  let subscriptionStatus = null;
+
   let res;
 
   // Get subscription status
   try {
     const token = await t.getRestApi().getToken();
 
-    subscriptionStatus =
-      await window.ProgressSubscription.getSubscriptionStatus(token);
+    subscriptionStatus = {
+  isPro: false,
+  isTrialActive: true,
+  trialEndsAt: new Date(
+    Date.now() + 7 * 24 * 60 * 60 * 1000
+  ).toISOString(),
+};
 
     console.log(
       "Progress subscription status:",

@@ -459,11 +459,52 @@ function showReportsLocked() {
   );
 }
 
+document.getElementById("subscribeBtn")?.addEventListener(
+  "click",
+  async () => {
+    const button = document.getElementById("subscribeBtn");
+
+    try {
+      button.disabled = true;
+      button.textContent = "Opening checkout…";
+
+      const token = await t.getRestApi().getToken();
+
+      const checkout =
+        await window.ProgressSubscription.startCheckout(token);
+
+      if (checkout?.url) {
+        window.open(checkout.url, "_blank");
+      } else {
+        throw new Error("Checkout URL was not returned.");
+      }
+    } catch (error) {
+      console.error("[Reports] Checkout failed:", error);
+
+      button.disabled = false;
+      button.textContent = "Subscribe to Pro Plan";
+
+      alert(
+        error?.message ||
+        "Unable to start checkout. Please try again."
+      );
+    }
+  }
+);
+
       async function load(){
         showState("Loading report…");
         await loadSubscriptionStatus();
-      
-        let res;
+
+if (
+  !subscriptionStatus ||
+  (!subscriptionStatus.isTrialActive && !subscriptionStatus.isPro)
+) {
+  showReportsLocked();
+  return;
+}
+
+let res;
         try{res=await ProgressReport.build(t,mode);}
         catch(e){showState(`<h2>Something went wrong</h2><div>${e.message||e}</div><button id="rbtn">Retry</button>`);
           const b=document.getElementById("rbtn");if(b)b.onclick=load;return;}

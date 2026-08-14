@@ -803,6 +803,62 @@
         font-weight: 600;
         cursor: pointer;
       }
+
+      .subscription-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin: -10px 0 18px;
+  padding: 12px 14px;
+  background: var(--card);
+  border: 1px solid rgba(87, 157, 255, 0.22);
+  border-radius: 10px;
+}
+
+.subscription-status .status-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.subscription-status .status-icon {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: 8px;
+  background: rgba(87, 157, 255, 0.12);
+  color: var(--blue-fg);
+  font-size: 14px;
+}
+
+.subscription-status .status-title {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.subscription-status .status-sub {
+  margin-top: 2px;
+  font-size: 10px;
+  color: var(--muted);
+}
+
+.subscription-status .status-pill {
+  flex-shrink: 0;
+  padding: 4px 9px;
+  border-radius: 8px;
+  background: rgba(87, 157, 255, 0.1);
+  border: 1px solid rgba(87, 157, 255, 0.25);
+  color: var(--blue-fg);
+  font-size: 9.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
     </style>
   </head>
 
