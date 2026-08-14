@@ -462,9 +462,7 @@ function showReportsLocked() {
       async function load(){
         showState("Loading report…");
         await loadSubscriptionStatus();
-        showReportsLocked();
-return;
-
+      
         let res;
         try{res=await ProgressReport.build(t,mode);}
         catch(e){showState(`<h2>Something went wrong</h2><div>${e.message||e}</div><button id="rbtn">Retry</button>`);
