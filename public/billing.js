@@ -188,20 +188,27 @@ function renderSubscriptionStatus() {
   }
 
   return `
-    <div class="subscription-status">
-      <div class="status-left">
-        <div class="status-icon">!</div>
-        <div>
-          <div class="status-title">Trial expired</div>
-          <div class="status-sub">
-            Subscribe to Pro to continue using Pro features.
-          </div>
+  <div class="subscription-status">
+    <div class="status-left">
+      <div class="status-icon">!</div>
+
+      <div>
+        <div class="status-title">Trial expired</div>
+        <div class="status-sub">
+          Subscribe to Pro to continue using Pro features.
         </div>
       </div>
-
-      <div class="status-pill">EXPIRED</div>
     </div>
-  `;
+
+    <div class="status-right">
+      <div class="status-pill">EXPIRED</div>
+
+      <button class="upgrade-btn" id="billingSubscribeBtn">
+        Subscribe to Pro
+      </button>
+    </div>
+  </div>
+`;
 }
 
 function renderDashboard(){
