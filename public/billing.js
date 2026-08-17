@@ -34,16 +34,10 @@ function fit(){
   requestAnimationFrame(() => {
     const el = app();
     if(!el) return;
-    /* .wrap is height:100% so it can scroll inside the modal — that makes its own
-       scrollHeight echo the iframe height. Measure at height:auto to get the
-       true content height, then hand that to sizeTo. */
     el.style.maxHeight = "none";
     el.style.height = "auto";
     const natural = el.scrollHeight;
     el.style.height = "";
-    /* Cap to what the screen can actually show. Trello's modal chrome plus the
-       board behind it eat ~260px; past that the pinned footer is clipped by the
-       browser window, which no amount of CSS inside the iframe can recover. */
     const screenH = (window.screen && window.screen.availHeight) || 900;
     const cap = Math.max(400, Math.min(FIT_MAX, screenH - 260));
     el.style.maxHeight = cap + "px";
@@ -129,86 +123,63 @@ function money(n, decimals){
   return Number(n||0).toLocaleString("en-US",{minimumFractionDigits:decimals,maximumFractionDigits:decimals});
 }
 
+// ✅ FIXED: correct logic for each subscription state
 function renderSubscriptionStatus() {
-  if (!subscriptionStatus) {
-    return "";
-  }
+  if (!subscriptionStatus) return "";
 
+  // Active Pro subscriber
   if (subscriptionStatus.isPro) {
     return `
   <div class="subscription-status">
     <div class="status-left">
-      <div class="status-icon">!</div>
-
+      <div class="status-icon">✓</div>
       <div>
-        <div class="status-title">Trial expired</div>
-        <div class="status-sub">
-          Subscribe to Pro to continue using Pro features.
-        </div>
+        <div class="status-title">Pro Active</div>
+        <div class="status-sub">You have full access to all Pro features.</div>
       </div>
     </div>
-
     <div class="status-right">
-      <div class="status-pill">EXPIRED</div>
-
-      <button class="upgrade-btn" id="billingSubscribeBtn">
-        Subscribe to Pro
-      </button>
+      <div class="status-pill">PRO</div>
     </div>
-  </div>
-`;
+  </div>`;
   }
 
+  // Trial still running
   if (subscriptionStatus.isTrialActive) {
     const days = window.ProgressSubscription.getTrialDaysRemaining(
       subscriptionStatus.trialEndsAt
     );
-
     return `
   <div class="subscription-status">
     <div class="status-left">
       <div class="status-icon">⏳</div>
-
       <div>
         <div class="status-title">Pro Free Trial</div>
-        <div class="status-sub">
-          ${days} day${days === 1 ? "" : "s"} remaining in your trial.
-        </div>
+        <div class="status-sub">${days} day${days === 1 ? "" : "s"} remaining in your trial.</div>
       </div>
     </div>
-
     <div class="status-right">
       <div class="status-pill">TRIAL</div>
-      <button class="upgrade-btn" id="billingUpgradeBtn">
-        Upgrade to Pro
-      </button>
+      <button class="upgrade-btn" id="billingUpgradeBtn">Upgrade to Pro</button>
     </div>
-  </div>
-`;
+  </div>`;
   }
 
+  // Fallback — trial expired
   return `
   <div class="subscription-status">
     <div class="status-left">
       <div class="status-icon">!</div>
-
       <div>
-        <div class="status-title">Trial expired</div>
-        <div class="status-sub">
-          Subscribe to Pro to continue using Pro features.
-        </div>
+        <div class="status-title">Trial Expired</div>
+        <div class="status-sub">Subscribe to Pro to continue using Pro features.</div>
       </div>
     </div>
-
     <div class="status-right">
       <div class="status-pill">EXPIRED</div>
-
-      <button class="upgrade-btn" id="billingSubscribeBtn">
-        Subscribe to Pro
-      </button>
+      <button class="upgrade-btn" id="billingSubscribeBtn">Subscribe to Pro</button>
     </div>
-  </div>
-`;
+  </div>`;
 }
 
 function renderDashboard(){
@@ -269,7 +240,7 @@ function renderDashboard(){
         <span class="div"></span>
         <span class="stat"><span class="sv green">$${money(m.totalAmount,0)}</span><span class="sl">Total</span></span>
       </div>
-       </div>
+    </div>
 
     ${renderSubscriptionStatus()}
 
@@ -317,72 +288,43 @@ function renderDashboard(){
   document.getElementById("export").onclick = openInvoice;
 
   const upgradeBtn = document.getElementById("billingUpgradeBtn");
-
-if (upgradeBtn) {
-  upgradeBtn.onclick = async () => {
-    try {
-      upgradeBtn.disabled = true;
-      upgradeBtn.textContent = "Opening…";
-
-      const token = await t.getRestApi().getToken();
-
-      const checkout =
-        await window.ProgressSubscription.startCheckout(token);
-
-      if (!checkout?.url) {
-        throw new Error("Checkout URL was not returned.");
+  if (upgradeBtn) {
+    upgradeBtn.onclick = async () => {
+      try {
+        upgradeBtn.disabled = true;
+        upgradeBtn.textContent = "Opening…";
+        const token = await t.getRestApi().getToken();
+        const checkout = await window.ProgressSubscription.startCheckout(token);
+        if (!checkout?.url) throw new Error("Checkout URL was not returned.");
+        window.open(checkout.url, "_blank");
+      } catch (error) {
+        console.error("[Billing] Checkout failed:", error);
+        upgradeBtn.disabled = false;
+        upgradeBtn.textContent = "Upgrade to Pro";
+        alert(error?.message || "Unable to start checkout. Please try again.");
       }
+    };
+  }
 
-      window.open(checkout.url, "_blank");
-
-    } catch (error) {
-      console.error("[Billing] Checkout failed:", error);
-
-      upgradeBtn.disabled = false;
-      upgradeBtn.textContent = "Upgrade to Pro";
-
-      alert(
-        error?.message ||
-        "Unable to start checkout. Please try again."
-      );
-    }
-  };
-}
-
-  const subscribeBtn =
-  document.getElementById("billingSubscribeBtn");
-
-if (subscribeBtn) {
-  subscribeBtn.onclick = async () => {
-    try {
-      subscribeBtn.disabled = true;
-      subscribeBtn.textContent = "Opening…";
-
-      const token = await t.getRestApi().getToken();
-
-      const checkout =
-        await window.ProgressSubscription.startCheckout(token);
-
-      if (!checkout?.url) {
-        throw new Error("Checkout URL was not returned.");
+  const subscribeBtn = document.getElementById("billingSubscribeBtn");
+  if (subscribeBtn) {
+    subscribeBtn.onclick = async () => {
+      try {
+        subscribeBtn.disabled = true;
+        subscribeBtn.textContent = "Opening…";
+        const token = await t.getRestApi().getToken();
+        const checkout = await window.ProgressSubscription.startCheckout(token);
+        if (!checkout?.url) throw new Error("Checkout URL was not returned.");
+        window.open(checkout.url, "_blank");
+      } catch (error) {
+        console.error("[Billing] Checkout failed:", error);
+        subscribeBtn.disabled = false;
+        subscribeBtn.textContent = "Subscribe to Pro";
+        alert(error?.message || "Unable to start checkout. Please try again.");
       }
+    };
+  }
 
-      window.open(checkout.url, "_blank");
-
-    } catch (error) {
-      console.error("[Billing] Checkout failed:", error);
-
-      subscribeBtn.disabled = false;
-      subscribeBtn.textContent = "Subscribe to Pro";
-
-      alert(
-        error?.message ||
-        "Unable to start checkout. Please try again."
-      );
-    }
-  };
-}
-  
   document.querySelectorAll(".tab").forEach(b=>{
     b.onclick = () => { billTab = b.dataset.tab; renderDashboard(); };
   });
@@ -428,7 +370,7 @@ function openInvoice(){
   if(!items.length) return;
   inv.open = true;
   inv.editingName = false;
-  if(inv.picked === null) inv.picked = new Set(items.map((_,i)=>i)); // all checked by default
+  if(inv.picked === null) inv.picked = new Set(items.map((_,i)=>i));
   renderInvoice();
 }
 function closeInvoice(){ inv.open = false; renderInvoice(); }
@@ -466,16 +408,16 @@ function renderInvoice(){
        </div>`;
 
   const rows = items.map((c,i)=>{
-  const on = inv.picked.has(i);
-  return `<tr class="${on?"on":"off"}" data-i="${i}">
-    <td style="padding-left:18px;padding-right:0"><span class="cb ${on?"on":""}">${on?icon(ICONS.check):""}</span></td>
-    <td class="tname">${esc(c.name)}</td>
-    <td class="mid">${assigneeCell(c.assignees)}</td>
-    <td class="mid r num">${c.hours}</td>
-    <td class="mid r rate">$${c.rate}</td>
-    <td class="r amt" style="padding-right:18px">$${money(c.amount,2)}</td>
-  </tr>`;
-}).join("");
+    const on = inv.picked.has(i);
+    return `<tr class="${on?"on":"off"}" data-i="${i}">
+      <td style="padding-left:18px;padding-right:0"><span class="cb ${on?"on":""}">${on?icon(ICONS.check):""}</span></td>
+      <td class="tname">${esc(c.name)}</td>
+      <td class="mid">${assigneeCell(c.assignees)}</td>
+      <td class="mid r num">${c.hours}</td>
+      <td class="mid r rate">$${c.rate}</td>
+      <td class="r amt" style="padding-right:18px">$${money(c.amount,2)}</td>
+    </tr>`;
+  }).join("");
 
   ov.innerHTML = `
     <div class="inv" role="dialog" aria-label="Generate invoice">
@@ -489,13 +431,13 @@ function renderInvoice(){
       <div class="inv-list">
         <table>
           <thead><tr>
-  <th style="width:8%;padding-left:18px"></th>
-  <th style="width:30%">Work</th>
-  <th class="mid" style="width:18%">Assigned</th>
-  <th class="mid r" style="width:14%">Hours</th>
-  <th class="mid r" style="width:13%">Rate</th>
-  <th class="r" style="width:17%;padding-right:18px">Amount</th>
-</tr></thead>
+            <th style="width:8%;padding-left:18px"></th>
+            <th style="width:30%">Work</th>
+            <th class="mid" style="width:18%">Assigned</th>
+            <th class="mid r" style="width:14%">Hours</th>
+            <th class="mid r" style="width:13%">Rate</th>
+            <th class="r" style="width:17%;padding-right:18px">Amount</th>
+          </tr></thead>
           <tbody>${rows}</tbody>
         </table>
       </div>
@@ -608,67 +550,43 @@ function generatePDF(){
   closeInvoice();
 }
 
+// ✅ FIXED: clean load() with no stray braces and proper closing }
 async function load(){
   showState("Loading billing…");
 
-
   let res;
 
-  // Get subscription status
+  // Load subscription status
   try {
     const token = await t.getRestApi().getToken();
-
-  subscriptionStatus = {
-  isPro: false,
-  isTrialActive: false,
-  trialEndsAt: new Date(
-    Date.now() - 24 * 60 * 60 * 1000
-  ).toISOString(),
-};
-
-    console.log(
-      "Progress subscription status:",
-      subscriptionStatus
-    );
+    subscriptionStatus = await window.ProgressSubscription.getStatus(token);
+    console.log("Subscription status loaded:", subscriptionStatus);
   } catch(e) {
-    console.error(
-      "Failed to load subscription status:",
-      e
-    );
-
-    // Don't block the existing Billing UI yet.
-    // We are only connecting the subscription status in this step.
+    console.error("Failed to load subscription status:", e);
   }
 
-  // Existing Billing data loading
+  // Load billing data
   try {
     res = await ProgressBilling.build(t);
-  }
-  catch(e){
+  } catch(e) {
     showState(
       `<h2>Something went wrong</h2>
        <div>${e.message||e}</div>
        <button id="rbtn">Retry</button>`
     );
-
     const b = document.getElementById("rbtn");
     if(b) b.onclick = load;
-
     return;
   }
 
   if(res.needsAuth){
     showState(
       `<h2>Connect Trello to load billing</h2>
-       <div>
-         Billing reads your board's cards to compute rates and hours.
-       </div>
+       <div>Billing reads your board's cards to compute rates and hours.</div>
        <button id="cbtn">Connect Trello</button>`
     );
-
     const b = document.getElementById("cbtn");
     if(b) b.onclick = connect;
-
     return;
   }
 
@@ -678,21 +596,16 @@ async function load(){
        <div>${res.error}</div>
        <button id="rbtn">Retry</button>`
     );
-
     const b = document.getElementById("rbtn");
     if(b) b.onclick = load;
-
     return;
   }
 
   report = res;
   inv.picked = null;
-
-  // Temporarily make the status available to the page.
   window.progressSubscriptionStatus = subscriptionStatus;
-
   renderDashboard();
-}
+} // ✅ load() properly closed here
 
 document.documentElement.dataset.theme = "dark";
 load();
