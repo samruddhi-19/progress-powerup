@@ -1,19 +1,15 @@
 /* public/pro-upgrade.js
  *
- * Shared Pro upgrade screen for Billing, Reports,
- * and any other Pro-gated page.
+ * Shared Pro upgrade popup for Billing, Reports,
+ * and any other Pro-gated area.
  *
- * Plan:
- *   Monthly only — $4.99/month
+ * Plan: $4.99/month
  *
- * Requires:
+ * Usage:
+ *   window.ProgressProUpgrade.open(t);
+ *
+ * Checkout:
  *   window.ProgressSubscription.startCheckout(token)
- *
- * Initialize once from the page:
- *   window.ProgressProUpgrade.init(t);
- *
- * Open from any button:
- *   window.ProgressProUpgrade.open();
  */
 
 (function () {
@@ -29,10 +25,6 @@
     "Overtime Warnings & Deadline Score",
   ];
 
-  /* =========================================================
-     Helpers
-     ========================================================= */
-
   function escapeHtml(value) {
     return String(value ?? "")
       .replace(/&/g, "&amp;")
@@ -43,16 +35,14 @@
   }
 
   function getIframe() {
-    if (trelloIframe) {
-      return trelloIframe;
-    }
-
-    return window.__ProgressTrelloIframe || null;
+    return trelloIframe || window.__ProgressTrelloIframe || null;
   }
 
-  /* =========================================================
-     Close screen
-     ========================================================= */
+  function handleEscape(event) {
+    if (event.key === "Escape" && overlay) {
+      close();
+    }
+  }
 
   function close() {
     if (overlay) {
@@ -62,10 +52,6 @@
 
     document.removeEventListener("keydown", handleEscape);
   }
-
-  /* =========================================================
-     Checkout
-     ========================================================= */
 
   async function startCheckout(button) {
     try {
@@ -78,7 +64,7 @@
 
       const t = getIframe();
 
-      if (!t || !t.getRestApi) {
+      if (!t || typeof t.getRestApi !== "function") {
         throw new Error("Trello connection is not available.");
       }
 
@@ -94,15 +80,7 @@
         throw new Error("Checkout URL was not returned.");
       }
 
-      /*
-       * Redirect to the hosted checkout page.
-       *
-       * We intentionally do not create monthly/annual logic here.
-       * The backend checkout endpoint is responsible for returning
-       * the configured $4.99/month checkout URL.
-       */
       window.location.href = checkout.url;
-
     } catch (error) {
       console.error("[Pro Upgrade] Checkout failed:", error);
 
@@ -111,29 +89,19 @@
 
       alert(
         error?.message ||
-        "Unable to start checkout. Please try again."
+          "Unable to start checkout. Please try again."
       );
     }
   }
-
-  /* =========================================================
-     Render Pro Upgrade Screen
-     ========================================================= */
 
   function render() {
     close();
 
     overlay = document.createElement("div");
-
     overlay.id = "progressProUpgradeOverlay";
 
     overlay.innerHTML = `
       <style>
-
-        /* =====================================================
-           OVERLAY
-           ===================================================== */
-
         #progressProUpgradeOverlay {
           position: fixed;
           inset: 0;
@@ -143,9 +111,12 @@
           align-items: center;
           justify-content: center;
 
+          width: 100%;
+          height: 100%;
+
           padding: 24px;
 
-          background: rgba(0, 0, 0, 0.72);
+          background: rgba(0, 0, 0, 0.70);
 
           font-family:
             -apple-system,
@@ -155,6 +126,8 @@
             Helvetica,
             Arial,
             sans-serif;
+
+          animation: progressProFadeIn 0.16s ease-out;
         }
 
         #progressProUpgradeOverlay *,
@@ -163,33 +136,94 @@
           box-sizing: border-box;
         }
 
+        @keyframes progressProFadeIn {
+          from {
+            opacity: 0;
+          }
 
-        /* =====================================================
-           MAIN CARD
-           ===================================================== */
+          to {
+            opacity: 1;
+          }
+        }
+
+        @keyframes progressProModalIn {
+          from {
+            opacity: 0;
+            transform: translateY(8px) scale(0.98);
+          }
+
+          to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
+        }
 
         .progress-pro-card {
-          width: min(546px, 100%);
+          position: relative;
 
-          overflow: hidden;
+          width: min(620px, 100%);
+          max-height: min(760px, 92vh);
 
-          border-radius: 0;
+          overflow-y: auto;
+
+          border: 1px solid rgba(255, 255, 255, 0.09);
+          border-radius: 18px;
 
           background: #1f252c;
-
           color: #ffffff;
 
           box-shadow:
-            0 24px 70px rgba(0, 0, 0, 0.55);
+            0 25px 80px rgba(0, 0, 0, 0.55),
+            0 8px 30px rgba(0, 0, 0, 0.25);
+
+          animation: progressProModalIn 0.18s ease-out;
         }
 
+        /* Close button */
 
-        /* =====================================================
-           HEADER
-           ===================================================== */
+        .progress-pro-modal-close {
+          position: absolute;
+          top: 13px;
+          right: 14px;
+          z-index: 2;
+
+          display: flex;
+          align-items: center;
+          justify-content: center;
+
+          width: 34px;
+          height: 34px;
+
+          padding: 0;
+
+          border: 0;
+          border-radius: 8px;
+
+          background: transparent;
+          color: #8d98a8;
+
+          font-size: 27px;
+          font-weight: 300;
+          line-height: 1;
+
+          cursor: pointer;
+
+          transition:
+            background 0.15s ease,
+            color 0.15s ease;
+        }
+
+        .progress-pro-modal-close:hover {
+          background: rgba(255, 255, 255, 0.08);
+          color: #ffffff;
+        }
+
+        /* Header */
 
         .progress-pro-header {
-          padding: 26px 34px 28px;
+          position: relative;
+
+          padding: 30px 56px 28px;
 
           text-align: center;
 
@@ -201,14 +235,8 @@
             );
         }
 
-
-        /* =====================================================
-           PRO BADGE
-           ===================================================== */
-
         .progress-pro-badge {
           display: inline-flex;
-
           align-items: center;
           justify-content: center;
 
@@ -217,7 +245,6 @@
           padding: 6px 12px;
 
           border: 1px solid rgba(76, 151, 255, 0.38);
-
           border-radius: 999px;
 
           background: rgba(18, 89, 190, 0.38);
@@ -225,9 +252,7 @@
           color: #8fc0ff;
 
           font-size: 11px;
-
           font-weight: 700;
-
           letter-spacing: 0.1px;
         }
 
@@ -235,55 +260,35 @@
           font-size: 13px;
         }
 
-
-        /* =====================================================
-           TITLE
-           ===================================================== */
-
         .progress-pro-title {
-          margin: 14px 0 8px;
+          margin: 15px 0 9px;
 
           color: #ffffff;
 
           font-size: 25px;
-
-          line-height: 1.12;
-
+          line-height: 1.16;
           font-weight: 800;
-
           letter-spacing: -0.7px;
         }
 
-
-        /* =====================================================
-           DESCRIPTION
-           ===================================================== */
-
         .progress-pro-description {
-          max-width: 470px;
+          max-width: 480px;
 
           margin: 0 auto;
 
           color: #b8c3d5;
 
           font-size: 12px;
-
           line-height: 1.65;
         }
 
-
-        /* =====================================================
-           BODY
-           ===================================================== */
+        /* Body */
 
         .progress-pro-body {
-          padding: 26px 25px 28px;
+          padding: 26px 28px 25px;
         }
 
-
-        /* =====================================================
-           PRICE
-           ===================================================== */
+        /* Price */
 
         .progress-pro-price {
           margin-bottom: 20px;
@@ -291,20 +296,25 @@
           text-align: center;
         }
 
+        .progress-pro-price-main {
+          display: flex;
+          align-items: baseline;
+          justify-content: center;
+        }
+
         .progress-pro-amount {
-          font-size: 32px;
+          color: #ffffff;
 
+          font-size: 34px;
           line-height: 1;
-
           font-weight: 800;
-
-          letter-spacing: -0.8px;
+          letter-spacing: -1px;
         }
 
         .progress-pro-per {
-          margin-left: 4px;
+          margin-left: 5px;
 
-          color: #8492a7;
+          color: #8d9aac;
 
           font-size: 13px;
         }
@@ -312,25 +322,23 @@
         .progress-pro-monthly {
           margin-top: 6px;
 
-          color: #8c9aae;
+          color: #8996a8;
 
           font-size: 11px;
         }
 
-
-        /* =====================================================
-           FEATURES
-           ===================================================== */
+        /* Features */
 
         .progress-pro-features {
           display: grid;
 
           grid-template-columns: 1fr 1fr;
 
-          gap: 0;
+          gap: 1px;
 
-          padding: 13px 14px;
+          padding: 13px 16px;
 
+          border: 1px solid rgba(255, 255, 255, 0.045);
           border-radius: 12px;
 
           background: #151a1f;
@@ -338,20 +346,18 @@
 
         .progress-pro-feature {
           display: flex;
-
           align-items: flex-start;
 
           gap: 9px;
 
           min-width: 0;
 
-          padding: 7px 0;
+          padding: 8px 5px;
 
           color: #c8d0db;
 
           font-size: 11px;
-
-          line-height: 1.4;
+          line-height: 1.45;
         }
 
         .progress-pro-check {
@@ -360,41 +366,36 @@
           color: #1ed9a0;
 
           font-size: 15px;
-
           line-height: 1;
-
           font-weight: 700;
         }
 
-
-        /* =====================================================
-           BUY BUTTON
-           ===================================================== */
+        /* Buy button */
 
         .progress-pro-buy {
           width: 100%;
+          height: 46px;
 
-          height: 45px;
-
-          margin-top: 23px;
+          margin-top: 22px;
 
           border: 0;
-
-          border-radius: 15px;
+          border-radius: 12px;
 
           background: #2161f5;
-
           color: #ffffff;
 
-          font-size: 17px;
-
-          font-weight: 500;
+          font-size: 16px;
+          font-weight: 600;
 
           cursor: pointer;
 
+          box-shadow:
+            0 6px 18px rgba(33, 97, 245, 0.22);
+
           transition:
             filter 0.15s ease,
-            transform 0.05s ease;
+            transform 0.05s ease,
+            opacity 0.15s ease;
         }
 
         .progress-pro-buy:hover {
@@ -407,98 +408,90 @@
 
         .progress-pro-buy:disabled {
           cursor: wait;
-
-          opacity: 0.7;
+          opacity: 0.65;
         }
 
+        /* Secure checkout */
 
-        /* =====================================================
-           CLOSE BUTTON
-           ===================================================== */
+        .progress-pro-secure {
+          display: flex;
+          align-items: center;
+          justify-content: center;
 
-        .progress-pro-close {
-          display: block;
+          gap: 6px;
 
-          margin: 12px auto 0;
+          margin-top: 12px;
 
-          border: 0;
+          color: #778497;
 
-          background: transparent;
+          font-size: 10px;
+        }
 
-          color: #8794a6;
-
+        .progress-pro-secure-icon {
           font-size: 11px;
-
-          cursor: pointer;
         }
 
-        .progress-pro-close:hover {
-          color: #c5ceda;
-        }
-
-
-        /* =====================================================
-           MOBILE
-           ===================================================== */
+        /* Mobile */
 
         @media (max-width: 560px) {
-
           #progressProUpgradeOverlay {
             padding: 12px;
           }
 
-          .progress-pro-header {
-            padding: 24px 20px;
+          .progress-pro-card {
+            width: 100%;
+            max-height: 94vh;
+
+            border-radius: 15px;
           }
 
-          .progress-pro-body {
-            padding: 22px 16px 24px;
+          .progress-pro-header {
+            padding: 27px 43px 25px;
           }
 
           .progress-pro-title {
             font-size: 22px;
           }
 
+          .progress-pro-body {
+            padding: 22px 17px 22px;
+          }
+
           .progress-pro-features {
             grid-template-columns: 1fr;
           }
         }
-
       </style>
-
-
-      <!-- ===================================================
-           PRO CARD
-           =================================================== -->
 
       <div
         class="progress-pro-card"
         role="dialog"
         aria-modal="true"
-        aria-label="Upgrade to Progress Power-Up Pro"
+        aria-labelledby="progressProUpgradeTitle"
       >
 
-        <!-- HEADER -->
+        <button
+          type="button"
+          class="progress-pro-modal-close"
+          id="progressProModalClose"
+          aria-label="Close"
+        >
+          ×
+        </button>
 
         <div class="progress-pro-header">
 
           <div class="progress-pro-badge">
-
-            <span class="progress-pro-badge-icon">
-              ✣
-            </span>
-
-            <span>
-              Progress Power-Up Pro
-            </span>
-
+            <span class="progress-pro-badge-icon">✣</span>
+            <span>Progress Power-Up Pro</span>
           </div>
 
-
-          <h1 class="progress-pro-title">
+          <h1
+            class="progress-pro-title"
+            id="progressProUpgradeTitle"
+          >
             Unlock Workspace Billing &amp; Analytics
           </h1>
-
 
           <p class="progress-pro-description">
             Your 7-day trial experience has expired.
@@ -509,22 +502,19 @@
 
         </div>
 
-
-        <!-- BODY -->
-
         <div class="progress-pro-body">
-
-          <!-- PRICE -->
 
           <div class="progress-pro-price">
 
-            <span class="progress-pro-amount">
-              $4.99
-            </span>
+            <div class="progress-pro-price-main">
+              <span class="progress-pro-amount">
+                $4.99
+              </span>
 
-            <span class="progress-pro-per">
-              /mo
-            </span>
+              <span class="progress-pro-per">
+                /mo
+              </span>
+            </div>
 
             <div class="progress-pro-monthly">
               $4.99 / month
@@ -533,22 +523,13 @@
           </div>
 
 
-          <!-- FEATURES -->
-
           <div class="progress-pro-features">
 
             ${FEATURES.map(
               (feature) => `
                 <div class="progress-pro-feature">
-
-                  <span class="progress-pro-check">
-                    ✓
-                  </span>
-
-                  <span>
-                    ${escapeHtml(feature)}
-                  </span>
-
+                  <span class="progress-pro-check">✓</span>
+                  <span>${escapeHtml(feature)}</span>
                 </div>
               `
             ).join("")}
@@ -556,9 +537,8 @@
           </div>
 
 
-          <!-- BUY -->
-
           <button
+            type="button"
             class="progress-pro-buy"
             id="progressProBuyBtn"
           >
@@ -566,96 +546,47 @@
           </button>
 
 
-          <!-- CLOSE -->
-
-          <button
-            class="progress-pro-close"
-            id="progressProCloseBtn"
-          >
-            Maybe later
-          </button>
+          <div class="progress-pro-secure">
+            <span class="progress-pro-secure-icon">🔒</span>
+            <span>Secure checkout</span>
+          </div>
 
         </div>
 
       </div>
     `;
 
-
     document.body.appendChild(overlay);
 
-
-    /* =======================================================
-       CLOSE ON OUTSIDE CLICK
-       ======================================================= */
-
-    overlay.addEventListener("click", function (event) {
-
-      if (event.target === overlay) {
-        close();
-      }
-
-    });
-
-
-    /* =======================================================
-       MAYBE LATER
-       ======================================================= */
+    const card =
+      overlay.querySelector(".progress-pro-card");
 
     const closeButton =
-      document.getElementById("progressProCloseBtn");
-
-    if (closeButton) {
-      closeButton.onclick = close;
-    }
-
-
-    /* =======================================================
-       BUY PRO
-       ======================================================= */
+      document.getElementById("progressProModalClose");
 
     const buyButton =
       document.getElementById("progressProBuyBtn");
 
-    if (buyButton) {
-      buyButton.onclick = function () {
-        startCheckout(this);
-      };
-    }
+    closeButton.onclick = close;
 
+    buyButton.onclick = function () {
+      startCheckout(this);
+    };
 
-    /* =======================================================
-       ESCAPE KEY
-       ======================================================= */
+    overlay.addEventListener("click", function (event) {
+      if (event.target === overlay) {
+        close();
+      }
+    });
 
-    document.addEventListener(
-      "keydown",
-      handleEscape
-    );
+    card.addEventListener("click", function (event) {
+      event.stopPropagation();
+    });
+
+    document.addEventListener("keydown", handleEscape);
   }
-
-
-  /* =========================================================
-     ESCAPE KEY
-     ========================================================= */
-
-  function handleEscape(event) {
-
-    if (
-      event.key === "Escape" &&
-      overlay
-    ) {
-      close();
-    }
-
-  }
-
-
-  /* =========================================================
-     PUBLIC API
-     ========================================================= */
 
   function open(t) {
-
     if (t) {
       trelloIframe = t;
     }
@@ -663,26 +594,13 @@
     render();
   }
 
-
   function init(t) {
-
     trelloIframe = t;
-
   }
 
-
-  /* =========================================================
-     GLOBAL
-     ========================================================= */
-
   window.ProgressProUpgrade = {
-
-    init: init,
-
-    open: open,
-
-    close: close,
-
+    init,
+    open,
+    close,
   };
-
 })();
