@@ -182,6 +182,96 @@ function renderSubscriptionStatus() {
   </div>`;
 }
 
+function renderLockedScreen() {
+  app().innerHTML = `
+    <div class="locked-screen">
+
+      <div class="locked-icon">
+        🔒
+      </div>
+
+      <div class="locked-badge">
+        <span>!</span>
+        14-Day Free Pro Trial Expired
+      </div>
+
+      <h1>Workspace &amp; Billing is Locked</h1>
+
+      <p>
+        Your 14-day trial has ended. Subscribe to Pro to unlock
+        hourly task rates, billable time reports, client invoicing,
+        and card financial metrics.
+      </p>
+
+      <div class="locked-actions">
+
+        <button
+          class="locked-subscribe-btn"
+          id="lockedSubscribeBtn">
+          ✨ Subscribe to Pro Plan ($4.99/mo)
+        </button>
+
+        <button
+          class="locked-close-btn"
+          id="lockedCloseBtn">
+          Close Preview
+        </button>
+
+      </div>
+
+    </div>
+  `;
+
+  fit();
+
+  const closeBtn = document.getElementById("lockedCloseBtn");
+
+  if (closeBtn) {
+    closeBtn.onclick = () => {
+      try {
+        t.closeModal();
+      } catch (e) {
+        console.error("Unable to close billing popup:", e);
+      }
+    };
+  }
+
+  const subscribeBtn =
+    document.getElementById("lockedSubscribeBtn");
+
+  if (subscribeBtn) {
+    subscribeBtn.onclick = async () => {
+      try {
+        subscribeBtn.disabled = true;
+        subscribeBtn.textContent = "Opening…";
+
+        const token = await t.getRestApi().getToken();
+
+        const checkout =
+          await window.ProgressSubscription.startCheckout(token);
+
+        if (!checkout?.url) {
+          throw new Error("Checkout URL was not returned.");
+        }
+
+        window.open(checkout.url, "_blank");
+
+      } catch (error) {
+        console.error("[Billing] Checkout failed:", error);
+
+        subscribeBtn.disabled = false;
+        subscribeBtn.textContent =
+          "✨ Subscribe to Pro Plan ($4.99/mo)";
+
+        alert(
+          error?.message ||
+          "Unable to start checkout. Please try again."
+        );
+      }
+    };
+  }
+}
+
 function renderDashboard(){
   const d = report || {};
   const cardDetails = Array.isArray(d.cardDetails) ? d.cardDetails : [];
@@ -602,9 +692,19 @@ async function load(){
   }
 
   report = res;
-  inv.picked = null;
-  window.progressSubscriptionStatus = subscriptionStatus;
-  renderDashboard();
+inv.picked = null;
+window.progressSubscriptionStatus = subscriptionStatus;
+
+if (
+  subscriptionStatus &&
+  !subscriptionStatus.isPro &&
+  !subscriptionStatus.isTrialActive
+) {
+  renderLockedScreen();
+  return;
+}
+
+renderDashboard();
 } // ✅ load() properly closed here
 
 document.documentElement.dataset.theme = "dark";

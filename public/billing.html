@@ -887,6 +887,118 @@
   opacity: 0.6;
   cursor: default;
 }
+
+/* ── Locked billing screen ── */
+
+.locked-screen {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 40px 24px;
+  background: #171a1f;
+}
+
+.locked-icon {
+  width: 64px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  background: rgba(255, 77, 77, 0.18);
+  border: 1px solid rgba(255, 77, 77, 0.25);
+  color: #ff6b6b;
+  font-size: 30px;
+  margin-bottom: 24px;
+}
+
+.locked-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 12px;
+  border-radius: 20px;
+  background: rgba(255, 77, 77, 0.12);
+  border: 1px solid rgba(255, 77, 77, 0.22);
+  color: #ff6b6b;
+  font-size: 11px;
+  font-weight: 700;
+  margin-bottom: 20px;
+}
+
+.locked-badge span {
+  width: 15px;
+  height: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #ff6b6b;
+  border-radius: 50%;
+  font-size: 9px;
+}
+
+.locked-screen h1 {
+  font-size: 24px;
+  font-weight: 700;
+  color: #f1f3f5;
+  margin-bottom: 12px;
+}
+
+.locked-screen p {
+  max-width: 520px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #8f9aaa;
+  margin-bottom: 28px;
+}
+
+.locked-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.locked-subscribe-btn {
+  padding: 12px 22px;
+  border: 0;
+  border-radius: 9px;
+  background: #0c66e4;
+  color: white;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 3px 12px rgba(12, 102, 228, 0.3);
+}
+
+.locked-subscribe-btn:hover {
+  filter: brightness(1.08);
+}
+
+.locked-subscribe-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.locked-close-btn {
+  padding: 12px 20px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 9px;
+  background: #22272b;
+  color: #c7d0da;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.locked-close-btn:hover {
+  background: #2c3338;
+}
     </style>
   </head>
 
