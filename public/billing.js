@@ -192,13 +192,13 @@ function renderLockedScreen() {
 
       <div class="locked-badge">
         <span>!</span>
-        14-Day Free Pro Trial Expired
+        7-Day Free Pro Trial Expired
       </div>
 
       <h1>Workspace &amp; Billing is Locked</h1>
 
       <p>
-        Your 14-day trial has ended. Subscribe to Pro to unlock
+        Your 7-day trial has ended. Subscribe to Pro to unlock
         hourly task rates, billable time reports, client invoicing,
         and card financial metrics.
       </p>
@@ -237,39 +237,13 @@ function renderLockedScreen() {
   }
 
   const subscribeBtn =
-    document.getElementById("lockedSubscribeBtn");
+  document.getElementById("lockedSubscribeBtn");
 
-  if (subscribeBtn) {
-    subscribeBtn.onclick = async () => {
-      try {
-        subscribeBtn.disabled = true;
-        subscribeBtn.textContent = "Opening…";
-
-        const token = await t.getRestApi().getToken();
-
-        const checkout =
-          await window.ProgressSubscription.startCheckout(token);
-
-        if (!checkout?.url) {
-          throw new Error("Checkout URL was not returned.");
-        }
-
-        window.open(checkout.url, "_blank");
-
-      } catch (error) {
-        console.error("[Billing] Checkout failed:", error);
-
-        subscribeBtn.disabled = false;
-        subscribeBtn.textContent =
-          "✨ Subscribe to Pro Plan ($4.99/mo)";
-
-        alert(
-          error?.message ||
-          "Unable to start checkout. Please try again."
-        );
-      }
-    };
-  }
+if (subscribeBtn) {
+  subscribeBtn.onclick = () => {
+    window.ProgressProUpgrade.open(t);
+  };
+}
 }
 
 function renderDashboard(){
@@ -377,43 +351,23 @@ function renderDashboard(){
 
   document.getElementById("export").onclick = openInvoice;
 
-  const upgradeBtn = document.getElementById("billingUpgradeBtn");
-  if (upgradeBtn) {
-    upgradeBtn.onclick = async () => {
-      try {
-        upgradeBtn.disabled = true;
-        upgradeBtn.textContent = "Opening…";
-        const token = await t.getRestApi().getToken();
-        const checkout = await window.ProgressSubscription.startCheckout(token);
-        if (!checkout?.url) throw new Error("Checkout URL was not returned.");
-        window.open(checkout.url, "_blank");
-      } catch (error) {
-        console.error("[Billing] Checkout failed:", error);
-        upgradeBtn.disabled = false;
-        upgradeBtn.textContent = "Upgrade to Pro";
-        alert(error?.message || "Unable to start checkout. Please try again.");
-      }
-    };
-  }
+  const upgradeBtn =
+  document.getElementById("billingUpgradeBtn");
 
-  const subscribeBtn = document.getElementById("billingSubscribeBtn");
-  if (subscribeBtn) {
-    subscribeBtn.onclick = async () => {
-      try {
-        subscribeBtn.disabled = true;
-        subscribeBtn.textContent = "Opening…";
-        const token = await t.getRestApi().getToken();
-        const checkout = await window.ProgressSubscription.startCheckout(token);
-        if (!checkout?.url) throw new Error("Checkout URL was not returned.");
-        window.open(checkout.url, "_blank");
-      } catch (error) {
-        console.error("[Billing] Checkout failed:", error);
-        subscribeBtn.disabled = false;
-        subscribeBtn.textContent = "Subscribe to Pro";
-        alert(error?.message || "Unable to start checkout. Please try again.");
-      }
-    };
-  }
+if (upgradeBtn) {
+  upgradeBtn.onclick = () => {
+    window.ProgressProUpgrade.open(t);
+  };
+}
+
+  const subscribeBtn =
+  document.getElementById("billingSubscribeBtn");
+
+if (subscribeBtn) {
+  subscribeBtn.onclick = () => {
+    window.ProgressProUpgrade.open(t);
+  };
+}
 
   document.querySelectorAll(".tab").forEach(b=>{
     b.onclick = () => { billTab = b.dataset.tab; renderDashboard(); };
