@@ -136,18 +136,27 @@ function renderSubscriptionStatus() {
 
   if (subscriptionStatus.isPro) {
     return `
-      <div class="subscription-status">
-        <div class="status-left">
-          <div class="status-icon">✓</div>
-          <div>
-            <div class="status-title">Pro Plan</div>
-            <div class="status-sub">Your Pro subscription is active.</div>
-          </div>
-        </div>
+  <div class="subscription-status">
+    <div class="status-left">
+      <div class="status-icon">!</div>
 
-        <div class="status-pill">PRO</div>
+      <div>
+        <div class="status-title">Trial expired</div>
+        <div class="status-sub">
+          Subscribe to Pro to continue using Pro features.
+        </div>
       </div>
-    `;
+    </div>
+
+    <div class="status-right">
+      <div class="status-pill">EXPIRED</div>
+
+      <button class="upgrade-btn" id="billingSubscribeBtn">
+        Subscribe to Pro
+      </button>
+    </div>
+  </div>
+`;
   }
 
   if (subscriptionStatus.isTrialActive) {
@@ -324,6 +333,40 @@ if (upgradeBtn) {
 
       upgradeBtn.disabled = false;
       upgradeBtn.textContent = "Upgrade to Pro";
+
+      alert(
+        error?.message ||
+        "Unable to start checkout. Please try again."
+      );
+    }
+  };
+}
+
+  const subscribeBtn =
+  document.getElementById("billingSubscribeBtn");
+
+if (subscribeBtn) {
+  subscribeBtn.onclick = async () => {
+    try {
+      subscribeBtn.disabled = true;
+      subscribeBtn.textContent = "Opening…";
+
+      const token = await t.getRestApi().getToken();
+
+      const checkout =
+        await window.ProgressSubscription.startCheckout(token);
+
+      if (!checkout?.url) {
+        throw new Error("Checkout URL was not returned.");
+      }
+
+      window.open(checkout.url, "_blank");
+
+    } catch (error) {
+      console.error("[Billing] Checkout failed:", error);
+
+      subscribeBtn.disabled = false;
+      subscribeBtn.textContent = "Subscribe to Pro";
 
       alert(
         error?.message ||
