@@ -602,19 +602,27 @@ async function load(){
 
   let res;
 
-  // Load subscription status
-  try {
-    const token = await t.getRestApi().getToken();
-    // subscriptionStatus = await window.ProgressSubscription.getStatus(token);
-    subscriptionStatus = {
-  isPro: false,
-  isTrialActive: false,
-  trialEndsAt: Date.now() - 86400000
-};
-    console.log("Subscription status loaded:", subscriptionStatus);
-  } catch(e) {
-    console.error("Failed to load subscription status:", e);
-  }
+ 
+ // Load subscription status from backend
+try {
+  const token = await t.getRestApi().getToken();
+
+  subscriptionStatus =
+    await window.ProgressSubscription.getSubscriptionStatus(token);
+
+  console.log(
+    "Subscription status loaded:",
+    subscriptionStatus
+  );
+
+} catch (e) {
+  console.error(
+    "Failed to load subscription status:",
+    e
+  );
+
+  subscriptionStatus = null;
+}
 
   // Load billing data
   try {
