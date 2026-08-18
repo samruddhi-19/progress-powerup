@@ -102,366 +102,503 @@
 
     overlay.innerHTML = `
       <style>
-        #progressProUpgradeOverlay {
-          position: fixed;
-          inset: 0;
-          z-index: 999999;
+  #progressProUpgradeOverlay {
+    position: fixed;
+    inset: 0;
+    z-index: 999999;
 
-          display: flex;
-          align-items: center;
-          justify-content: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 
-          width: 100%;
-          height: 100%;
+    width: 100%;
+    height: 100%;
 
-          padding: 24px;
+    padding: 24px;
 
-          background: rgba(0, 0, 0, 0.70);
+    background: rgba(0, 0, 0, 0.70);
 
-          font-family:
-            -apple-system,
-            BlinkMacSystemFont,
-            "Segoe UI",
-            Roboto,
-            Helvetica,
-            Arial,
-            sans-serif;
+    font-family:
+      -apple-system,
+      BlinkMacSystemFont,
+      "Segoe UI",
+      Roboto,
+      Helvetica,
+      Arial,
+      sans-serif;
 
-          animation: progressProFadeIn 0.16s ease-out;
-        }
+    animation: progressProFadeIn 0.16s ease-out;
+  }
 
-        #progressProUpgradeOverlay *,
-        #progressProUpgradeOverlay *::before,
-        #progressProUpgradeOverlay *::after {
-          box-sizing: border-box;
-        }
+  #progressProUpgradeOverlay *,
+  #progressProUpgradeOverlay *::before,
+  #progressProUpgradeOverlay *::after {
+    box-sizing: border-box;
+  }
 
-        @keyframes progressProFadeIn {
-          from {
-            opacity: 0;
-          }
+  @keyframes progressProFadeIn {
+    from {
+      opacity: 0;
+    }
 
-          to {
-            opacity: 1;
-          }
-        }
+    to {
+      opacity: 1;
+    }
+  }
 
-        @keyframes progressProModalIn {
-          from {
-            opacity: 0;
-            transform: translateY(8px) scale(0.98);
-          }
+  @keyframes progressProModalIn {
+    from {
+      opacity: 0;
+      transform: translateY(8px) scale(0.98);
+    }
 
-          to {
-            opacity: 1;
-            transform: translateY(0) scale(1);
-          }
-        }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
 
-        .progress-pro-card {
-          position: relative;
+  .progress-pro-card {
+    position: relative;
 
-          width: min(620px, 100%);
-          max-height: min(760px, 92vh);
+    width: min(620px, calc(100% - 24px));
+    max-height: calc(100vh - 24px);
 
-          overflow-y: auto;
+    overflow: hidden;
 
-          border: 1px solid rgba(255, 255, 255, 0.09);
-          border-radius: 18px;
+    border: 1px solid rgba(255, 255, 255, 0.09);
+    border-radius: 18px;
 
-          background: #1f252c;
-          color: #ffffff;
+    background: #1f252c;
+    color: #ffffff;
 
-          box-shadow:
-            0 25px 80px rgba(0, 0, 0, 0.55),
-            0 8px 30px rgba(0, 0, 0, 0.25);
+    box-shadow:
+      0 25px 80px rgba(0, 0, 0, 0.55),
+      0 8px 30px rgba(0, 0, 0, 0.25);
 
-          animation: progressProModalIn 0.18s ease-out;
-        }
+    animation: progressProModalIn 0.18s ease-out;
+  }
 
-        /* Close button */
+  /* Close button */
 
-        .progress-pro-modal-close {
-          position: absolute;
-          top: 13px;
-          right: 14px;
-          z-index: 2;
+  .progress-pro-modal-close {
+    position: absolute;
+    top: 13px;
+    right: 14px;
+    z-index: 2;
 
-          display: flex;
-          align-items: center;
-          justify-content: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 
-          width: 34px;
-          height: 34px;
+    width: 34px;
+    height: 34px;
 
-          padding: 0;
+    padding: 0;
 
-          border: 0;
-          border-radius: 8px;
+    border: 0;
+    border-radius: 8px;
 
-          background: transparent;
-          color: #8d98a8;
+    background: transparent;
+    color: #8d98a8;
 
-          font-size: 27px;
-          font-weight: 300;
-          line-height: 1;
+    font-size: 27px;
+    font-weight: 300;
+    line-height: 1;
 
-          cursor: pointer;
+    cursor: pointer;
 
-          transition:
-            background 0.15s ease,
-            color 0.15s ease;
-        }
+    transition:
+      background 0.15s ease,
+      color 0.15s ease;
+  }
 
-        .progress-pro-modal-close:hover {
-          background: rgba(255, 255, 255, 0.08);
-          color: #ffffff;
-        }
+  .progress-pro-modal-close:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #ffffff;
+  }
 
-        /* Header */
+  /* Header */
 
-        .progress-pro-header {
-          position: relative;
+  .progress-pro-header {
+    position: relative;
 
-          padding: 30px 56px 28px;
+    padding: 30px 56px 28px;
 
-          text-align: center;
+    text-align: center;
 
-          background:
-            linear-gradient(
-              110deg,
-              #203d79 0%,
-              #20184f 100%
-            );
-        }
+    background:
+      linear-gradient(
+        110deg,
+        #203d79 0%,
+        #20184f 100%
+      );
+  }
 
-        .progress-pro-badge {
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
+  .progress-pro-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 
-          gap: 7px;
+    gap: 7px;
 
-          padding: 6px 12px;
+    padding: 6px 12px;
 
-          border: 1px solid rgba(76, 151, 255, 0.38);
-          border-radius: 999px;
+    border: 1px solid rgba(76, 151, 255, 0.38);
+    border-radius: 999px;
 
-          background: rgba(18, 89, 190, 0.38);
+    background: rgba(18, 89, 190, 0.38);
 
-          color: #8fc0ff;
+    color: #8fc0ff;
 
-          font-size: 11px;
-          font-weight: 700;
-          letter-spacing: 0.1px;
-        }
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.1px;
+  }
 
-        .progress-pro-badge-icon {
-          font-size: 13px;
-        }
+  .progress-pro-badge-icon {
+    font-size: 13px;
+  }
 
-        .progress-pro-title {
-          margin: 15px 0 9px;
+  .progress-pro-title {
+    margin: 15px 0 9px;
 
-          color: #ffffff;
+    color: #ffffff;
 
-          font-size: 25px;
-          line-height: 1.16;
-          font-weight: 800;
-          letter-spacing: -0.7px;
-        }
+    font-size: 25px;
+    line-height: 1.16;
+    font-weight: 800;
+    letter-spacing: -0.7px;
+  }
 
-        .progress-pro-description {
-          max-width: 480px;
+  .progress-pro-description {
+    max-width: 480px;
 
-          margin: 0 auto;
+    margin: 0 auto;
 
-          color: #b8c3d5;
+    color: #b8c3d5;
 
-          font-size: 12px;
-          line-height: 1.65;
-        }
+    font-size: 12px;
+    line-height: 1.65;
+  }
 
-        /* Body */
+  /* Body */
 
-        .progress-pro-body {
-          padding: 26px 28px 25px;
-        }
+  .progress-pro-body {
+    padding: 26px 28px 25px;
+  }
 
-        /* Price */
+  /* Price */
 
-        .progress-pro-price {
-          margin-bottom: 20px;
+  .progress-pro-price {
+    margin-bottom: 20px;
 
-          text-align: center;
-        }
+    text-align: center;
+  }
 
-        .progress-pro-price-main {
-          display: flex;
-          align-items: baseline;
-          justify-content: center;
-        }
+  .progress-pro-price-main {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+  }
 
-        .progress-pro-amount {
-          color: #ffffff;
+  .progress-pro-amount {
+    color: #ffffff;
 
-          font-size: 34px;
-          line-height: 1;
-          font-weight: 800;
-          letter-spacing: -1px;
-        }
+    font-size: 34px;
+    line-height: 1;
+    font-weight: 800;
+    letter-spacing: -1px;
+  }
 
-        .progress-pro-per {
-          margin-left: 5px;
+  .progress-pro-per {
+    margin-left: 5px;
 
-          color: #8d9aac;
+    color: #8d9aac;
 
-          font-size: 13px;
-        }
+    font-size: 13px;
+  }
 
-        .progress-pro-monthly {
-          margin-top: 6px;
+  .progress-pro-monthly {
+    margin-top: 6px;
 
-          color: #8996a8;
+    color: #8996a8;
 
-          font-size: 11px;
-        }
+    font-size: 11px;
+  }
 
-        /* Features */
+  /* Features */
 
-        .progress-pro-features {
-          display: grid;
+  .progress-pro-features {
+    display: grid;
 
-          grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr 1fr;
 
-          gap: 1px;
+    gap: 1px;
 
-          padding: 13px 16px;
+    padding: 13px 16px;
 
-          border: 1px solid rgba(255, 255, 255, 0.045);
-          border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.045);
+    border-radius: 12px;
 
-          background: #151a1f;
-        }
+    background: #151a1f;
+  }
 
-        .progress-pro-feature {
-          display: flex;
-          align-items: flex-start;
+  .progress-pro-feature {
+    display: flex;
+    align-items: flex-start;
 
-          gap: 9px;
+    gap: 9px;
 
-          min-width: 0;
+    min-width: 0;
 
-          padding: 8px 5px;
+    padding: 8px 5px;
 
-          color: #c8d0db;
+    color: #c8d0db;
 
-          font-size: 11px;
-          line-height: 1.45;
-        }
+    font-size: 11px;
+    line-height: 1.45;
+  }
 
-        .progress-pro-check {
-          flex: 0 0 auto;
+  .progress-pro-check {
+    flex: 0 0 auto;
 
-          color: #1ed9a0;
+    color: #1ed9a0;
 
-          font-size: 15px;
-          line-height: 1;
-          font-weight: 700;
-        }
+    font-size: 15px;
+    line-height: 1;
+    font-weight: 700;
+  }
 
-        /* Buy button */
+  /* Buy button */
 
-        .progress-pro-buy {
-          width: 100%;
-          height: 46px;
+  .progress-pro-buy {
+    width: 100%;
+    height: 46px;
 
-          margin-top: 22px;
+    margin-top: 22px;
 
-          border: 0;
-          border-radius: 12px;
+    border: 0;
+    border-radius: 12px;
 
-          background: #2161f5;
-          color: #ffffff;
+    background: #2161f5;
+    color: #ffffff;
 
-          font-size: 16px;
-          font-weight: 600;
+    font-size: 16px;
+    font-weight: 600;
 
-          cursor: pointer;
+    cursor: pointer;
 
-          box-shadow:
-            0 6px 18px rgba(33, 97, 245, 0.22);
+    box-shadow:
+      0 6px 18px rgba(33, 97, 245, 0.22);
 
-          transition:
-            filter 0.15s ease,
-            transform 0.05s ease,
-            opacity 0.15s ease;
-        }
+    transition:
+      filter 0.15s ease,
+      transform 0.05s ease,
+      opacity 0.15s ease;
+  }
 
-        .progress-pro-buy:hover {
-          filter: brightness(1.08);
-        }
+  .progress-pro-buy:hover {
+    filter: brightness(1.08);
+  }
 
-        .progress-pro-buy:active {
-          transform: translateY(1px);
-        }
+  .progress-pro-buy:active {
+    transform: translateY(1px);
+  }
 
-        .progress-pro-buy:disabled {
-          cursor: wait;
-          opacity: 0.65;
-        }
+  .progress-pro-buy:disabled {
+    cursor: wait;
+    opacity: 0.65;
+  }
 
-        /* Secure checkout */
+  /* Secure checkout */
 
-        .progress-pro-secure {
-          display: flex;
-          align-items: center;
-          justify-content: center;
+  .progress-pro-secure {
+    display: flex;
+    align-items: center;
+    justify-content: center;
 
-          gap: 6px;
+    gap: 6px;
 
-          margin-top: 12px;
+    margin-top: 12px;
 
-          color: #778497;
+    color: #778497;
 
-          font-size: 10px;
-        }
+    font-size: 10px;
+  }
 
-        .progress-pro-secure-icon {
-          font-size: 11px;
-        }
+  .progress-pro-secure-icon {
+    font-size: 11px;
+  }
 
-        /* Mobile */
+  /* =====================================================
+     SMALL TRELLO IFRAME
+     ===================================================== */
 
-        @media (max-width: 560px) {
-          #progressProUpgradeOverlay {
-            padding: 12px;
-          }
+  @media (max-height: 700px) {
 
-          .progress-pro-card {
-            width: 100%;
-            max-height: 94vh;
+    .progress-pro-header {
+      padding: 22px 48px 20px;
+    }
 
-            border-radius: 15px;
-          }
+    .progress-pro-badge {
+      padding: 5px 10px;
+      font-size: 10px;
+    }
 
-          .progress-pro-header {
-            padding: 27px 43px 25px;
-          }
+    .progress-pro-title {
+      margin: 10px 0 7px;
+      font-size: 22px;
+      line-height: 1.15;
+    }
 
-          .progress-pro-title {
-            font-size: 22px;
-          }
+    .progress-pro-description {
+      font-size: 11px;
+      line-height: 1.45;
+    }
 
-          .progress-pro-body {
-            padding: 22px 17px 22px;
-          }
+    .progress-pro-body {
+      padding: 20px 24px 18px;
+    }
 
-          .progress-pro-features {
-            grid-template-columns: 1fr;
-          }
-        }
-      </style>
+    .progress-pro-price {
+      margin-bottom: 14px;
+    }
+
+    .progress-pro-amount {
+      font-size: 30px;
+    }
+
+    .progress-pro-monthly {
+      margin-top: 4px;
+      font-size: 10px;
+    }
+
+    .progress-pro-features {
+      padding: 9px 12px;
+    }
+
+    .progress-pro-feature {
+      padding: 5px 3px;
+      font-size: 10px;
+    }
+
+    .progress-pro-buy {
+      height: 40px;
+      margin-top: 15px;
+      font-size: 14px;
+    }
+
+    .progress-pro-secure {
+      margin-top: 7px;
+      font-size: 9px;
+    }
+  }
+
+  /* =====================================================
+     VERY SMALL TRELLO IFRAME
+     ===================================================== */
+
+  @media (max-height: 580px) {
+
+    .progress-pro-header {
+      padding: 16px 44px 15px;
+    }
+
+    .progress-pro-badge {
+      padding: 4px 9px;
+      font-size: 9px;
+    }
+
+    .progress-pro-title {
+      margin: 7px 0 5px;
+      font-size: 19px;
+      line-height: 1.15;
+    }
+
+    .progress-pro-description {
+      font-size: 10px;
+      line-height: 1.35;
+    }
+
+    .progress-pro-body {
+      padding: 15px 20px 14px;
+    }
+
+    .progress-pro-price {
+      margin-bottom: 10px;
+    }
+
+    .progress-pro-amount {
+      font-size: 26px;
+    }
+
+    .progress-pro-per {
+      font-size: 11px;
+    }
+
+    .progress-pro-monthly {
+      margin-top: 2px;
+      font-size: 9px;
+    }
+
+    .progress-pro-features {
+      padding: 6px 10px;
+    }
+
+    .progress-pro-feature {
+      padding: 4px 2px;
+      font-size: 9px;
+      line-height: 1.35;
+    }
+
+    .progress-pro-check {
+      font-size: 12px;
+    }
+
+    .progress-pro-buy {
+      height: 36px;
+      margin-top: 11px;
+      font-size: 13px;
+    }
+
+    .progress-pro-secure {
+      display: none;
+    }
+  }
+
+  /* Mobile */
+
+  @media (max-width: 560px) {
+
+    #progressProUpgradeOverlay {
+      padding: 12px;
+    }
+
+    .progress-pro-card {
+      width: 100%;
+      max-height: calc(100vh - 24px);
+
+      border-radius: 15px;
+    }
+
+    .progress-pro-header {
+      padding: 27px 43px 25px;
+    }
+
+    .progress-pro-title {
+      font-size: 22px;
+    }
+
+    .progress-pro-body {
+      padding: 22px 17px 22px;
+    }
+
+    .progress-pro-features {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
 
       <div
         class="progress-pro-card"
