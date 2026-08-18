@@ -615,6 +615,11 @@ try {
     subscriptionStatus
   );
 
+   if (!window.ProgressSubscription.hasProAccess(subscriptionStatus)) {
+      renderLockedScreen();
+      return;
+    }
+
 } catch (e) {
   console.error(
     "Failed to load subscription status:",
@@ -664,14 +669,6 @@ try {
 inv.picked = null;
 window.progressSubscriptionStatus = subscriptionStatus;
 
-if (
-  subscriptionStatus &&
-  !subscriptionStatus.isPro &&
-  !subscriptionStatus.isTrialActive
-) {
-  renderLockedScreen();
-  return;
-}
 
 renderDashboard();
 } // ✅ load() properly closed here
