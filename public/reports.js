@@ -400,26 +400,17 @@
       }
 
       async function loadSubscriptionStatus() {
-  try {
-    const token = await t.getRestApi().getToken();
+  const token = await t.getRestApi().getToken();
 
-    subscriptionStatus =
-      await window.ProgressSubscription.getSubscriptionStatus(token);
+  subscriptionStatus =
+    await window.ProgressSubscription.getSubscriptionStatus(token);
 
-    console.log(
-      "[Reports] Subscription status:",
-      subscriptionStatus
-    );
+  console.log(
+    "[Reports] Subscription status from backend:",
+    subscriptionStatus
+  );
 
-    return subscriptionStatus;
-  } catch (error) {
-    console.error(
-      "[Reports] Failed to load subscription status:",
-      error
-    );
-
-    return null;
-  }
+  return subscriptionStatus;
 }
 
 function showReportsLocked() {
@@ -495,19 +486,38 @@ if (subscribeBtn) {
 }
 
 
-      async function load(){
-        showState("Loading report…");
-        await loadSubscriptionStatus();
+      async function load() {
+  showState("Loading report…");
 
-if (
-  !subscriptionStatus ||
-  (!subscriptionStatus.isTrialActive && !subscriptionStatus.isPro)
-) {
-  showReportsLocked();
-  return;
-}
+  try {
+    await loadSubscriptionStatus();
+  } catch (error) {
+    console.error(
+      "[Reports] Failed to load subscription status:",
+      error
+    );
 
-let res;
+    showState(`
+      <h2>Unable to load subscription status</h2>
+      <div>${error?.message || "Please try again."}</div>
+      <button id="rbtn">Retry</button>
+    `);
+
+    const b = document.getElementById("rbtn");
+    if (b) b.onclick = load;
+
+    return;
+  }
+
+  if (
+    !subscriptionStatus.isTrialActive &&
+    !subscriptionStatus.isPro
+  ) {
+    showReportsLocked();
+    return;
+  }
+
+  let res;
         try{res=await ProgressReport.build(t,mode);}
         catch(e){showState(`<h2>Something went wrong</h2><div>${e.message||e}</div><button id="rbtn">Retry</button>`);
           const b=document.getElementById("rbtn");if(b)b.onclick=load;return;}
