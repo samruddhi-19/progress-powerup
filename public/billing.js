@@ -626,7 +626,16 @@ try {
     e
   );
 
-  subscriptionStatus = null;
+  showState(`
+    <h2>Unable to load subscription status</h2>
+    <div>${e?.message || "Please try again."}</div>
+    <button id="rbtn">Retry</button>
+  `);
+
+  const b = document.getElementById("rbtn");
+  if (b) b.onclick = load;
+
+  return;
 }
 
   // Load billing data
