@@ -51,9 +51,11 @@
     }
 
     document.removeEventListener("keydown", handleEscape);
+
+    // Restore the iframe to its correct height now that the overlay is gone.
     if (typeof window.__progressFit === "function") {
-    window.__progressFit();
-  }
+      window.__progressFit();
+    }
   }
 
   async function startCheckout(button) {
@@ -602,6 +604,16 @@
     }
 
     render();
+
+    // Expand the iframe tall enough to fully show the modal.
+    // We use rAF so the card is in the DOM and measurable before we size.
+    requestAnimationFrame(() => {
+      try {
+        const card = overlay && overlay.querySelector(".progress-pro-card");
+        const needed = card ? card.scrollHeight + 80 : 700;
+        trelloIframe.sizeTo(Math.max(needed, 700));
+      } catch (e) {}
+    });
   }
 
   function init(t) {
