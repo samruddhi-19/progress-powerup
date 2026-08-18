@@ -51,11 +51,6 @@
     }
 
     document.removeEventListener("keydown", handleEscape);
-
-    // Restore the iframe to its correct height now that the overlay is gone.
-    if (typeof window.__progressFit === "function") {
-      window.__progressFit();
-    }
   }
 
   async function startCheckout(button) {
@@ -163,16 +158,13 @@
           }
         }
 
-        /* Main popup */
-
         .progress-pro-card {
           position: relative;
 
-          width: min(680px, calc(100% - 32px));
-          height: auto;
-          max-height: calc(100vh - 24px);
+          width: min(620px, 100%);
+          max-height: min(760px, 92vh);
 
-          overflow: hidden;
+          overflow-y: auto;
 
           border: 1px solid rgba(255, 255, 255, 0.09);
           border-radius: 18px;
@@ -439,13 +431,6 @@
           font-size: 11px;
         }
 
-        /*
-         * IMPORTANT:
-         * Do NOT aggressively shrink the popup for short
-         * Trello iframes. The popup should remain a proper
-         * centered modal.
-         */
-
         /* Mobile */
 
         @media (max-width: 560px) {
@@ -455,7 +440,7 @@
 
           .progress-pro-card {
             width: 100%;
-            max-height: calc(100vh - 24px);
+            max-height: 94vh;
 
             border-radius: 15px;
           }
@@ -537,6 +522,7 @@
 
           </div>
 
+
           <div class="progress-pro-features">
 
             ${FEATURES.map(
@@ -550,6 +536,7 @@
 
           </div>
 
+
           <button
             type="button"
             class="progress-pro-buy"
@@ -557,6 +544,7 @@
           >
             Buy Pro Now
           </button>
+
 
           <div class="progress-pro-secure">
             <span class="progress-pro-secure-icon">🔒</span>
@@ -604,16 +592,6 @@
     }
 
     render();
-
-    // Expand the iframe tall enough to fully show the modal.
-    // We use rAF so the card is in the DOM and measurable before we size.
-    requestAnimationFrame(() => {
-      try {
-        const card = overlay && overlay.querySelector(".progress-pro-card");
-        const needed = card ? card.scrollHeight + 80 : 700;
-        trelloIframe.sizeTo(Math.max(needed, 700));
-      } catch (e) {}
-    });
   }
 
   function init(t) {
