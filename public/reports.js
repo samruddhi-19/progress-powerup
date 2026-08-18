@@ -425,31 +425,66 @@
 function showReportsLocked() {
   showState(`
     <div class="reports-locked">
-      <div class="locked-icon">🔒</div>
 
-      <div class="locked-badge">
-        ⏳ 7-Day Free Pro Trial Expired
+      <div class="locked-icon">
+        🔒
       </div>
 
-      <h2>Reports &amp; Analytics is Locked</h2>
+      <div class="locked-badge">
+        ⓘ 7-Day Free Pro Trial Expired
+      </div>
+
+      <h2>
+        Reports &amp; Analytics is Locked
+      </h2>
 
       <p>
         Your 7-day trial has ended.
-        Subscribe to Pro to unlock historical reports,
-        analytics, and exports.
+        Subscribe to Pro to unlock historical
+        deadline achievement trends, daily team hours
+        breakdown, overtime alerts, and CSV exports.
       </p>
 
       <div class="locked-actions">
-        <button id="subscribeBtn" class="subscribe-btn">
-          Subscribe to Pro Plan
+
+        <button
+          id="subscribeBtn"
+          class="subscribe-btn">
+          ✣ Subscribe to Pro Plan ($4.99/mo)
         </button>
 
-        <button id="closeBtn" class="close-btn">
-          Close
+        <button
+          id="closeBtn"
+          class="close-btn">
+          Close Preview
         </button>
+
       </div>
+
     </div>
   `);
+
+  const subscribeBtn =
+  document.getElementById("subscribeBtn");
+
+if (subscribeBtn) {
+  subscribeBtn.onclick = () => {
+    if (
+      window.ProgressProUpgrade &&
+      typeof window.ProgressProUpgrade.open === "function"
+    ) {
+      window.ProgressProUpgrade.open(t);
+    } else {
+      console.error(
+        "[Reports] ProgressProUpgrade is not loaded."
+      );
+
+      alert(
+        "Unable to open the Pro upgrade screen. Please refresh and try again."
+      );
+    }
+  };
+}
 
   document.getElementById("closeBtn")?.addEventListener(
     "click",
@@ -459,38 +494,6 @@ function showReportsLocked() {
   );
 }
 
-document.getElementById("subscribeBtn")?.addEventListener(
-  "click",
-  async () => {
-    const button = document.getElementById("subscribeBtn");
-
-    try {
-      button.disabled = true;
-      button.textContent = "Opening checkout…";
-
-      const token = await t.getRestApi().getToken();
-
-      const checkout =
-        await window.ProgressSubscription.startCheckout(token);
-
-      if (checkout?.url) {
-        window.open(checkout.url, "_blank");
-      } else {
-        throw new Error("Checkout URL was not returned.");
-      }
-    } catch (error) {
-      console.error("[Reports] Checkout failed:", error);
-
-      button.disabled = false;
-      button.textContent = "Subscribe to Pro Plan";
-
-      alert(
-        error?.message ||
-        "Unable to start checkout. Please try again."
-      );
-    }
-  }
-);
 
       async function load(){
         showState("Loading report…");
