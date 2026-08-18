@@ -51,6 +51,9 @@
     }
 
     document.removeEventListener("keydown", handleEscape);
+    if (typeof window.__progressFit === "function") {
+    window.__progressFit();
+  }
   }
 
   async function startCheckout(button) {

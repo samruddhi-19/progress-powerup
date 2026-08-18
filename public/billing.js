@@ -32,6 +32,7 @@ const FIT_MIN = 220;
 
 function fit(){
   requestAnimationFrame(() => {
+     if (document.getElementById("progressProUpgradeOverlay")) return;
     const el = app();
     if(!el) return;
     el.style.maxHeight = "none";
@@ -45,6 +46,7 @@ function fit(){
     try{ t.sizeTo(target); }catch(e){}
   });
 }
+window.__progressFit = fit;  
 
 function showState(html){ app().innerHTML = `<div class="state">${html}</div>`; fit(); }
 
