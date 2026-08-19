@@ -80,7 +80,7 @@
         throw new Error("Checkout URL was not returned.");
       }
 
-      window.location.href = checkout.url;
+      window.open(checkout.url, "_blank");
     } catch (error) {
       console.error("[Pro Upgrade] Checkout failed:", error);
 
