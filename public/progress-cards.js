@@ -1,6 +1,9 @@
 /* global TrelloPowerUp */
 
-const t = TrelloPowerUp.iframe();
+const t = TrelloPowerUp.iframe({
+  appKey: window.ProgressConfig.API_KEY,
+  appName: window.ProgressConfig.APP_NAME,
+});
 
 /* ── State ── */
 let allCards = [];
