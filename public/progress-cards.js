@@ -422,21 +422,68 @@ function showAuthView() {
       msg.textContent = "";
 
       try {
-        await t.set("member", "private", "authorized", true);
-        await t.set("board", "shared", "disabled", false);
-        msg.textContent = "✅ Authorized! Loading…";
-        // Re-init after auth
-        setTimeout(async () => {
-          qs("startMappingBtn").style.display = "";
-          qs("selectedCount").style.display = "";
-          await loadCards();
-          updateFooter();
-        }, 600);
-      } catch (e) {
-        btn.disabled = false;
-        btn.textContent = "⚡ Authorize Progress";
-        msg.textContent = "❌ Failed. Please try again.";
-      }
+  // Start Trello authorization
+  await t.getRestApi().authorize({
+    scope: "read,write",
+    expiration: "never"
+  });
+
+  // Get Trello token after authorization
+  const token = await t.getRestApi().getToken();
+
+  if (!token) {
+    throw new Error("Trello token was not received.");
+  }
+
+  // Check subscription.
+  // For a first-time user, this creates the 7-day trial.
+  subscriptionStatus =
+    await window.ProgressSubscription.getSubscriptionStatus(token);
+
+  console.log(
+    "[ProgressCards] Subscription status:",
+    subscriptionStatus
+  );
+
+  // Save Progress authorization
+  await t.set(
+    "member",
+    "private",
+    "authorized",
+    true
+  );
+
+  await t.set(
+    "board",
+    "shared",
+    "disabled",
+    false
+  );
+
+  msg.textContent = "✅ Authorized! Loading…";
+
+  // Reload Progress UI
+  setTimeout(async () => {
+    qs("startMappingBtn").style.display = "";
+    qs("selectedCount").style.display = "";
+
+    await loadSubscriptionStatus();
+    await loadCards();
+    updateFooter();
+  }, 600);
+
+} catch (e) {
+  console.error(
+    "[ProgressCards] Authorization failed:",
+    e
+  );
+
+  btn.disabled = false;
+  btn.textContent = "⚡ Authorize Progress";
+
+  msg.textContent =
+    e?.message || "❌ Failed. Please try again.";
+}
     });
 
   setTimeout(() => {
