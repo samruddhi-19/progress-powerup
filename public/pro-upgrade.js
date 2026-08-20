@@ -54,45 +54,299 @@
   }
 
   async function startCheckout(button) {
+  try {
+    if (
+      !window.ProgressSubscription ||
+      typeof window.ProgressSubscription.startCheckout !== "function"
+    ) {
+      throw new Error("Subscription checkout is not available.");
+    }
+
+    const t = getIframe();
+
+    if (!t || typeof t.getRestApi !== "function") {
+      throw new Error("Trello connection is not available.");
+    }
+
+    button.disabled = true;
+    button.textContent = "Opening checkout…";
+
+    const token = await t.getRestApi().getToken();
+
+    const checkout =
+      await window.ProgressSubscription.startCheckout(token);
+
+    if (!checkout || !checkout.url) {
+      throw new Error("Checkout URL was not returned.");
+    }
+
+    // Open Dodo checkout in a new tab.
+    window.open(checkout.url, "_blank");
+
+    // Show a waiting state in the Trello iframe.
+    showSubscriptionConfirmation(t, token);
+
+  } catch (error) {
+    console.error("[Pro Upgrade] Checkout failed:", error);
+
+    button.disabled = false;
+    button.textContent = "Buy Pro Now";
+
+    alert(
+      error?.message ||
+        "Unable to start checkout. Please try again."
+    );
+  }
+}
+
+async function showSubscriptionConfirmation(t, token) {
+  if (!overlay) {
+    return;
+  }
+
+  const card = overlay.querySelector(".progress-pro-card");
+
+  if (!card) {
+    return;
+  }
+
+  card.innerHTML = `
+    <div style="
+      padding: 48px 32px;
+      text-align: center;
+    ">
+      <div style="
+        font-size: 46px;
+        margin-bottom: 18px;
+      ">
+        ⏳
+      </div>
+
+      <h2 style="
+        margin: 0 0 10px;
+        font-size: 24px;
+      ">
+        Confirming your subscription...
+      </h2>
+
+      <p style="
+        margin: 0 auto 24px;
+        max-width: 420px;
+        color: #9da7b5;
+        line-height: 1.6;
+      ">
+        Your payment was received. We're confirming your Pro
+        subscription. This may take a few seconds.
+      </p>
+
+      <div style="
+        font-size: 13px;
+        color: #7f8998;
+      ">
+        Please keep this window open.
+      </div>
+    </div>
+  `;
+
+  // Give the Dodo webhook a little time to update MongoDB.
+  const maxAttempts = 12;
+  const delay = 2000;
+
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
     try {
-      if (
-        !window.ProgressSubscription ||
-        typeof window.ProgressSubscription.startCheckout !== "function"
-      ) {
-        throw new Error("Subscription checkout is not available.");
+      const status =
+        await window.ProgressSubscription.getSubscriptionStatus(token);
+
+      console.log(
+        "[Pro Upgrade] Subscription status check:",
+        status
+      );
+
+      if (status && status.isPro) {
+        showProSuccess();
+        return;
       }
-
-      const t = getIframe();
-
-      if (!t || typeof t.getRestApi !== "function") {
-        throw new Error("Trello connection is not available.");
-      }
-
-      button.disabled = true;
-      button.textContent = "Opening checkout…";
-
-      const token = await t.getRestApi().getToken();
-
-      const checkout =
-        await window.ProgressSubscription.startCheckout(token);
-
-      if (!checkout || !checkout.url) {
-        throw new Error("Checkout URL was not returned.");
-      }
-
-      window.open(checkout.url, "_blank");
     } catch (error) {
-      console.error("[Pro Upgrade] Checkout failed:", error);
-
-      button.disabled = false;
-      button.textContent = "Buy Pro Now";
-
-      alert(
-        error?.message ||
-          "Unable to start checkout. Please try again."
+      console.warn(
+        "[Pro Upgrade] Subscription status check failed:",
+        error
       );
     }
+
+    await new Promise((resolve) =>
+      setTimeout(resolve, delay)
+    );
   }
+
+  // Webhook did not arrive within the expected time.
+  showSubscriptionPending();
+}
+
+function showProSuccess() {
+  if (!overlay) {
+    return;
+  }
+
+  const card = overlay.querySelector(".progress-pro-card");
+
+  if (!card) {
+    return;
+  }
+
+  card.innerHTML = `
+    <div style="
+      padding: 48px 32px;
+      text-align: center;
+    ">
+      <div style="
+        width: 68px;
+        height: 68px;
+        margin: 0 auto 20px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #2ecc8a;
+        color: #ffffff;
+        font-size: 34px;
+        font-weight: 700;
+      ">
+        ✓
+      </div>
+
+      <h2 style="
+        margin: 0 0 10px;
+        font-size: 26px;
+      ">
+        You're on Pro now! 🎉
+      </h2>
+
+      <p style="
+        margin: 0 auto 26px;
+        max-width: 420px;
+        color: #9da7b5;
+        line-height: 1.6;
+      ">
+        Your Pro subscription is active.
+        You now have access to all Pro features.
+      </p>
+
+      <button
+        id="progressProContinue"
+        style="
+          width: 100%;
+          max-width: 260px;
+          padding: 12px 20px;
+          border: 0;
+          border-radius: 9px;
+          background: #579dff;
+          color: #ffffff;
+          font-size: 14px;
+          font-weight: 600;
+          cursor: pointer;
+        "
+      >
+        Continue
+      </button>
+    </div>
+  `;
+
+  const continueButton =
+    document.getElementById("progressProContinue");
+
+  if (continueButton) {
+    continueButton.onclick = () => {
+      close();
+
+      // Refresh the current iframe UI if available.
+      try {
+        window.location.reload();
+      } catch (error) {
+        console.warn(
+          "[Pro Upgrade] Unable to reload iframe:",
+          error
+        );
+      }
+    };
+  }
+}
+
+function showSubscriptionPending() {
+  if (!overlay) {
+    return;
+  }
+
+  const card = overlay.querySelector(".progress-pro-card");
+
+  if (!card) {
+    return;
+  }
+
+  card.innerHTML = `
+    <div style="
+      padding: 48px 32px;
+      text-align: center;
+    ">
+      <div style="
+        font-size: 44px;
+        margin-bottom: 18px;
+      ">
+        ⏳
+      </div>
+
+      <h2 style="
+        margin: 0 0 10px;
+        font-size: 24px;
+      ">
+        Payment received
+      </h2>
+
+      <p style="
+        margin: 0 auto 24px;
+        max-width: 430px;
+        color: #9da7b5;
+        line-height: 1.6;
+      ">
+        Your payment was received, but your Pro subscription
+        is still being confirmed.
+      </p>
+
+      <p style="
+        margin: 0 0 24px;
+        color: #7f8998;
+        font-size: 13px;
+      ">
+        Please close this message and check your subscription
+        again in a few moments.
+      </p>
+
+      <button
+        id="progressProPendingClose"
+        style="
+          width: 100%;
+          max-width: 260px;
+          padding: 12px 20px;
+          border: 0;
+          border-radius: 9px;
+          background: #579dff;
+          color: #ffffff;
+          font-size: 14px;
+          font-weight: 600;
+          cursor: pointer;
+        "
+      >
+        Continue
+      </button>
+    </div>
+  `;
+
+  const closeButton =
+    document.getElementById("progressProPendingClose");
+
+  if (closeButton) {
+    closeButton.onclick = close;
+  }
+}
 
   function render() {
     close();
