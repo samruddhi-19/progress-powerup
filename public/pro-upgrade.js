@@ -148,8 +148,8 @@ async function showSubscriptionConfirmation(t, token) {
     </div>
   `;
 
-  // Give the Dodo webhook a little time to update MongoDB.
-  const maxAttempts = 12;
+  // Check the backend every 2 seconds for up to 60 seconds.
+  const maxAttempts = 30;
   const delay = 2000;
 
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
@@ -158,11 +158,15 @@ async function showSubscriptionConfirmation(t, token) {
         await window.ProgressSubscription.getSubscriptionStatus(token);
 
       console.log(
-        "[Pro Upgrade] Subscription status check:",
+        `[Pro Upgrade] Subscription status check ${attempt + 1}/${maxAttempts}:`,
         status
       );
 
       if (status && status.isPro) {
+        console.log(
+          "[Pro Upgrade] Pro subscription confirmed."
+        );
+
         showProSuccess();
         return;
       }
@@ -178,7 +182,10 @@ async function showSubscriptionConfirmation(t, token) {
     );
   }
 
-  // Webhook did not arrive within the expected time.
+  console.warn(
+    "[Pro Upgrade] Pro subscription was not confirmed within 60 seconds."
+  );
+
   showSubscriptionPending();
 }
 
