@@ -130,14 +130,14 @@ async function showSubscriptionConfirmation(t, token) {
       </h2>
 
       <p style="
-        margin: 0 auto 24px;
-        max-width: 420px;
-        color: #9da7b5;
-        line-height: 1.6;
-      ">
-        Your payment was received. We're confirming your Pro
-        subscription. This may take a few seconds.
-      </p>
+  margin: 0 auto 24px;
+  max-width: 420px;
+  color: #9da7b5;
+  line-height: 1.6;
+">
+  We're confirming your Pro subscription.
+  This may take a few seconds.
+</p>
 
       <div style="
         font-size: 13px;
