@@ -138,13 +138,59 @@
     return Boolean(status && status.isPro);
   }
 
+  /**
+ * Get billing portal links for a paid Pro subscriber.
+ *
+ * Returns:
+ * {
+ *   overview,
+ *   cancelSubscription,
+ *   updatePaymentMethod
+ * }
+ *
+ * @param {string} token Trello REST API token
+ * @returns {Promise<Object|null>}
+ */
+async function getBillingPortal(token) {
+  if (!token) {
+    throw new Error("Trello token is required.");
+  }
+
+  const response = await fetch(
+    `${getApiBaseUrl()}/api/subscription/portal`,
+    {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    }
+  );
+
+  // Free/trial users do not have a billing portal.
+  if (response.status === 404) {
+    return null;
+  }
+
+  if (!response.ok) {
+    const errorText = await response.text();
+
+    throw new Error(
+      `Failed to get billing portal (${response.status}): ${errorText}`
+    );
+  }
+
+  return await response.json();
+}
+
   // Expose the subscription API globally.
   window.ProgressSubscription = {
-    getSubscriptionStatus,
-    startCheckout,
-    getTrialDaysRemaining,
-    hasProAccess,
-    isTrialActive,
-    isPro,
-  };
+  getSubscriptionStatus,
+  startCheckout,
+  getBillingPortal,
+  getTrialDaysRemaining,
+  hasProAccess,
+  isTrialActive,
+  isPro,
+};
 })();

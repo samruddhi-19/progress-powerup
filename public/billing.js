@@ -7,6 +7,7 @@ const t = TrelloPowerUp.iframe({
 let report = null;
 let billTab = "details";
 let subscriptionStatus = null;
+let billingPortal = null;
 
 
 const icon = (p) => `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
@@ -125,63 +126,207 @@ function money(n, decimals){
   return Number(n||0).toLocaleString("en-US",{minimumFractionDigits:decimals,maximumFractionDigits:decimals});
 }
 
+function formatSubscriptionDate(value) {
+  if (!value) {
+    return "";
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  return date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
 // ✅ FIXED: correct logic for each subscription state
 function renderSubscriptionStatus() {
-  if (!subscriptionStatus) return "";
+  if (!subscriptionStatus) {
+    return "";
+  }
 
-  // Active Pro subscriber
+  // =========================================================
+  // ACTIVE PRO
+  // =========================================================
   if (subscriptionStatus.isPro) {
+    const billingButtons = billingPortal
+      ? `
+        <div
+          style="
+            margin-top: 14px;
+            padding-top: 14px;
+            border-top: 1px solid rgba(255,255,255,0.08);
+          "
+        >
+          <div
+            style="
+              font-size: 11px;
+              color: rgba(255,255,255,0.4);
+              text-transform: uppercase;
+              letter-spacing: 0.06em;
+              margin-bottom: 8px;
+            "
+          >
+            Manage billing
+          </div>
+
+          <div
+            style="
+              display: flex;
+              flex-wrap: wrap;
+              gap: 8px;
+            "
+          >
+            <button
+              type="button"
+              class="billing-manage-btn"
+              data-billing-url="${billingPortal.overview || ""}"
+            >
+              📋 Billing overview
+            </button>
+
+            <button
+              type="button"
+              class="billing-manage-btn"
+              data-billing-url="${billingPortal.updatePaymentMethod || ""}"
+            >
+              💳 Update payment
+            </button>
+
+            ${
+              subscriptionStatus.cancelAtPeriodEnd
+                ? `
+                  <button
+                    type="button"
+                    class="billing-manage-btn"
+                    data-billing-url="${billingPortal.overview || ""}"
+                  >
+                    ↩ Reactivate subscription
+                  </button>
+                `
+                : `
+                  <button
+                    type="button"
+                    class="billing-manage-btn billing-cancel-btn"
+                    data-billing-url="${billingPortal.cancelSubscription || ""}"
+                  >
+                    ✕ Cancel subscription
+                  </button>
+                `
+            }
+          </div>
+        </div>
+      `
+      : "";
+
+    let subscriptionMessage = "You have full access to all Pro features.";
+
+    if (subscriptionStatus.cancelAtPeriodEnd) {
+      subscriptionMessage = subscriptionStatus.expiresAt
+        ? `Cancels on ${formatSubscriptionDate(
+            subscriptionStatus.expiresAt
+          )} — you'll keep Pro until then.`
+        : "Your subscription is scheduled to cancel at the end of the current billing period.";
+    } else if (subscriptionStatus.expiresAt) {
+      subscriptionMessage = `Renews on ${formatSubscriptionDate(
+        subscriptionStatus.expiresAt
+      )}.`;
+    }
+
     return `
-  <div class="subscription-status">
-    <div class="status-left">
-      <div class="status-icon">✓</div>
-      <div>
-        <div class="status-title">Pro Active</div>
-        <div class="status-sub">You have full access to all Pro features.</div>
+      <div class="subscription-status">
+        <div class="status-left">
+          <div class="status-icon">✓</div>
+
+          <div>
+            <div class="status-title">Pro Active</div>
+
+            <div class="status-sub">
+              ${subscriptionMessage}
+            </div>
+
+            ${billingButtons}
+          </div>
+        </div>
+
+        <div class="status-right">
+          <div class="status-pill">PRO</div>
+        </div>
       </div>
-    </div>
-    <div class="status-right">
-      <div class="status-pill">PRO</div>
-    </div>
-  </div>`;
+    `;
   }
 
-  // Trial still running
+  // =========================================================
+  // FREE TRIAL
+  // =========================================================
   if (subscriptionStatus.isTrialActive) {
-    const days = window.ProgressSubscription.getTrialDaysRemaining(
-      subscriptionStatus.trialEndsAt
-    );
+    const days =
+      window.ProgressSubscription.getTrialDaysRemaining(
+        subscriptionStatus.trialEndsAt
+      );
+
     return `
-  <div class="subscription-status">
-    <div class="status-left">
-      <div class="status-icon">⏳</div>
-      <div>
-        <div class="status-title">Pro Free Trial</div>
-        <div class="status-sub">${days} day${days === 1 ? "" : "s"} remaining in your trial.</div>
+      <div class="subscription-status">
+        <div class="status-left">
+          <div class="status-icon">⏳</div>
+
+          <div>
+            <div class="status-title">Pro Free Trial</div>
+
+            <div class="status-sub">
+              ${days} day${days === 1 ? "" : "s"} remaining in your trial.
+            </div>
+          </div>
+        </div>
+
+        <div class="status-right">
+          <div class="status-pill">TRIAL</div>
+
+          <button
+            class="upgrade-btn"
+            id="billingUpgradeBtn"
+          >
+            Upgrade to Pro
+          </button>
+        </div>
       </div>
-    </div>
-    <div class="status-right">
-      <div class="status-pill">TRIAL</div>
-      <button class="upgrade-btn" id="billingUpgradeBtn">Upgrade to Pro</button>
-    </div>
-  </div>`;
+    `;
   }
 
-  // Fallback — trial expired
+  // =========================================================
+  // TRIAL EXPIRED
+  // =========================================================
   return `
-  <div class="subscription-status">
-    <div class="status-left">
-      <div class="status-icon">!</div>
-      <div>
-        <div class="status-title">Trial Expired</div>
-        <div class="status-sub">Subscribe to Pro to continue using Pro features.</div>
+    <div class="subscription-status">
+      <div class="status-left">
+        <div class="status-icon">!</div>
+
+        <div>
+          <div class="status-title">Trial Expired</div>
+
+          <div class="status-sub">
+            Subscribe to Pro to continue using Pro features.
+          </div>
+        </div>
+      </div>
+
+      <div class="status-right">
+        <div class="status-pill">EXPIRED</div>
+
+        <button
+          class="upgrade-btn"
+          id="billingSubscribeBtn"
+        >
+          Subscribe to Pro
+        </button>
       </div>
     </div>
-    <div class="status-right">
-      <div class="status-pill">EXPIRED</div>
-      <button class="upgrade-btn" id="billingSubscribeBtn">Subscribe to Pro</button>
-    </div>
-  </div>`;
+  `;
 }
 
 function renderLockedScreen() {
@@ -615,6 +760,27 @@ try {
     subscriptionStatus
   );
 
+  billingPortal = null;
+
+if (subscriptionStatus && subscriptionStatus.isPro) {
+  try {
+    billingPortal =
+      await window.ProgressSubscription.getBillingPortal(token);
+
+    console.log(
+      "Billing portal loaded:",
+      billingPortal
+    );
+  } catch (portalError) {
+    console.warn(
+      "Billing portal could not be loaded:",
+      portalError
+    );
+
+    billingPortal = null;
+  }
+}
+
    if (!window.ProgressSubscription.hasProAccess(subscriptionStatus)) {
       renderLockedScreen();
       return;
@@ -680,6 +846,25 @@ window.progressSubscriptionStatus = subscriptionStatus;
 
 
 renderDashboard();
+
+document
+  .querySelectorAll("[data-billing-url]")
+  .forEach((button) => {
+    button.addEventListener("click", () => {
+      const url = button.getAttribute("data-billing-url");
+
+      if (!url) {
+        console.warn("Billing URL is missing.");
+        return;
+      }
+
+      const newWindow = window.open(url, "_blank");
+
+      if (newWindow) {
+        newWindow.opener = null;
+      }
+    });
+  });
 } // ✅ load() properly closed here
 
 document.documentElement.dataset.theme = "dark";
