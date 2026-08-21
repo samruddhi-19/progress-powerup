@@ -3,7 +3,7 @@
  * Shared Pro upgrade popup for Billing, Reports,
  * and any other Pro-gated area.
  *
- * Plan: $4.99/month
+ * Plan: $4/month
  *
  * Usage:
  *   window.ProgressProUpgrade.open(t);
@@ -769,7 +769,7 @@ function showSubscriptionPending() {
 
             <div class="progress-pro-price-main">
               <span class="progress-pro-amount">
-                $4.99
+                $4
               </span>
 
               <span class="progress-pro-per">
@@ -778,7 +778,7 @@ function showSubscriptionPending() {
             </div>
 
             <div class="progress-pro-monthly">
-              $4.99 / month
+              $4 / month
             </div>
 
           </div>

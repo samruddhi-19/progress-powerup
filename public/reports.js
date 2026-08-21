@@ -441,7 +441,7 @@ function showReportsLocked() {
         <button
           id="subscribeBtn"
           class="subscribe-btn">
-          ✣ Subscribe to Pro Plan ($4.99/mo)
+          ✣ Subscribe to Pro Plan ($4/mo)
         </button>
 
         <button

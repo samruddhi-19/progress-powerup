@@ -210,7 +210,7 @@ function renderLockedScreen() {
         <button
           class="locked-subscribe-btn"
           id="lockedSubscribeBtn">
-          ✨ Subscribe to Pro Plan ($4.99/mo)
+          ✨ Subscribe to Pro Plan ($4/mo)
         </button>
 
         <button
