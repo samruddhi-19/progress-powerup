@@ -238,43 +238,244 @@ function showProSuccess() {
         You now have access to all Pro features.
       </p>
 
-      <button
-        id="progressProContinue"
-        style="
-          width: 100%;
-          max-width: 260px;
-          padding: 12px 20px;
-          border: 0;
-          border-radius: 9px;
-          background: #579dff;
-          color: #ffffff;
-          font-size: 14px;
-          font-weight: 600;
-          cursor: pointer;
-        "
-      >
-        Continue
-      </button>
+      <div style="
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 260px;
+  margin: 0 auto;
+">
+  <button
+    id="progressProManage"
+    style="
+      width: 100%;
+      padding: 12px 20px;
+      border: 0;
+      border-radius: 9px;
+      background: #579dff;
+      color: #ffffff;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+    "
+  >
+    Manage Subscription
+  </button>
+
+  <button
+    id="progressProContinue"
+    style="
+      width: 100%;
+      padding: 12px 20px;
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 9px;
+      background: transparent;
+      color: #ffffff;
+      font-size: 14px;
+      cursor: pointer;
+    "
+  >
+    Continue
+  </button>
+</div>
     </div>
   `;
 
-  const continueButton =
-    document.getElementById("progressProContinue");
+  const manageButton =
+  document.getElementById("progressProManage");
 
-  if (continueButton) {
-    continueButton.onclick = () => {
-      close();
+if (manageButton) {
+  manageButton.onclick = showProManagement;
+}
 
-      // Refresh the current iframe UI if available.
-      try {
-        window.location.reload();
-      } catch (error) {
-        console.warn(
-          "[Pro Upgrade] Unable to reload iframe:",
-          error
-        );
+const continueButton =
+  document.getElementById("progressProContinue");
+
+if (continueButton) {
+  continueButton.onclick = () => {
+    close();
+
+    try {
+      window.location.reload();
+    } catch (error) {
+      console.warn(
+        "[Pro Upgrade] Unable to reload iframe:",
+        error
+      );
+    }
+  };
+}
+}
+
+async function showProManagement() {
+  if (!overlay) {
+    return;
+  }
+
+  const card = overlay.querySelector(".progress-pro-card");
+
+  if (!card) {
+    return;
+  }
+
+  const t = getIframe();
+
+  if (!t || typeof t.getRestApi !== "function") {
+    return;
+  }
+
+  try {
+    const token = await t.getRestApi().getToken();
+
+    const portal =
+      await window.ProgressSubscription.getBillingPortal(token);
+
+    if (!portal) {
+      alert("Billing management is not available.");
+      return;
+    }
+
+    card.innerHTML = `
+      <div style="
+        padding: 42px 32px;
+      ">
+        <div style="
+          text-align: center;
+          margin-bottom: 28px;
+        ">
+          <div style="
+            font-size: 42px;
+            margin-bottom: 12px;
+          ">
+            ✓
+          </div>
+
+          <h2 style="
+            margin: 0 0 8px;
+            font-size: 24px;
+          ">
+            You're on Pro 🎉
+          </h2>
+
+          <p style="
+            margin: 0;
+            color: #9da7b5;
+            line-height: 1.5;
+          ">
+            Manage your Pro subscription below.
+          </p>
+        </div>
+
+        <div style="
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+        ">
+
+          <button
+            type="button"
+            id="progressBillingOverview"
+            style="
+              width: 100%;
+              padding: 13px 16px;
+              border: 1px solid rgba(255,255,255,0.12);
+              border-radius: 9px;
+              background: rgba(255,255,255,0.05);
+              color: #ffffff;
+              cursor: pointer;
+              font-size: 13px;
+            "
+          >
+            📋 Billing overview
+          </button>
+
+          <button
+            type="button"
+            id="progressUpdatePayment"
+            style="
+              width: 100%;
+              padding: 13px 16px;
+              border: 1px solid rgba(255,255,255,0.12);
+              border-radius: 9px;
+              background: rgba(255,255,255,0.05);
+              color: #ffffff;
+              cursor: pointer;
+              font-size: 13px;
+            "
+          >
+            💳 Update payment method
+          </button>
+
+          <button
+            type="button"
+            id="progressCancelSubscription"
+            style="
+              width: 100%;
+              padding: 13px 16px;
+              border: 1px solid rgba(255,120,120,0.20);
+              border-radius: 9px;
+              background: rgba(255,80,80,0.06);
+              color: #ff8a8a;
+              cursor: pointer;
+              font-size: 13px;
+            "
+          >
+            ✕ Cancel subscription
+          </button>
+
+        </div>
+
+        <button
+          type="button"
+          id="progressProManagementClose"
+          style="
+            display: block;
+            width: 100%;
+            margin-top: 18px;
+            padding: 11px;
+            border: 0;
+            background: transparent;
+            color: #8d98a8;
+            cursor: pointer;
+            font-size: 12px;
+          "
+        >
+          Close
+        </button>
+      </div>
+    `;
+
+    document.getElementById("progressBillingOverview").onclick = () => {
+      if (portal.overview) {
+        window.open(portal.overview, "_blank");
       }
     };
+
+    document.getElementById("progressUpdatePayment").onclick = () => {
+      if (portal.updatePaymentMethod) {
+        window.open(portal.updatePaymentMethod, "_blank");
+      }
+    };
+
+    document.getElementById("progressCancelSubscription").onclick = () => {
+      if (portal.cancelSubscription) {
+        window.open(portal.cancelSubscription, "_blank");
+      }
+    };
+
+    document.getElementById("progressProManagementClose").onclick =
+      close;
+
+  } catch (error) {
+    console.error(
+      "[Pro Upgrade] Failed to load billing portal:",
+      error
+    );
+
+    alert(
+      error?.message ||
+        "Unable to load billing management."
+    );
   }
 }
 
