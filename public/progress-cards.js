@@ -320,25 +320,19 @@ function updateTrialStatus() {
   }
 
   if (subscriptionStatus.isPro) {
-    text.textContent = "Pro";
-    pill.hidden = false;
+  text.textContent = "Pro";
+  pill.hidden = false;
 
-    // Existing Pro users can reopen the Pro management screen.
-    pill.onclick = async function () {
-      try {
-        const token = await t.getRestApi().getToken();
+  pill.onclick = function () {
+    const modal = qs("proManagementModal");
 
-        await window.ProgressProUpgrade.openManagement(t, token);
-      } catch (error) {
-        console.error(
-          "[ProgressCards] Failed to open Pro management:",
-          error
-        );
-      }
-    };
+    if (modal) {
+      modal.hidden = false;
+    }
+  };
 
-    return;
-  }
+  return;
+}
 
   pill.hidden = true;
   pill.onclick = null;
@@ -576,6 +570,26 @@ function bindGear() {
   bindGear();
   bindTabs();
   qs("startMappingBtn").addEventListener("click", startMapping);
+
+   // Pro management modal
+  const proManagementClose = qs("proManagementClose");
+  const proManagementModal = qs("proManagementModal");
+
+  if (proManagementClose) {
+    proManagementClose.addEventListener("click", function () {
+      if (proManagementModal) {
+        proManagementModal.hidden = true;
+      }
+    });
+  }
+
+  if (proManagementModal) {
+    proManagementModal.addEventListener("click", function (event) {
+      if (event.target === proManagementModal) {
+        proManagementModal.hidden = true;
+      }
+    });
+  }
 
   // Check auth first — show inline auth if not authorized
   const all = await t.getAll();
