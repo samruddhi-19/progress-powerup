@@ -3,6 +3,34 @@
 
   const app = document.getElementById("app");
 
+  const STYLES = `
+    .pm { width: 100%; }
+    .pm-row { display: flex; align-items: center; gap: 12px; padding: 16px 20px; }
+    .pm-icon { flex: 0 0 auto; width: 32px; height: 32px; border-radius: 7px;
+      background: rgba(87, 157, 255, 0.14); color: #7ab2ff;
+      display: flex; align-items: center; justify-content: center; }
+    .pm-title { margin: 0; font-size: 14px; font-weight: 600; color: #ffffff; }
+    .pm-badge { margin-left: auto; flex: 0 0 auto; padding: 3px 9px; border-radius: 999px;
+      background: rgba(87, 199, 133, 0.14); color: #6fd99a;
+      font-size: 10.5px; font-weight: 600; letter-spacing: 0.02em; }
+    .pm-price { margin: 2px 0 0; font-size: 12px; color: #9aa4b2; }
+    .pm-divider { height: 1px; background: rgba(255, 255, 255, 0.08); margin: 0 20px; }
+    .pm-list { padding: 6px 8px; }
+    .pm-item { width: 100%; display: flex; align-items: center; gap: 12px; text-align: left;
+      padding: 10px 12px; border: 0; border-radius: 7px; background: transparent;
+      color: #ffffff; cursor: pointer; font-family: inherit; }
+    .pm-item:hover { background: rgba(255, 255, 255, 0.05); }
+    .pm-item:disabled { opacity: 0.55; cursor: wait; }
+    .pm-item-icon { flex: 0 0 auto; color: #9aa4b2; display: flex; }
+    .pm-item-text { flex: 1; min-width: 0; }
+    .pm-item-label { display: block; font-size: 13px; font-weight: 500; color: #ffffff; }
+    .pm-item-desc { display: block; margin-top: 1px; font-size: 11.5px; color: #838d9a;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .pm-chevron { flex: 0 0 auto; color: #565f6c; display: flex; }
+    .pm-item.danger .pm-item-icon { color: #f47b7b; }
+    .pm-item.danger .pm-item-label { color: #f47b7b; }
+  `;
+
   function esc(value) {
     return String(value ?? "")
       .replace(/&/g, "&amp;")
@@ -23,8 +51,8 @@
     });
   }
 
-  const icon = (paths) =>
-    `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${paths}</svg>`;
+  const icon = (paths, size) =>
+    `<svg width="${size || 18}" height="${size || 18}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${paths}</svg>`;
 
   const ICONS = {
     chart: '<path d="M4 20V10M12 20V4M20 20v-7"/>',
@@ -43,51 +71,57 @@
           status.nextBillingDate)) ||
       null;
 
-    const renewLine = renewsAt
+    const priceLine = renewsAt
       ? `$4 per month &middot; renews ${esc(fmtDate(renewsAt))}`
       : "$4 per month";
 
     app.innerHTML = `
-    <div class="pro-management">
-      <div class="pm-header">
-        <div class="pm-header-top">
-          <div class="pm-icon">${icon(ICONS.chart)}</div>
+      <style>${STYLES}</style>
+
+      <div class="pm">
+        <div class="pm-row">
+          <div class="pm-icon">${icon(ICONS.chart, 16)}</div>
           <div>
-            <p class="pm-eyebrow">Power-up</p>
-            <h1 class="pm-title">Progress Pro</h1>
+            <p class="pm-title">Progress Pro</p>
+            <p class="pm-price">${priceLine}</p>
           </div>
+          <span class="pm-badge">Active</span>
         </div>
-        <p class="pm-sub">You're on Pro. ${renewLine}</p>
-      </div>
 
-      <div class="pm-actions">
-        <button type="button" class="pm-action" id="billingOverview">
-          <span class="pm-action-icon">${icon(ICONS.receipt)}</span>
-          <span class="pm-action-text">
-            <span class="pm-action-label">Billing overview</span>
-            <span class="pm-action-desc">Invoices and payment history</span>
-          </span>
-          <span class="pm-action-chevron">${icon(ICONS.chevron)}</span>
-        </button>
+        <div class="pm-divider"></div>
 
-        <button type="button" class="pm-action" id="updatePayment">
-          <span class="pm-action-icon">${icon(ICONS.card)}</span>
-          <span class="pm-action-text">
-            <span class="pm-action-label">Update payment method</span>
-            <span class="pm-action-desc">Manage your card on file</span>
-          </span>
-          <span class="pm-action-chevron">${icon(ICONS.chevron)}</span>
-        </button>
-      </div>
+        <div class="pm-list">
+          <button type="button" class="pm-item" id="billingOverview">
+            <span class="pm-item-icon">${icon(ICONS.receipt)}</span>
+            <span class="pm-item-text">
+              <span class="pm-item-label">Billing overview</span>
+              <span class="pm-item-desc">Invoices and payment history</span>
+            </span>
+            <span class="pm-chevron">${icon(ICONS.chevron, 15)}</span>
+          </button>
 
-      <div class="pm-footer">
-        <button type="button" class="pm-cancel" id="cancelSubscription">
-          ${icon(ICONS.x)}
-          Cancel subscription
-        </button>
+          <button type="button" class="pm-item" id="updatePayment">
+            <span class="pm-item-icon">${icon(ICONS.card)}</span>
+            <span class="pm-item-text">
+              <span class="pm-item-label">Update payment method</span>
+              <span class="pm-item-desc">Manage your card on file</span>
+            </span>
+            <span class="pm-chevron">${icon(ICONS.chevron, 15)}</span>
+          </button>
+        </div>
+
+        <div class="pm-divider"></div>
+
+        <div class="pm-list">
+          <button type="button" class="pm-item danger" id="cancelSubscription">
+            <span class="pm-item-icon">${icon(ICONS.x)}</span>
+            <span class="pm-item-text">
+              <span class="pm-item-label">Cancel subscription</span>
+            </span>
+          </button>
+        </div>
       </div>
-    </div>
-  `;
+    `;
 
     document
       .getElementById("billingOverview")
@@ -104,11 +138,23 @@
       .addEventListener("click", (e) =>
         onAction(e.currentTarget, "cancelSubscription")
       );
+
+    resizeToContent();
   }
 
   render(null);
 
+  function resizeToContent() {
+    if (trelloIframe && typeof trelloIframe.sizeTo === "function") {
+      trelloIframe.sizeTo("#app").catch(function () {});
+    }
+  }
+
+  let trelloIframe = null;
+
   async function getTrelloIframe() {
+    if (trelloIframe) return trelloIframe;
+
     if (
       !window.TrelloPowerUp ||
       typeof window.TrelloPowerUp.iframe !== "function"
@@ -116,10 +162,12 @@
       throw new Error("Trello Power-Up API is not available.");
     }
 
-    return window.TrelloPowerUp.iframe({
+    trelloIframe = window.TrelloPowerUp.iframe({
       appKey: window.ProgressConfig.API_KEY,
       appName: window.ProgressConfig.APP_NAME,
     });
+
+    return trelloIframe;
   }
 
   async function getBillingPortal() {
@@ -150,7 +198,6 @@
   }
 
   async function onAction(button, portalKey) {
-    const originalHtml = button.innerHTML;
     button.disabled = true;
 
     try {
@@ -161,7 +208,6 @@
       }
     } finally {
       button.disabled = false;
-      button.innerHTML = originalHtml;
     }
   }
 
@@ -170,6 +216,8 @@
   (async function loadStatus() {
     try {
       const t = await getTrelloIframe();
+      resizeToContent();
+
       const token = await t.getRestApi().getToken();
       const status = await window.ProgressSubscription.getSubscriptionStatus(
         token
