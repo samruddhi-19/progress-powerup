@@ -323,13 +323,14 @@ function updateTrialStatus() {
   text.textContent = "Pro";
   pill.hidden = false;
 
-  pill.onclick = function () {
-    t.modal({
-      url: "./pro-management.html",
-      title: "Progress Pro",
-      height: 500,
-    });
-  };
+  pill.onclick = function (e) {
+  t.popup({
+    title: "Progress Pro",
+    url: "./pro-management.html",
+    height: 280,
+    mouseEvent: e,
+  });
+};
 
   return;
 }

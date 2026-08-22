@@ -2,6 +2,7 @@
   "use strict";
 
   const app = document.getElementById("app");
+  let trelloIframe = null;
 
   function esc(value) {
     return String(value ?? "")
@@ -111,8 +112,6 @@
   }
 
   render(null);
-
-  let trelloIframe = null;
 
   function resizeToContent() {
     if (trelloIframe && typeof trelloIframe.sizeTo === "function") {
