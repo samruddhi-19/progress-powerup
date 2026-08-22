@@ -1061,8 +1061,16 @@
   }
 
   window.ProgressProUpgrade = {
-    init,
-    open,
-    close,
-  };
+  init,
+  open,
+  openManagement: async function (t) {
+    if (t) {
+      trelloIframe = t;
+    }
+
+    render();
+    await showProManagement();
+  },
+  close,
+};
 })();

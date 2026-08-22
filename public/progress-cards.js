@@ -312,16 +312,36 @@ function updateTrialStatus() {
       `${days} day${days === 1 ? "" : "s"} remaining`;
 
     pill.hidden = false;
+
+    // Trial users should not open the Pro management screen.
+    pill.onclick = null;
+
     return;
   }
 
   if (subscriptionStatus.isPro) {
     text.textContent = "Pro";
     pill.hidden = false;
+
+    // Existing Pro users can reopen the Pro management screen.
+    pill.onclick = async function () {
+      try {
+        const token = await t.getRestApi().getToken();
+
+        await window.ProgressProUpgrade.openManagement(t, token);
+      } catch (error) {
+        console.error(
+          "[ProgressCards] Failed to open Pro management:",
+          error
+        );
+      }
+    };
+
     return;
   }
 
   pill.hidden = true;
+  pill.onclick = null;
 }
 
 
