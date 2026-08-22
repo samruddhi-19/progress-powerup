@@ -626,82 +626,7 @@
         }
       }
 
-      /* Pro Management Modal */
-.pro-management-modal {
-  position: fixed;
-  inset: 0;
-  z-index: 9999;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.pro-management-modal[hidden] {
-  display: none;
-}
-
-.pro-management-overlay {
-  position: absolute;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.45);
-}
-
-.pro-management-dialog {
-  position: relative;
-  z-index: 1;
-  width: min(420px, calc(100% - 32px));
-  padding: 28px;
-  background: #ffffff;
-  border-radius: 16px;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
-  text-align: center;
-}
-
-.pro-management-close {
-  position: absolute;
-  top: 10px;
-  right: 14px;
-  border: none;
-  background: transparent;
-  font-size: 26px;
-  line-height: 1;
-  cursor: pointer;
-}
-
-.pro-management-icon {
-  font-size: 42px;
-  margin-bottom: 8px;
-}
-
-.pro-management-dialog h2 {
-  margin: 0;
-  font-size: 24px;
-}
-
-.pro-management-subtitle {
-  margin: 8px 0 22px;
-  color: #666;
-}
-
-.pro-management-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.pro-management-action {
-  width: 100%;
-  padding: 12px 16px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  background: #fff;
-  cursor: pointer;
-  font-size: 14px;
-}
-
-.pro-management-action:hover {
-  background: #f5f5f5;
-}
+     
     </style>
   </head>
 
@@ -777,60 +702,7 @@
   <span id="trialStatusText">7 days remaining</span>
 </button>
 
-<!-- Pro Management Modal -->
-<div id="proManagementModal" class="pro-management-modal" hidden>
-  <div class="pro-management-overlay"></div>
 
-  <div
-    class="pro-management-dialog"
-    role="dialog"
-    aria-modal="true"
-    aria-labelledby="proManagementTitle"
-  >
-    <button
-      type="button"
-      id="proManagementClose"
-      class="pro-management-close"
-      aria-label="Close"
-    >
-      ×
-    </button>
-
-    <div class="pro-management-icon">🎉</div>
-
-    <h2 id="proManagementTitle">You're on Pro!</h2>
-
-    <p class="pro-management-subtitle">
-      Manage your Pro subscription
-    </p>
-
-    <div id="proManagementActions" class="pro-management-actions">
-      <button
-        type="button"
-        id="proBillingOverview"
-        class="pro-management-action"
-      >
-        Billing Overview
-      </button>
-
-      <button
-        type="button"
-        id="proUpdatePayment"
-        class="pro-management-action"
-      >
-        Update Payment Method
-      </button>
-
-      <button
-        type="button"
-        id="proCancelSubscription"
-        class="pro-management-action"
-      >
-        Cancel Subscription
-      </button>
-    </div>
-  </div>
-</div>
 
     <script src="./config.js"></script>
 <script src="./subscription.js"></script>

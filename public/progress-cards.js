@@ -324,11 +324,11 @@ function updateTrialStatus() {
   pill.hidden = false;
 
   pill.onclick = function () {
-    const modal = qs("proManagementModal");
-
-    if (modal) {
-      modal.hidden = false;
-    }
+    t.modal({
+      url: "./pro-management.html",
+      title: "Progress Pro",
+      height: 500,
+    });
   };
 
   return;
