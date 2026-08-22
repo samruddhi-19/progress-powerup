@@ -36,9 +36,12 @@
         throw new Error("Trello Power-Up API is not available.");
       }
 
-      const t = window.TrelloPowerUp.iframe();
+      const t = window.TrelloPowerUp.iframe({
+  appKey: window.ProgressConfig.API_KEY,
+  appName: window.ProgressConfig.APP_NAME,
+});
 
-      const token = await t.getRestApi().getToken();
+const token = await t.getRestApi().getToken();
 
       const portal =
         await window.ProgressSubscription.getBillingPortal(token);
