@@ -26,4 +26,70 @@
       </div>
     </div>
   `;
+
+  async function getBillingPortal() {
+    try {
+      if (
+        !window.TrelloPowerUp ||
+        typeof window.TrelloPowerUp.iframe !== "function"
+      ) {
+        throw new Error("Trello Power-Up API is not available.");
+      }
+
+      const t = window.TrelloPowerUp.iframe();
+
+      const token = await t.getRestApi().getToken();
+
+      const portal =
+        await window.ProgressSubscription.getBillingPortal(token);
+
+      if (!portal) {
+        alert("Billing management is not available.");
+        return null;
+      }
+
+      return portal;
+    } catch (error) {
+      console.error(
+        "[Pro Management] Failed to load billing portal:",
+        error
+      );
+
+      alert(
+        "Unable to load billing management. Please try again."
+      );
+
+      return null;
+    }
+  }
+
+  document
+    .getElementById("billingOverview")
+    .addEventListener("click", async () => {
+      const portal = await getBillingPortal();
+
+      if (portal && portal.overview) {
+        window.open(portal.overview, "_blank");
+      }
+    });
+
+  document
+    .getElementById("updatePayment")
+    .addEventListener("click", async () => {
+      const portal = await getBillingPortal();
+
+      if (portal && portal.updatePaymentMethod) {
+        window.open(portal.updatePaymentMethod, "_blank");
+      }
+    });
+
+  document
+    .getElementById("cancelSubscription")
+    .addEventListener("click", async () => {
+      const portal = await getBillingPortal();
+
+      if (portal && portal.cancelSubscription) {
+        window.open(portal.cancelSubscription, "_blank");
+      }
+    });
 })();
